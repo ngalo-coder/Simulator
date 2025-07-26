@@ -1,0 +1,14 @@
+{
+    "scripts": {
+        "install-all": "concurrently \"cd user-service && npm install\" \"cd simulation-service && npm install\" \"cd clinical-service && npm install\"",
+        "dev:all": "concurrently \"npm run dev:user\" \"npm run dev:simulation\" \"npm run dev:clinical\"",
+        "dev:user": "cd user-service && npm run dev",
+        "dev:simulation": "cd simulation-service && npm run dev",
+        "dev:clinical": "cd clinical-service && npm run dev",
+        "test:all": "concurrently \"cd user-service && npm test\" \"cd simulation-service && npm test\" \"cd clinical-service && npm test\"",
+        "build:all": "concurrently \"cd user-service && npm run build\" \"cd simulation-service && npm run build\" \"cd clinical-service && npm run build\""
+    },
+    "dependencies": {
+        "mongodb": "^6.18.0"
+    }
+}
