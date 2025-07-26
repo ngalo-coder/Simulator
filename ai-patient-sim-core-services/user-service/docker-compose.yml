@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # MongoDB for local development (optional - you can use Atlas instead)
+  mongodb:
+    image: mongo:7
+    container_name: ai-patient-sim-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongodb_data:/data/db
+
+  # User Service
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/ai_patient_sim_users?authSource=admin
+      - JWT_SECRET=development-jwt-secret
+      - PORT=3001
+      - NODE_ENV=development
+    depends_on:
+      - mongodb
+    volumes:
+      - ./user-service:/app
+      - /app/node_modules
+
+  # API Gateway (if you want to run it locally too)
+  api-gateway:
+    build:
+      context: ../ai-patient-sim-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - USER_SERVICE_URL=http://user-service:3001
+      - PORT=3000
+      - NODE_ENV=development
+    depends_on:
+      - user-service
+
+volumes:
+  mongodb_data:
