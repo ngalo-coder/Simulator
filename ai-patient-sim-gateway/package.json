@@ -1,10 +1,28 @@
 {
   "name": "ai-patient-sim-gateway",
   "version": "1.0.0",
-  "description": "Gateway service for AI Patient Simulation",
+  "description": "API Gateway for AI Patient Simulation Platform",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.8.1",
+    "http-proxy-middleware": "^2.0.6",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["api-gateway", "microservices", "healthcare", "ai"],
+  "author": "Your Name",
+  "license": "MIT"
 }

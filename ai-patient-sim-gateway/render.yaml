@@ -1,4 +1,3 @@
-# ai-patient-sim-gateway/render.yaml
 services:
   - type: web
     name: api-gateway
@@ -9,14 +8,18 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
+      # Service URLs (will be empty initially - add as you deploy services)
       - key: USER_SERVICE_URL
-        value: https://user-service-abc123.onrender.com
-      - key: SIMULATION_SERVICE_URL  
-        value: https://simulation-service-def456.onrender.com
+        value: ""
+      - key: SIMULATION_SERVICE_URL
+        value: ""
       - key: CLINICAL_SERVICE_URL
-        value: https://clinical-service-ghi789.onrender.com
+        value: ""
       - key: CASE_SERVICE_URL
-        value: https://case-service.cyclic.sh
+        value: ""
       - key: ANALYTICS_SERVICE_URL
-        value: https://analytics-service.vercel.app
+        value: ""
+      - key: FRONTEND_URL
+        value: ""
+    healthCheckPath: /health
