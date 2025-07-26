@@ -1,6 +1,5 @@
 # ai-patient-sim-core-services/render.yaml
 services:
-  # User Service
   - type: web
     name: user-service
     env: node
@@ -8,26 +7,15 @@ services:
     startCommand: cd user-service && npm start
     envVars:
       - key: NODE_ENV
-        value: production     
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        value: mongodb+srv://username:password@cluster0.mongodb.net/ai_patient_sim_users
       - key: JWT_SECRET
         generateValue: true
-
-  # Simulation Service  
-  - type: web
-    name: simulation-service
-    env: node
-    buildCommand: cd simulation-service && npm install
-    startCommand: cd simulation-service && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production      
-
-  # Clinical Service
-  - type: web
-    name: clinical-service
-    env: node  
-    buildCommand: cd clinical-service && npm install
-    startCommand: cd clinical-service && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
+      - key: FRONTEND_URL
+        value: ""
+      - key: GATEWAY_URL
+        value: ""
+    healthCheckPath: /health
