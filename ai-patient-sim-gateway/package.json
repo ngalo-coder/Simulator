@@ -1,0 +1,10 @@
+{
+  "name": "ai-patient-sim-gateway",
+  "version": "1.0.0",
+  "description": "Gateway service for AI Patient Simulation",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {}
+}
