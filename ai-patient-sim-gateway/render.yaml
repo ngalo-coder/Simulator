@@ -1,0 +1,22 @@
+# ai-patient-sim-gateway/render.yaml
+services:
+  - type: web
+    name: api-gateway
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: USER_SERVICE_URL
+        value: https://user-service-abc123.onrender.com
+      - key: SIMULATION_SERVICE_URL  
+        value: https://simulation-service-def456.onrender.com
+      - key: CLINICAL_SERVICE_URL
+        value: https://clinical-service-ghi789.onrender.com
+      - key: CASE_SERVICE_URL
+        value: https://case-service.cyclic.sh
+      - key: ANALYTICS_SERVICE_URL
+        value: https://analytics-service.vercel.app
