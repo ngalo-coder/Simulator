@@ -9,9 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
-      - key: MONGODB_URI
-        value: mongodb+srv://username:password@cluster0.mongodb.net/ai_patient_sim_users
+        value: 10000      
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
