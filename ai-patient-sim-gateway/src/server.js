@@ -213,8 +213,47 @@ app.get('/', (req, res) => {
   });
 });
 
-// Service route configurations
-app.use('/api/users', createProxy(services.users, { '^/api/users': '' }));
+// Service route configurations with improved error handling
+app.use('/api/users', createProxyMiddleware({
+  target: services.users,
+  changeOrigin: true,
+  pathRewrite: { '^/api/users': '' },
+  timeout: 60000,
+  proxyTimeout: 60000,
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${services.users}`);
+    console.log(`📍 Target path: ${services.users}${req.url.replace('/api/users', '')}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`❌ Proxy error for ${services.users}:`, {
+      message: err.message,
+      code: err.code,
+      url: req.originalUrl,
+      method: req.method
+    });
+    
+    if (!res.headersSent) {
+      if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+        res.status(503).json({
+          error: 'Service temporarily unavailable',
+          message: 'User service is starting up or experiencing connectivity issues',
+          code: err.code,
+          retry: true
+        });
+      } else {
+        res.status(500).json({
+          error: 'Proxy error',
+          message: err.message,
+          code: err.code
+        });
+      }
+    }
+  }
+}));
+
 app.use('/api/simulation', createProxy(services.simulation, { '^/api/simulation': '' }));
 app.use('/api/clinical', createProxy(services.clinical, { '^/api/clinical': '' }));
 app.use('/api/cases', createProxy(services.cases, { '^/api/cases': '' }));

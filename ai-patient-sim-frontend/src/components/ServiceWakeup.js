@@ -9,9 +9,8 @@ const ServiceWakeup = ({ children }) => {
       try {
         console.log('🔄 Waking up services...');
         
-        // Wake up gateway and user service
+        // Wake up user service directly
         const promises = [
-          axios.get('https://ai-patient-sim-gateway.onrender.com/health', { timeout: 30000 }),
           axios.get('https://simulator-zpen.onrender.com/health', { timeout: 30000 })
         ];
 
