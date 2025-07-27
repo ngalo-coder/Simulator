@@ -72,13 +72,13 @@ const retryRequest = async (requestFn, maxRetries = 3) => {
   }
 };
 
-// API functions with retry logic - using direct user service paths
+// API functions with retry logic
 export const authAPI = {
-  register: (userData) => retryRequest(() => api.post('/auth/register', userData)),
-  login: (credentials) => retryRequest(() => api.post('/auth/login', credentials)),
-  getProfile: () => retryRequest(() => api.get('/auth/profile')),
-  updateProfile: (profileData) => retryRequest(() => api.put('/auth/profile', profileData)),
-  logout: () => retryRequest(() => api.post('/auth/logout')),
+  register: (userData) => retryRequest(() => api.post('/api/users/auth/register', userData)),
+  login: (credentials) => retryRequest(() => api.post('/api/users/auth/login', credentials)),
+  getProfile: () => retryRequest(() => api.get('/api/users/auth/profile')),
+  updateProfile: (profileData) => retryRequest(() => api.put('/api/users/auth/profile', profileData)),
+  logout: () => retryRequest(() => api.post('/api/users/auth/logout')),
 };
 
 export const healthAPI = {
