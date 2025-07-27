@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // API base URL - will use environment variable in production
-const API_BASE_URL = 'https://ai-patient-sim-gateway.onrender.com';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://ai-patient-sim-gateway.onrender.com'
+  : 'http://localhost:3001'; // Direct connection for local development
 console.log('🔗 API Base URL:', API_BASE_URL);
 
 // Create axios instance
@@ -46,13 +48,45 @@ api.interceptors.response.use(
   }
 );
 
-// API functions
+// Retry function for handling sleeping services
+const retryRequest = async (requestFn, maxRetries = 2) => {
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      if (i === maxRetries) throw error;
+      
+      // If it's a 503 or timeout, wait and retry
+      if (error.response?.status === 503 || error.code === 'ECONNABORTED') {
+        console.log(`🔄 Retrying request (attempt ${i + 2}/${maxRetries + 1})...`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      } else {
+        throw error; // Don't retry other errors
+      }
+    }
+  }
+};
+
+// API functions with retry logic
 export const authAPI = {
-  register: (userData) => api.post('/api/users/auth/register', userData),
-  login: (credentials) => api.post('/api/users/auth/login', credentials),
-  getProfile: () => api.get('/api/users/auth/profile'),
-  updateProfile: (profileData) => api.put('/api/users/auth/profile', profileData),
-  logout: () => api.post('/api/users/auth/logout'),
+  register: (userData) => retryRequest(() => api.post(
+    process.env.NODE_ENV === 'production' ? '/api/users/auth/register' : '/auth/register', 
+    userData
+  )),
+  login: (credentials) => retryRequest(() => api.post(
+    process.env.NODE_ENV === 'production' ? '/api/users/auth/login' : '/auth/login', 
+    credentials
+  )),
+  getProfile: () => retryRequest(() => api.get(
+    process.env.NODE_ENV === 'production' ? '/api/users/auth/profile' : '/auth/profile'
+  )),
+  updateProfile: (profileData) => retryRequest(() => api.put(
+    process.env.NODE_ENV === 'production' ? '/api/users/auth/profile' : '/auth/profile', 
+    profileData
+  )),
+  logout: () => retryRequest(() => api.post(
+    process.env.NODE_ENV === 'production' ? '/api/users/auth/logout' : '/auth/logout'
+  )),
 };
 
 export const healthAPI = {
