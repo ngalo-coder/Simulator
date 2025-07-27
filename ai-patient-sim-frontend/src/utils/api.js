@@ -2,6 +2,7 @@ import axios from 'axios';
 
 // API base URL - will use environment variable in production
 const API_BASE_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:3000';
+console.log(API_BASE_URL)
 
 // Create axios instance
 const api = axios.create({

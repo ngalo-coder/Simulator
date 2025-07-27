@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+
+# Allow all other pages
+Allow: /
+
+# Sitemap
+Sitemap: https://your-frontend-url.netlify.app/sitemap.xml

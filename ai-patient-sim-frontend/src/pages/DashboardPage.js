@@ -109,7 +109,7 @@ const DashboardPage = () => {
                   <div className="ml-4">
                     <dt className="text-sm font-medium text-gray-500">Member Since</dt>
                     <dd className="text-sm text-gray-900">
-                      {new Date(user?.createdAt).toLocaleDateString()}
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                     </dd>
                   </div>
                 </div>
@@ -184,3 +184,6 @@ const DashboardPage = () => {
     </div>
   );
 };
+
+// ✅ THIS IS THE MISSING EXPORT!
+export default DashboardPage;
