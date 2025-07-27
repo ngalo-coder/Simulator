@@ -51,16 +51,28 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB connection
+console.log('Attempting to connect to MongoDB...');
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 30000, // 30 second timeout
+    socketTimeoutMS: 45000, // 45 second timeout
   })
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err);
     process.exit(1);
   });
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
+  console.log('MongoDB connection is open.');
+});
+db.on('disconnected', () => {
+  console.log('MongoDB disconnected.');
+});
 
 // Health check
 app.get('/health', (req, res) => {
