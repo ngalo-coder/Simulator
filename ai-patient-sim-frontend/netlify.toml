@@ -1,25 +1,29 @@
-# ai-patient-sim-frontend/netlify.toml
 [build]
   publish = "build"
   command = "npm run build"
 
 [build.environment]
-  REACT_APP_API_GATEWAY_URL = "https://api-gateway-abc123.onrender.com"
+  REACT_APP_API_GATEWAY_URL = "https://ai-patient-sim-gateway.onrender.com"
   REACT_APP_ENVIRONMENT = "production"
 
-# Proxy API calls to your backend during development
+# Proxy API calls during development
 [[redirects]]
   from = "/api/*"
-  to = "https://api-gateway-abc123.onrender.com/api/:splat"
+  to = "https://ai-patient-sim-gateway.onrender.com"
   status = 200
   force = true
 
-# SPA redirect - all routes go to index.html
+# SPA redirect - all routes go to index.html  
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Enable Netlify Functions (if you want to use them later)
-[functions]
-  directory = "netlify/functions"
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
