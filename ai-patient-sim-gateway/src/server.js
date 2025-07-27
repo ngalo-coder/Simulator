@@ -90,45 +90,37 @@ app.get('/', (req, res) => {
   });
 });
 
-// FIX: Improved proxy configuration
+// Replace the createProxy function (around line 80):
 const createProxy = (target, pathRewrite) => {
-  console.log(`🔗 Creating proxy for target: ${target}`);
-  
-  if (!target || target === 'http://localhost:3002' || target === 'http://localhost:3003' || target === 'http://localhost:3004' || target === 'http://localhost:3005') {
-    // Return a fallback for services that don't exist yet
-    return (req, res, next) => {
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: 'Service is being deployed or configured',
-        retry: true,
-        requestedService: target
-      });
-    };
-  }
-
-  return createProxyMiddleware({
-    target,
-    changeOrigin: true,
-    pathRewrite,
-    timeout: 30000,
-    onError: (err, req, res) => {
-      console.error(`❌ Proxy error for ${target}:`, err.message);
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: 'The requested service is currently down',
-        retry: true,
-        target: target,
-        errorMessage: err.message
-      });
-    },
-    onProxyReq: (proxyReq, req, res) => {
-      console.log(`🔄 Proxying ${req.method} ${req.url} to ${target}`);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`✅ Response from ${target}: ${proxyRes.statusCode}`);
+    console.log(`🔗 Creating proxy for target: ${target}`);
+    
+    if (!target || target.includes('localhost:3002') || target.includes('localhost:3003') || target.includes('localhost:3004') || target.includes('localhost:3005')) {
+      return (req, res, next) => {
+        res.status(503).json({
+          error: 'Service temporarily unavailable',
+          message: 'Service is being deployed or configured',
+          retry: true
+        });
+      };
     }
-  });
-};
+  
+    // ✅ SIMPLE PROXY - No custom body handling
+    return createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      pathRewrite,
+      timeout: 30000,
+      onError: (err, req, res) => {
+        console.error(`❌ Proxy error for ${target}:`, err.message);
+        if (!res.headersSent) {
+          res.status(503).json({
+            error: 'Service temporarily unavailable',
+            message: err.message
+          });
+        }
+      }
+    });
+  };
 
 // Route proxying
 app.use('/api/users', createProxyMiddleware({
