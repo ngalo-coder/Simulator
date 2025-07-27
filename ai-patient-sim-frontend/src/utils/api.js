@@ -1,10 +1,7 @@
 import axios from 'axios';
 
-// API base URL - hardcoded to user service for reliability
-const API_BASE_URL = 'https://simulator-zpen.onrender.com';
-console.log('🔗 API Base URL:', API_BASE_URL);
-console.log('🔗 Environment:', process.env.NODE_ENV);
-console.log('🔗 Gateway URL env:', process.env.REACT_APP_API_GATEWAY_URL);
+// Use the gateway URL from environment variables, with a fallback for development
+const API_BASE_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:4000';
 
 // Create axios instance
 const api = axios.create({
