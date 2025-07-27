@@ -12,11 +12,8 @@ const RegisterForm = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    watch
+    formState: { errors }
   } = useForm();
-
-  const password = watch('password');
 
   const onSubmit = async (data) => {
     const result = await registerUser({
