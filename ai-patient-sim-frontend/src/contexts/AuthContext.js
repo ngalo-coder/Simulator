@@ -59,27 +59,37 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       console.log('🔄 Attempting registration with data:', userData);
       
+      // Show user that services might be starting up
+      toast.loading('Starting services... This may take up to 60 seconds on first use.', {
+        duration: 10000
+      });
+      
       const response = await authAPI.register(userData);
       console.log('✅ Registration response:', response.data);
       
       const { token, user } = response.data;
-
-      // Store in localStorage
+  
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
-
-      // Update state
       setToken(token);
       setUser(user);
-
+  
+      toast.dismiss(); // Remove loading toast
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
+      toast.dismiss(); // Remove loading toast
       console.error('❌ Registration error:', error);
-      console.error('❌ Error response:', error.response?.data);
       
-      const message = error.response?.data?.error || error.response?.data?.message || 'Registration failed';
-      toast.error(message);
+      let message;
+      if (error.code === 'ECONNABORTED') {
+        message = 'Services are starting up. Please try again in a moment.';
+        toast.error(message, { duration: 8000 });
+      } else {
+        message = error.response?.data?.error || error.response?.data?.message || 'Registration failed';
+        toast.error(message);
+      }
+      
       return { success: false, error: message };
     } finally {
       setLoading(false);
