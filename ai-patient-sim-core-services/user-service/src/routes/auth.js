@@ -80,32 +80,45 @@ router.post('/register', validateRegistration, async (req, res) => {
 
 // Login user
 router.post('/login', validateLogin, async (req, res) => {
+  console.log('Login route hit');
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Login validation failed', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log(`Attempting to log in user: ${email}`);
 
     // Find user
+    console.log('Finding user...');
     const user = await User.findOne({ email });
     if (!user || !user.isActive) {
+      console.log('User not found or inactive');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    console.log('User found');
 
     // Check password
+    console.log('Checking password...');
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      console.log('Invalid password');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    console.log('Password is valid');
 
     // Update last login
+    console.log('Updating last login...');
     user.lastLogin = new Date();
     await user.save();
+    console.log('Last login updated');
 
     // Generate token
+    console.log('Generating token...');
     const token = generateToken(user._id, user.role);
+    console.log('Token generated');
 
     res.json({
       message: 'Login successful',
