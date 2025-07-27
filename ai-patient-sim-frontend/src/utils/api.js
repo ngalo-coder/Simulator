@@ -48,16 +48,16 @@ api.interceptors.response.use(
 
 // API functions
 export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
-  getProfile: () => api.get('/auth/profile'),
-  updateProfile: (profileData) => api.put('/auth/profile', profileData),
-  logout: () => api.post('/auth/logout'),
+  register: (userData) => api.post('/api/users/auth/register', userData),
+  login: (credentials) => api.post('/api/users/auth/login', credentials),
+  getProfile: () => api.get('/api/users/auth/profile'),
+  updateProfile: (profileData) => api.put('/api/users/auth/profile', profileData),
+  logout: () => api.post('/api/users/auth/logout'),
 };
 
 export const healthAPI = {
   checkGateway: () => api.get('/health'),
-  checkUserService: () => api.get('/health'),
+  checkUserService: () => api.get('/api/users/health'),
 };
 
 export default api;
