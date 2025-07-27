@@ -57,7 +57,11 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true);
+      console.log('🔄 Attempting registration with data:', userData);
+      
       const response = await authAPI.register(userData);
+      console.log('✅ Registration response:', response.data);
+      
       const { token, user } = response.data;
 
       // Store in localStorage
@@ -71,7 +75,10 @@ export const AuthProvider = ({ children }) => {
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.error || 'Registration failed';
+      console.error('❌ Registration error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      
+      const message = error.response?.data?.error || error.response?.data?.message || 'Registration failed';
       toast.error(message);
       return { success: false, error: message };
     } finally {

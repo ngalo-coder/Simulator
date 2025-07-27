@@ -122,6 +122,19 @@ const createProxy = (target, pathRewrite) => {
     });
   };
 
+  app.use(cors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://simuatech.netlify.app',  // ← Add your actual Netlify URL
+      'https://ai-patient-sim-gateway.onrender.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],  // ← Add this
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']  // ← Add this
+  }));
+
 // Route proxying
 app.use('/api/users', createProxyMiddleware({
     target: 'http://localhost:3001',
