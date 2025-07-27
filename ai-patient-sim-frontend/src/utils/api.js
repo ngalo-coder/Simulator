@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL - will use environment variable in production
-const API_BASE_URL = process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:3001';
+const API_BASE_URL = 'https://ai-patient-sim-gateway.onrender.com';
 console.log('🔗 API Base URL:', API_BASE_URL);
 
 // Create axios instance
