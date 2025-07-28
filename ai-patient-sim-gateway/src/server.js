@@ -20,8 +20,12 @@ app.use(cors({
 // DON'T PARSE BODY - let it pass through to services
 // app.use(express.json()); // ← REMOVE THIS LINE
 
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || (process.env.NODE_ENV === 'production' 
+    ? 'https://simulator-zpen.onrender.com'  // Production
+    : 'http://localhost:3001'                // Development
+  );
 console.log('🔗 User Service URL:', USER_SERVICE_URL);
+console.log('🌍 Environment:', process.env.NODE_ENV);
 
 // Health check (simple response, no body needed)
 app.get('/health', (req, res) => {
