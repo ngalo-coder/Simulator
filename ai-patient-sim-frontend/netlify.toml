@@ -3,15 +3,16 @@
   command = "npm run build"
 
 [build.environment]
-  REACT_APP_API_GATEWAY_URL = "https://ai-patient-sim-gateway.onrender.com"
+  # Point directly to user service for now (bypass gateway)
+  REACT_APP_API_GATEWAY_URL = "https://simulator-zpen.onrender.com"
   REACT_APP_ENVIRONMENT = "production"
 
-# Proxy API calls during development
-[[redirects]]
-  from = "/api/*"
-  to = "https://ai-patient-sim-gateway.onrender.com"
-  status = 200
-  force = true
+# Remove the problematic proxy redirect - let the frontend handle API calls directly
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://ai-patient-sim-gateway.onrender.com"
+#   status = 200
+#   force = true
 
 # SPA redirect - all routes go to index.html  
 [[redirects]]

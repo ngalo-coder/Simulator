@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use the deployed gateway URL - don't fallback to localhost:4000
-const API_BASE_URL = process.env.REACT_APP_API_GATEWAY_URL || 'https://ai-patient-sim-gateway.onrender.com';
+// Now points directly to user service (bypass gateway)
+const API_BASE_URL = process.env.REACT_APP_API_GATEWAY_URL || 'https://simulator-zpen.onrender.com';
 
 console.log('🔧 API Base URL:', API_BASE_URL);
 
@@ -45,18 +45,18 @@ api.interceptors.response.use(
   }
 );
 
-// Simplified - no retries for now to speed things up
+// API functions - Direct to user service (no /api/users prefix needed)
 export const authAPI = {
-  register: (userData) => api.post('/api/users/auth/register', userData),
-  login: (credentials) => api.post('/api/users/auth/login', credentials),
-  getProfile: () => api.get('/api/users/auth/profile'),
-  updateProfile: (profileData) => api.put('/api/users/auth/profile', profileData),
-  logout: () => api.post('/api/users/auth/logout'),
+  register: (userData) => api.post('/auth/register', userData),
+  login: (credentials) => api.post('/auth/login', credentials),
+  getProfile: () => api.get('/auth/profile'),
+  updateProfile: (profileData) => api.put('/auth/profile', profileData),
+  logout: () => api.post('/auth/logout'),
 };
 
 export const healthAPI = {
   checkGateway: () => api.get('/health'),
-  checkUserService: () => api.get('/api/users/health'),
+  checkUserService: () => api.get('/health'),
 };
 
 export default api;
