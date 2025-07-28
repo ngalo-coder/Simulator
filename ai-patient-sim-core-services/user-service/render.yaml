@@ -11,7 +11,5 @@ services:
       - key: PORT
         value: 3001
       - key: JWT_SECRET
-        generateValue: true    
-      - key: GATEWAY_URL
-        value: ""
+        value: "a-very-secure-and-long-secret-key-that-is-at-least-32-characters"
     healthCheckPath: /health
