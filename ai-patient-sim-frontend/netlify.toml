@@ -6,19 +6,8 @@
   REACT_APP_API_GATEWAY_URL = "https://simulator-zpen.onrender.com"
   REACT_APP_ENVIRONMENT = "production"
 
-# Direct proxy to user service (no /api/users prefix stripping needed)
-[[redirects]]
-  from = "/api/users/*"
-  to = "https://simulator-zpen.onrender.com/auth/:splat"
-  status = 200
-  force = true
-
-# Health check proxy
-[[redirects]]
-  from = "/api/health"
-  to = "https://simulator-zpen.onrender.com/health"
-  status = 200
-  force = true
+# REMOVE the old redirects that don't match your API calls
+# Your frontend now makes direct calls to the backend, no proxying needed
 
 # SPA redirect - all routes go to index.html  
 [[redirects]]
@@ -34,3 +23,6 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
