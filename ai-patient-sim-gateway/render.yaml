@@ -11,7 +11,7 @@ services:
         value: 10000
       # Service URLs (will be empty initially - add as you deploy services)
       - key: USER_SERVICE_URL
-        value: ""
+        value: "https://simulator-zpen.onrender.com"
       - key: SIMULATION_SERVICE_URL
         value: ""
       - key: CLINICAL_SERVICE_URL
