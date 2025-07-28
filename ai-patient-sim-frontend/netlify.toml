@@ -3,7 +3,8 @@
   publish = "build"
 
 [context.production.environment]
-  REACT_APP_API_URL = "https://simulator-zpen.onrender.com"
+  # This should be the URL of your deployed API gateway
+  REACT_APP_API_URL = "https://ai-patient-sim-gateway.onrender.com"
 
 [[redirects]]
   from = "/*"
