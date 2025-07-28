@@ -69,16 +69,16 @@ api.interceptors.response.use(
   }
 );
 
-// API functions - environment-aware routing
-const isProduction = window.location.hostname !== 'localhost';
+// API functions - environment-aware routing that works for both local and production
+const isLocalhost = window.location.hostname === 'localhost';
 
 export const authAPI = {
-  // Use direct user service routes for production, gateway routes for development
-  register: (userData) => api.post(isProduction ? '/auth/register' : '/api/users/auth/register', userData),
-  login: (credentials) => api.post(isProduction ? '/auth/login' : '/api/users/auth/login', credentials),
-  getProfile: () => api.get(isProduction ? '/auth/profile' : '/api/users/auth/profile'),
-  updateProfile: (profileData) => api.put(isProduction ? '/auth/profile' : '/api/users/auth/profile', profileData),
-  logout: () => api.post(isProduction ? '/auth/logout' : '/api/users/auth/logout'),
+  // Use gateway routes for localhost, direct routes for production
+  register: (userData) => api.post(isLocalhost ? '/api/users/auth/register' : '/auth/register', userData),
+  login: (credentials) => api.post(isLocalhost ? '/api/users/auth/login' : '/auth/login', credentials),
+  getProfile: () => api.get(isLocalhost ? '/api/users/auth/profile' : '/auth/profile'),
+  updateProfile: (profileData) => api.put(isLocalhost ? '/api/users/auth/profile' : '/auth/profile', profileData),
+  logout: () => api.post(isLocalhost ? '/api/users/auth/logout' : '/auth/logout'),
 };
 
 // Health check APIs
