@@ -76,6 +76,7 @@ app.use('*', (req, res) => {
 });
 
 // Start server
+// Trigger redeploy
 app.listen(PORT, () => {
   console.log(`🚀 Gateway running on http://localhost:${PORT}`);
   console.log(`📍 Health: http://localhost:${PORT}/health`);
