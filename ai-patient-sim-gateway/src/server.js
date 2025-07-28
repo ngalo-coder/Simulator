@@ -19,7 +19,7 @@ app.use(cors({
 // DON'T PARSE BODY - let it pass through to services
 // app.use(express.json()); // ← REMOVE THIS LINE
 
-const USER_SERVICE_URL = 'http://localhost:3001';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
 console.log('🔗 User Service URL:', USER_SERVICE_URL);
 
 // Health check (simple response, no body needed)
