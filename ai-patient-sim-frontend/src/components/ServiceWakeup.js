@@ -9,16 +9,18 @@ const ServiceWakeup = ({ children }) => {
       try {
         console.log('🔄 Waking up services...');
         
-        // Wake up user service directly
+        // Wake up the correct services with shorter timeout
         const promises = [
-          axios.get('https://simulator-zpen.onrender.com/health', { timeout: 30000 })
+          axios.get('https://ai-patient-sim-gateway.onrender.com/health', { 
+            timeout: 15000 // Reduced from 30000
+          })
         ];
 
         await Promise.all(promises);
         console.log('✅ Services are awake');
       } catch (error) {
         console.error('❌ Error waking up services:', error);
-        // Continue anyway after timeout
+        // Continue anyway after timeout - don't block the app
       } finally {
         setWakingUp(false);
       }
@@ -33,7 +35,7 @@ const ServiceWakeup = ({ children }) => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Waking up services...</p>
-          <p className="text-sm text-gray-500">This may take up to 30 seconds</p>
+          <p className="text-sm text-gray-500">This may take up to 15 seconds</p>
         </div>
       </div>
     );

@@ -57,13 +57,13 @@ app.use((req, res, next) => {
 
 // Service URLs configuration
 const services = {
-  users: process.env.USER_SERVICE_URL || 'https://ai-patient-sim-user-service.onrender.com',
+  // ✅ Use the correct deployed user service URL
+  users: process.env.USER_SERVICE_URL || 'https://simulator-zpen.onrender.com',
   simulation: process.env.SIMULATION_SERVICE_URL || null,
   clinical: process.env.CLINICAL_SERVICE_URL || null,
   cases: process.env.CASE_SERVICE_URL || null,
   analytics: process.env.ANALYTICS_SERVICE_URL || null
 };
-
 // Log service configuration on startup
 console.log('🔧 Service Configuration:');
 Object.entries(services).forEach(([name, url]) => {
@@ -102,69 +102,42 @@ const createProxy = (target, pathRewrite) => {
   }
 
   return createProxyMiddleware({
-    target,
-    changeOrigin: true,
-    pathRewrite,
-    timeout: 30000,
-    logLevel: 'debug',
-    onProxyReq: (proxyReq, req, res) => {
-      console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${target}`);
-      console.log(`📍 Target path: ${target}${req.url}`);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`✅ Proxy response: ${proxyRes.statusCode} for ${req.originalUrl}`);
-      
-      // Add CORS headers if missing
-      if (!proxyRes.headers['access-control-allow-origin']) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-      }
-    },
-    onError: (err, req, res) => {
-      console.error(`❌ Proxy error for ${target}:`, {
-        message: err.message,
-        code: err.code,
-        url: req.originalUrl,
-        method: req.method
-      });
-      
-      if (!res.headersSent) {
-        // Determine error type and provide appropriate response
-        let errorResponse;
-        
-        if (err.code === 'ECONNREFUSED') {
-          errorResponse = {
-            error: 'Service connection refused',
-            message: 'Target service is not responding',
-            code: 'CONNECTION_REFUSED',
-            retry: true
-          };
-        } else if (err.code === 'ETIMEDOUT') {
-          errorResponse = {
-            error: 'Service timeout',
-            message: 'Target service took too long to respond',
-            code: 'TIMEOUT',
-            retry: true
-          };
-        } else if (err.code === 'ENOTFOUND') {
-          errorResponse = {
-            error: 'Service not found',
-            message: 'Target service domain not found',
-            code: 'NOT_FOUND',
-            retry: false
-          };
-        } else {
-          errorResponse = {
-            error: 'Service temporarily unavailable',
-            message: err.message,
-            code: err.code || 'UNKNOWN',
-            retry: true
-          };
-        }
-        
-        res.status(503).json(errorResponse);
-      }
+  target,
+  changeOrigin: true,
+  pathRewrite,
+  timeout: 10000, // Reduced to 10 seconds
+  logLevel: 'warn',
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${target}`);
+    
+    // Add timeout header to help with slow services
+    proxyReq.setHeader('X-Request-Timeout', '10000');
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Proxy response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+    
+    // Add CORS headers
+    if (!proxyRes.headers['access-control-allow-origin']) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
     }
-  });
+  },
+  onError: (err, req, res) => {
+    console.error(`❌ Proxy error for ${target}:`, {
+      message: err.message,
+      code: err.code,
+      url: req.originalUrl
+    });
+    
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: 'Service temporarily unavailable',
+        message: 'User service is starting up, please try again in a moment',
+        retry: true,
+        code: err.code || 'SERVICE_UNAVAILABLE'
+      });
+    }
+  }
+});
 };
 
 // Health check endpoint
