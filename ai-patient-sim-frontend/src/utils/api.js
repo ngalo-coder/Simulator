@@ -2,12 +2,7 @@ import axios from 'axios';
 
 // Environment-based API configuration
 const getApiBaseUrl = () => {
-  // For localhost development - use gateway
-  if (window.location.hostname === 'localhost') {
-    return 'http://localhost:4000'; // Gateway
-  }
-  // For production - connect directly to user service
-  return 'https://simulator-zpen.onrender.com'; // Direct to user service
+  return process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:4000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -69,22 +64,19 @@ api.interceptors.response.use(
   }
 );
 
-// API functions - environment-aware routing that works for both local and production
-const isLocalhost = window.location.hostname === 'localhost';
-
+// API functions
 export const authAPI = {
-  // Use gateway routes for localhost, direct routes for production
-  register: (userData) => api.post(isLocalhost ? '/api/users/auth/register' : '/auth/register', userData),
-  login: (credentials) => api.post(isLocalhost ? '/api/users/auth/login' : '/auth/login', credentials),
-  getProfile: () => api.get(isLocalhost ? '/api/users/auth/profile' : '/auth/profile'),
-  updateProfile: (profileData) => api.put(isLocalhost ? '/api/users/auth/profile' : '/auth/profile', profileData),
-  logout: () => api.post(isLocalhost ? '/api/users/auth/logout' : '/auth/logout'),
+  register: (userData) => api.post('/api/users/auth/register', userData),
+  login: (credentials) => api.post('/api/users/auth/login', credentials),
+  getProfile: () => api.get('/api/users/auth/profile'),
+  updateProfile: (profileData) => api.put('/api/users/auth/profile', profileData),
+  logout: () => api.post('/api/users/auth/logout'),
 };
 
 // Health check APIs
 export const healthAPI = {
   checkGateway: () => api.get('/health'),
-  checkUserService: () => api.get('/health'),
+  checkUserService: () => api.get('/api/users/health'),
 };
 
 export default api;
