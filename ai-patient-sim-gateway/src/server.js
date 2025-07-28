@@ -1,3 +1,4 @@
+// ai-patient-sim-gateway/src/server.js - FIXED VERSION
 const express = require('express');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
@@ -7,34 +8,47 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 console.log('🚀 Starting Gateway...');
-console.log('USER_SERVICE_URL from env:', process.env.USER_SERVICE_URL);
 
-// Basic CORS
+// Fixed CORS configuration
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'https://simuatech.netlify.app'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'https://simulatech.netlify.app', // ✅ Fixed typo
+    'https://ai-patient-sim-gateway.onrender.com'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// DON'T PARSE BODY - let it pass through to services
-// app.use(express.json()); // ← REMOVE THIS LINE
-
+// Service URLs
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || (process.env.NODE_ENV === 'production' 
-    ? 'https://simulator-zpen.onrender.com'  // Production
-    : 'http://localhost:3001'                // Development
-  );
-console.log('🔗 User Service URL:', USER_SERVICE_URL);
-console.log('🌍 Environment:', process.env.NODE_ENV);
+    ? 'https://simulator-zpen.onrender.com'
+    : 'http://localhost:3001'
+);
 
-// Health check (simple response, no body needed)
+// ✅ Added simulation service URL
+const SIMULATION_SERVICE_URL = process.env.SIMULATION_SERVICE_URL || (process.env.NODE_ENV === 'production'
+    ? 'https://ai-patient-sim-simulation.onrender.com' // Update with actual URL when deployed
+    : 'http://localhost:3002'
+);
+
+console.log('🔗 Service URLs:');
+console.log('  User Service:', USER_SERVICE_URL);
+console.log('  Simulation Service:', SIMULATION_SERVICE_URL);
+
+// Health check
 app.get('/health', (req, res) => {
   console.log('📍 Health check requested');
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'api-gateway',
-    userService: USER_SERVICE_URL
+    services: {
+      user: USER_SERVICE_URL,
+      simulation: SIMULATION_SERVICE_URL
+    }
   });
 });
 
@@ -43,11 +57,11 @@ app.get('/', (req, res) => {
   res.json({
     message: 'AI Patient Simulation Gateway',
     status: 'running',
-    routes: ['/health', '/api/users/*']
+    routes: ['/health', '/api/users/*', '/api/simulations/*']
   });
 });
 
-// Proxy that doesn't interfere with request body
+// User service proxy (existing)
 app.use('/api/users', createProxyMiddleware({
   target: USER_SERVICE_URL,
   changeOrigin: true,
@@ -58,14 +72,39 @@ app.use('/api/users', createProxyMiddleware({
     console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${USER_SERVICE_URL}${proxyReq.path}`);
   },
   onProxyRes: (proxyRes, req, res) => {
-    console.log(`✅ Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+    console.log(`✅ User Service Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
   },
   onError: (err, req, res) => {
-    console.error(`❌ Proxy error:`, err.message);
+    console.error(`❌ User Service Proxy error:`, err.message);
     if (!res.headersSent) {
       res.status(503).json({
-        error: 'Service unavailable',
+        error: 'User service unavailable',
         message: err.message
+      });
+    }
+  }
+}));
+
+// ✅ NEW: Simulation service proxy
+app.use('/api/simulations', createProxyMiddleware({
+  target: SIMULATION_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/simulations': '/api/simulations' // Keep the path as-is
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${SIMULATION_SERVICE_URL}${proxyReq.path}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Simulation Service Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`❌ Simulation Service Proxy error:`, err.message);
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: 'Simulation service unavailable', 
+        message: err.message,
+        suggestion: 'The simulation service may not be deployed yet. Please check service status.'
       });
     }
   }
@@ -76,16 +115,17 @@ app.use('*', (req, res) => {
   console.log(`❌ 404: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     error: 'Route not found',
-    availableRoutes: ['GET /', 'GET /health', 'ALL /api/users/*']
+    availableRoutes: ['GET /', 'GET /health', 'ALL /api/users/*', 'ALL /api/simulations/*']
   });
 });
 
 // Start server
-// Trigger redeploy
 app.listen(PORT, () => {
   console.log(`🚀 Gateway running on http://localhost:${PORT}`);
   console.log(`📍 Health: http://localhost:${PORT}/health`);
-  console.log(`🔗 Proxying /api/users/* to ${USER_SERVICE_URL}`);
+  console.log(`🔗 Proxying:`);
+  console.log(`   /api/users/* -> ${USER_SERVICE_URL}`);
+  console.log(`   /api/simulations/* -> ${SIMULATION_SERVICE_URL}`);
 });
 
 module.exports = app;
