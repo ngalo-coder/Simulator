@@ -46,11 +46,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parsing
-app.use(express.json({ limit: '10mb', extended: true, parameterLimit: 50000,
-}));
-app.use(express.urlencoded({ extended: true, parameterLimit: 50000,
-}));
+// Body parsing - Fixed for Express 4.x
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // MongoDB connection
 console.log('Attempting to connect to MongoDB...');
