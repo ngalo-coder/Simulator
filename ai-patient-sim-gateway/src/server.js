@@ -7,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 console.log('🚀 Starting Gateway...');
+console.log('USER_SERVICE_URL from env:', process.env.USER_SERVICE_URL);
 
 // Basic CORS
 app.use(cors({
