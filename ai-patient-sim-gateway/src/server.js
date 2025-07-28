@@ -1,284 +1,85 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
-// Trust proxy setting for Render
-app.set('trust proxy', 1);
+console.log('🚀 Starting Gateway...');
 
-// Security middleware
-app.use(helmet());
-
-// CORS configuration
+// Basic CORS
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://localhost:4000',
-    'https://simuatech.netlify.app',
-    'https://ai-patient-sim-gateway.onrender.com',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: {
-    error: 'Too many requests from this IP, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// DON'T PARSE BODY - let it pass through to services
+// app.use(express.json()); // ← REMOVE THIS LINE
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+const USER_SERVICE_URL = 'http://localhost:3001';
+console.log('🔗 User Service URL:', USER_SERVICE_URL);
 
-// Request logging
-app.use((req, res, next) => {
-  console.log(`📨 ${new Date().toISOString()} - ${req.method} ${req.url} from ${req.ip}`);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log(`📦 Body:`, JSON.stringify(req.body, null, 2));
-  }
-  next();
-});
-
-// Service URLs configuration
-const services = {
-  // ✅ Use the correct deployed user service URL
-  users: process.env.USER_SERVICE_URL || 'https://simulator-zpen.onrender.com',
-  simulation: process.env.SIMULATION_SERVICE_URL || null,
-  clinical: process.env.CLINICAL_SERVICE_URL || null,
-  cases: process.env.CASE_SERVICE_URL || null,
-  analytics: process.env.ANALYTICS_SERVICE_URL || null
-};
-// Log service configuration on startup
-console.log('🔧 Service Configuration:');
-Object.entries(services).forEach(([name, url]) => {
-  console.log(`  ${name}: ${url || 'NOT CONFIGURED'}`);
-});
-
-// Enhanced proxy creation function
-const createProxy = (target, pathRewrite) => {
-  console.log(`🔗 Creating proxy for target: ${target}`);
-  
-  // If service is not deployed yet, return service unavailable
-  if (!target || target === 'null' || target === 'undefined') {
-    return (req, res, next) => {
-      console.log(`⚠️ Service not available: ${req.originalUrl}`);
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: 'Service is being deployed or configured',
-        retry: true,
-        service: req.originalUrl.split('/')[2] // Extract service name from URL
-      });
-    };
-  }
-
-  // Validate URL format
-  try {
-    new URL(target);
-  } catch (error) {
-    console.error(`❌ Invalid target URL: ${target}`);
-    return (req, res, next) => {
-      res.status(503).json({
-        error: 'Service configuration error',
-        message: 'Invalid service URL configuration',
-        retry: false
-      });
-    };
-  }
-
-  return createProxyMiddleware({
-  target,
-  changeOrigin: true,
-  pathRewrite,
-  timeout: 10000, // Reduced to 10 seconds
-  logLevel: 'warn',
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${target}`);
-    
-    // Add timeout header to help with slow services
-    proxyReq.setHeader('X-Request-Timeout', '10000');
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    console.log(`✅ Proxy response: ${proxyRes.statusCode} for ${req.originalUrl}`);
-    
-    // Add CORS headers
-    if (!proxyRes.headers['access-control-allow-origin']) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-  },
-  onError: (err, req, res) => {
-    console.error(`❌ Proxy error for ${target}:`, {
-      message: err.message,
-      code: err.code,
-      url: req.originalUrl
-    });
-    
-    if (!res.headersSent) {
-      res.status(503).json({
-        error: 'Service temporarily unavailable',
-        message: 'User service is starting up, please try again in a moment',
-        retry: true,
-        code: err.code || 'SERVICE_UNAVAILABLE'
-      });
-    }
-  }
-});
-};
-
-// Health check endpoint
+// Health check (simple response, no body needed)
 app.get('/health', (req, res) => {
-  const healthStatus = {
+  console.log('📍 Health check requested');
+  res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'api-gateway',
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    services: {
-      configured: Object.entries(services).filter(([_, url]) => url).length,
-      total: Object.keys(services).length,
-      urls: services
-    }
-  };
-  
-  console.log('🏥 Health check requested:', healthStatus);
-  res.json(healthStatus);
+    userService: USER_SERVICE_URL
+  });
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'AI Patient Simulation Platform API Gateway',
+    message: 'AI Patient Simulation Gateway',
     status: 'running',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/health',
-      users: '/api/users/*',
-      simulation: '/api/simulation/*',
-      clinical: '/api/clinical/*',
-      cases: '/api/cases/*',
-      analytics: '/api/analytics/*'
-    },
-    services: {
-      configured: Object.entries(services).reduce((acc, [key, url]) => {
-        acc[key] = { 
-          url: url || 'not-configured',
-          status: url ? 'configured' : 'pending'
-        };
-        return acc;
-      }, {})
-    }
+    routes: ['/health', '/api/users/*']
   });
 });
 
-const serviceRoutes = require('./routes/serviceRoutes');
-// Service routes
-serviceRoutes(app);
-
-// Test endpoint for debugging
-app.get('/debug/services', (req, res) => {
-  res.json({
-    message: 'Service Debug Information',
-    environment: {
-      NODE_ENV: process.env.NODE_ENV,
-      PORT: process.env.PORT
-    },
-    services: services,
-    environmentVariables: {
-      USER_SERVICE_URL: process.env.USER_SERVICE_URL,
-      SIMULATION_SERVICE_URL: process.env.SIMULATION_SERVICE_URL,
-      CLINICAL_SERVICE_URL: process.env.CLINICAL_SERVICE_URL,
-      CASE_SERVICE_URL: process.env.CASE_SERVICE_URL,
-      ANALYTICS_SERVICE_URL: process.env.ANALYTICS_SERVICE_URL,
-      FRONTEND_URL: process.env.FRONTEND_URL
+// Proxy that doesn't interfere with request body
+app.use('/api/users', createProxyMiddleware({
+  target: USER_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/users': ''
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔄 Proxying ${req.method} ${req.originalUrl} to ${USER_SERVICE_URL}${proxyReq.path}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`❌ Proxy error:`, err.message);
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: 'Service unavailable',
+        message: err.message
+      });
     }
-  });
-});
+  }
+}));
 
 // 404 handler
 app.use('*', (req, res) => {
-  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`❌ 404: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.originalUrl} not found`,
-    method: req.method,
-    availableRoutes: [
-      'GET /',
-      'GET /health', 
-      'GET /debug/services',
-      'POST /api/users/auth/login',
-      'POST /api/users/auth/register',
-      'GET /api/users/auth/profile',
-      '/api/simulation/*',
-      '/api/clinical/*',
-      '/api/cases/*',
-      '/api/analytics/*'
-    ]
+    error: 'Route not found',
+    availableRoutes: ['GET /', 'GET /health', 'ALL /api/users/*']
   });
 });
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('🚨 Gateway error:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    body: req.body
-  });
-  
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Graceful shutdown handlers
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received, shutting down gracefully`);
-  process.exit(0);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 API Gateway running on port ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  console.log(`🐛 Debug endpoint: http://localhost:${PORT}/debug/services`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  // Log configured services
-  const configuredServices = Object.entries(services).filter(([_, url]) => url);
-  console.log(`📡 Configured services (${configuredServices.length}/${Object.keys(services).length}):`);
-  configuredServices.forEach(([name, url]) => {
-    console.log(`  ✓ ${name}: ${url}`);
-  });
-  
-  const pendingServices = Object.entries(services).filter(([_, url]) => !url);
-  if (pendingServices.length > 0) {
-    console.log(`⏳ Pending services (${pendingServices.length}):`);
-    pendingServices.forEach(([name]) => {
-      console.log(`  ⚠️ ${name}: not configured`);
-    });
-  }
+  console.log(`🚀 Gateway running on http://localhost:${PORT}`);
+  console.log(`📍 Health: http://localhost:${PORT}/health`);
+  console.log(`🔗 Proxying /api/users/* to ${USER_SERVICE_URL}`);
 });
 
 module.exports = app;
