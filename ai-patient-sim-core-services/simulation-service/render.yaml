@@ -1,0 +1,43 @@
+# ai-patient-sim-core-services/simulation-service/render.yaml
+services:
+  - type: web
+    name: ai-patient-sim-simulation-service
+    env: node
+    buildCommand: cd simulation-service && npm install
+    startCommand: cd simulation-service && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: JWT_SECRET
+        value: "a-very-secure-and-long-secret-key-that-is-at-least-32-characters"
+      - key: OPENROUTER_API_KEY
+        sync: false  # This should be set in Render dashboard
+      - key: OPENROUTER_BASE_URL
+        value: "https://openrouter.ai/api/v1"
+      - key: DEFAULT_MODEL
+        value: "anthropic/claude-3.5-sonnet"
+      - key: FRONTEND_URL
+        value: "https://simuatech.netlify.app"
+      - key: GATEWAY_URL
+        value: "https://ai-patient-sim-gateway.onrender.com"
+    healthCheckPath: /health
+    region: oregon  # Choose appropriate region
+    plan: starter   # Adjust based on needs
+    
+    # Auto-deploy from GitHub
+    autoDeploy: true
+    
+    # Build settings
+    buildFilter:
+      paths:
+        - simulation-service/**
+    
+    # Runtime settings
+    runtime: node
+    
+    # Scaling (adjust as needed)
+    scaling:
+      minInstances: 1
+      maxInstances: 3

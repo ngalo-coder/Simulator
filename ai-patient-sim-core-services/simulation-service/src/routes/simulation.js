@@ -10,6 +10,27 @@ const { authMiddleware, authorize } = require('../middleware/auth');
 const router = express.Router();
 const openRouterService = new OpenRouterService();
 
+// Health check for simulation service (add this route)
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'simulation-service-routes',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    openRouter: !!process.env.OPENROUTER_API_KEY ? 'configured' : 'not-configured'
+  });
+});
+
+// Test route to verify routing is working
+router.get('/test', (req, res) => {
+  res.json({
+    message: 'Simulation routes are working',
+    timestamp: new Date().toISOString(),
+    userAgent: req.get('User-Agent'),
+    origin: req.get('Origin')
+  });
+});
+
 // Get available cases
 router.get('/cases', authMiddleware, async (req, res) => {
   try {

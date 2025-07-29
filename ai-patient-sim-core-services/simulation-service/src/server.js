@@ -1,4 +1,4 @@
-// ai-patient-sim-core-services/simulation-service/src/server.js
+// ai-patient-sim-core-services/simulation-service/src/server.js - UPDATED WITH HEALTH CHECK
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -31,6 +31,7 @@ app.use(
       'http://localhost:3000', // Frontend dev
       'http://localhost:4000', // Gateway dev
       'https://simuatech.netlify.app', // Frontend production - fixed typo
+      'https://ai-patient-sim-gateway.onrender.com', // Gateway production
       process.env.FRONTEND_URL,
       process.env.GATEWAY_URL,
     ].filter(Boolean),
@@ -74,6 +75,7 @@ app.get('/health', (req, res) => {
     service: 'simulation-service',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     port: PORT,
+    version: '1.0.0'
   });
 });
 
@@ -108,6 +110,7 @@ app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     service: 'simulation-service',
+    requestedPath: req.originalUrl,
     availableRoutes: ['GET /', 'GET /health', 'ALL /api/simulations/*'],
   });
 });
@@ -118,6 +121,7 @@ app.use((error, req, res, next) => {
   res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
+    service: 'simulation-service'
   });
 });
 

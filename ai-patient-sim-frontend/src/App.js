@@ -1,3 +1,4 @@
+// ai-patient-sim-frontend/src/App.js - UPDATED WITH SIMULATION ROUTES
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -8,6 +9,9 @@ import ServiceWakeup from './components/ServiceWakeup';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import DashboardPage from './pages/DashboardPage';
+import CaseSelection from './components/simulation/CaseSelection';
+import SimulationPage from './pages/SimulationPage';
+import SimulationHistory from './pages/SimulationHistory';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -70,6 +74,33 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/cases"
+                element={
+                  <ProtectedRoute>
+                    <CaseSelection />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/simulation/:id"
+                element={
+                  <ProtectedRoute>
+                    <SimulationPage />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/history"
+                element={
+                  <ProtectedRoute>
+                    <SimulationHistory />
                   </ProtectedRoute>
                 }
               />

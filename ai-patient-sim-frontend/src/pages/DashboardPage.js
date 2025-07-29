@@ -1,4 +1,4 @@
-// ai-patient-sim-frontend/src/pages/DashboardPage.js
+// ai-patient-sim-frontend/src/pages/DashboardPage.js - UPDATED WITH PROPER NAVIGATION
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -119,7 +119,7 @@ const DashboardPage = () => {
   };
 
   const handleViewSimulation = (simulationId) => {
-    navigate(`/simulation/${simulationId}/review`);
+    navigate(`/simulation/${simulationId}`);
   };
 
   const QuickActionCard = ({ icon: Icon, title, description, onClick, color = 'blue' }) => (
@@ -197,13 +197,12 @@ const DashboardPage = () => {
     }
   };
 
-  const formatDuration = (minutes) => {
-    if (minutes < 60) {
-      return `${minutes}m`;
+  const formatDuration = (durationString) => {
+    if (!durationString) return '0m';
+    if (typeof durationString === 'string' && durationString.includes('minutes')) {
+      return durationString.replace(' minutes', 'm');
     }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
+    return durationString;
   };
 
   const formatDate = (dateString) => {
@@ -224,7 +223,7 @@ const DashboardPage = () => {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                AI Patient Simulation Platform
+                Simuatech: AI Patient Simulation Platform
               </h1>
               <p className="text-gray-600">
                 Welcome back, {user?.profile?.firstName}! Ready to practice with virtual patients?
@@ -292,18 +291,18 @@ const DashboardPage = () => {
                   color="green"
                 />
                 <StatCard
-                  title="Average Score"
-                  value={`${stats.overview?.averageScore || 0}%`}
-                  icon={Target}
-                  subtitle={`Based on ${stats.overview?.gradedSimulations || 0} graded cases`}
-                  color="purple"
+                  title="Active Sessions"
+                  value={stats.overview?.activeSimulations || 0}
+                  icon={Timer}
+                  subtitle="Currently in progress"
+                  color="orange"
                 />
                 <StatCard
-                  title="Time Practiced"
-                  value={formatDuration(stats.overview?.totalTimeMinutes || 0)}
+                  title="Practice Time"
+                  value={formatDuration(stats.overview?.totalTimeMinutes) || '0m'}
                   icon={Clock}
-                  subtitle="Total practice time"
-                  color="orange"
+                  subtitle="Total time spent"
+                  color="purple"
                 />
               </div>
             </div>
@@ -349,12 +348,12 @@ const DashboardPage = () => {
                           <div className="flex items-center space-x-4">
                             <div className="flex-shrink-0">
                               <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <ProgramIcon programArea={simulation.case?.programArea} />
+                                <ProgramIcon programArea={simulation.programArea} />
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="text-sm font-medium text-gray-900 truncate">
-                                {simulation.case?.title || 'Untitled Case'}
+                                {simulation.caseName || 'Untitled Case'}
                               </h3>
                               <div className="flex items-center space-x-4 mt-1">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(simulation.status)}`}>
@@ -362,7 +361,7 @@ const DashboardPage = () => {
                                   {simulation.status.charAt(0).toUpperCase() + simulation.status.slice(1)}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  {formatDate(simulation.updatedAt)}
+                                  {formatDate(simulation.createdAt)}
                                 </span>
                                 {simulation.duration && (
                                   <span className="text-sm text-gray-500">
@@ -373,10 +372,10 @@ const DashboardPage = () => {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            {simulation.score !== null && (
+                            {simulation.overallScore !== null && simulation.overallScore !== undefined && (
                               <div className="text-right">
                                 <div className="text-sm font-medium text-gray-900">
-                                  {simulation.score}%
+                                  {simulation.overallScore}%
                                 </div>
                                 <div className="text-xs text-gray-500">Score</div>
                               </div>
@@ -386,7 +385,7 @@ const DashboardPage = () => {
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View
+                              {simulation.status === 'active' || simulation.status === 'paused' ? 'Continue' : 'Review'}
                             </button>
                           </div>
                         </div>
@@ -417,77 +416,40 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* Performance Insights */}
-          {!loading && stats && stats.insights && (
-            <div className="mb-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Performance Insights</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Strength Areas */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                    <Star className="h-5 w-5 text-yellow-500 mr-2" />
-                    Strength Areas
-                  </h3>
-                  <div className="space-y-3">
-                    {stats.insights.strengths?.map((strength, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{strength.skill}</span>
-                        <span className="text-sm font-medium text-green-600">{strength.score}%</span>
-                      </div>
-                    )) || (
-                      <p className="text-sm text-gray-500">Complete more simulations to see your strengths</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Improvement Areas */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                    <TrendingUp className="h-5 w-5 text-blue-500 mr-2" />
-                    Focus Areas
-                  </h3>
-                  <div className="space-y-3">
-                    {stats.insights.improvements?.map((improvement, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{improvement.skill}</span>
-                        <span className="text-sm font-medium text-orange-600">{improvement.score}%</span>
-                      </div>
-                    )) || (
-                      <p className="text-sm text-gray-500">Complete more simulations to identify focus areas</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Recent Activity Summary */}
-          {!loading && stats && stats.recentActivity && (
+          {/* Program Performance */}
+          {!loading && stats && stats.programBreakdown && stats.programBreakdown.length > 0 && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Calendar className="h-5 w-5 text-gray-500 mr-2" />
-                This Week's Activity
+                <BarChart3 className="h-5 w-5 text-gray-500 mr-2" />
+                Progress by Program
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.recentActivity.simulationsThisWeek || 0}
+              <div className="space-y-4">
+                {stats.programBreakdown.map((program, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <ProgramIcon programArea={program.programArea} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 capitalize">
+                          {program.programArea.replace('_', ' ')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {program.simulationsCompleted} completed
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${program.averageProgress}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 min-w-[3rem] text-right">
+                        {program.averageProgress}%
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">Simulations Started</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {stats.recentActivity.completedThisWeek || 0}
-                  </div>
-                  <div className="text-sm text-gray-500">Simulations Completed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {formatDuration(stats.recentActivity.timeThisWeek || 0)}
-                  </div>
-                  <div className="text-sm text-gray-500">Practice Time</div>
-                </div>
+                ))}
               </div>
             </div>
           )}
