@@ -1989,8 +1989,18 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
 
     await simulation.save();
 
-    // Generate detailed report
-    const detailedReport = await generateSimulationReport(simulation);
+    // Generate detailed report using ReportGenerator service
+    let detailedReport = null;
+    try {
+      const reportResult = await reportGenerator.generateSimulationReport(simulation);
+      if (reportResult.success) {
+        detailedReport = reportResult.report;
+      } else {
+        console.error('Report generation failed:', reportResult.error);
+      }
+    } catch (reportError) {
+      console.error('Error generating report:', reportError);
+    }
 
     res.json({
       success: true,

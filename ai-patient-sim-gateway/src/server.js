@@ -83,7 +83,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// User service proxy (existing)
+// User service proxy (existing + extended)
 app.use('/api/users', createProxyMiddleware({
   target: USER_SERVICE_URL,
   changeOrigin: true,

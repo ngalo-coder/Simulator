@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profile');
+const transitionRoutes = require('./routes/transitions');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -92,6 +94,8 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/profile', profileRoutes);
+app.use('/transitions', transitionRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -106,6 +110,14 @@ app.get('/', (req, res) => {
       profile: 'GET /auth/profile',
       updateProfile: 'PUT /auth/profile',
       logout: 'POST /auth/logout',
+      // Extended endpoints
+      extendedProfile: 'GET /profile',
+      updateExtendedProfile: 'PUT /profile',
+      permissions: 'GET /profile/permissions',
+      progressionRequirements: 'GET /profile/progression-requirements',
+      transitionHistory: 'GET /transitions/history',
+      requestTransition: 'POST /transitions/request',
+      checkAutoProgression: 'POST /transitions/check-auto-progression'
     },
   });
 });
