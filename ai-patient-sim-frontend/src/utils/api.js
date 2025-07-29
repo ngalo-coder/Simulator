@@ -54,10 +54,19 @@ api.interceptors.response.use(
       url: error.config?.url
     });
     
+    // Only auto-logout on 401 for auth-related endpoints
     if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isAuthEndpoint = error.config?.url?.includes('/auth/') || 
+                            error.config?.url?.includes('/profile');
+      
+      if (isAuthEndpoint) {
+        console.log('🔒 Authentication failed, logging out...');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      } else {
+        console.log('⚠️ Non-auth endpoint returned 401, not auto-logging out');
+      }
     }
     
     return Promise.reject(error);

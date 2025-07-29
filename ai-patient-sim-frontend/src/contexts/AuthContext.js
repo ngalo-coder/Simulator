@@ -23,8 +23,25 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('authToken');
     
     if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+      try {
+        // Basic token validation - check if it's not expired
+        const tokenPayload = JSON.parse(atob(storedToken.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        
+        if (tokenPayload.exp && tokenPayload.exp > currentTime) {
+          setUser(JSON.parse(storedUser));
+          setToken(storedToken);
+          console.log('✅ Valid token found, user logged in');
+        } else {
+          console.log('⚠️ Token expired, clearing auth data');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('❌ Invalid token format, clearing auth data:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
@@ -32,10 +49,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setLoading(true);
+      console.log('🔐 Attempting login...');
+      
       const response = await authAPI.login(credentials);
       const { token, user } = response.data;
 
-      // Store in localStorage
+      console.log('✅ Login successful, setting auth data...');
+
+      // Store in localStorage first
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
 
@@ -43,9 +64,13 @@ export const AuthProvider = ({ children }) => {
       setToken(token);
       setUser(user);
 
+      // Small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       toast.success('Login successful!');
       return { success: true };
     } catch (error) {
+      console.error('❌ Login failed:', error);
       const message = error.response?.data?.error || 'Login failed';
       toast.error(message);
       return { success: false, error: message };

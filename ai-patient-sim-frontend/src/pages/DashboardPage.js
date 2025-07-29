@@ -37,26 +37,74 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    // Only fetch data if user is authenticated and token exists
+    if (user && localStorage.getItem('authToken')) {
+      console.log('📊 User authenticated, fetching dashboard data...');
+      fetchDashboardData();
+    } else {
+      console.log('⚠️ User not authenticated, skipping dashboard data fetch');
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchDashboardData = async () => {
+    // Validate token before making API calls
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      console.log('⚠️ No token found, skipping API calls');
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Validate token format and expiration
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      
+      if (tokenPayload.exp && tokenPayload.exp <= currentTime) {
+        console.log('⚠️ Token expired, not making API calls');
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Making dashboard API calls...');
+
+      // Make API calls individually to handle failures gracefully
+      const statsPromise = simulationAPI.getStatistics().catch(error => {
+        console.warn('📊 Stats API failed:', error);
+        return { success: false, error: error.message };
+      });
+      
+      const historyPromise = simulationAPI.getSimulationHistory(1, 5).catch(error => {
+        console.warn('📚 History API failed:', error);
+        return { success: false, simulations: [] };
+      });
+
       const [statsResponse, historyResponse] = await Promise.all([
-        simulationAPI.getStatistics(),
-        simulationAPI.getSimulationHistory(1, 5) // Get recent 5 simulations
+        statsPromise,
+        historyPromise
       ]);
 
       if (statsResponse.success) {
+        console.log('✅ Stats loaded successfully');
         setStats(statsResponse);
+      } else {
+        console.log('📊 Stats not available, using defaults');
+        setStats(null);
       }
 
       if (historyResponse.success) {
+        console.log('✅ History loaded successfully');
         setRecentSimulations(historyResponse.simulations || []);
+      } else {
+        console.log('📚 History not available, showing empty state');
+        setRecentSimulations([]);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Don't show error toast as this is not critical
+      console.error('❌ Error fetching dashboard data:', error);
+      // Set default states so dashboard still works
+      setStats(null);
+      setRecentSimulations([]);
     } finally {
       setLoading(false);
     }
