@@ -256,7 +256,7 @@ BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
     const isVeryYoung = patientAge.includes('months') || 
                        (patientAge.includes('year') && parseInt(patientAge) < 5);
     
-    if (isVeryYoung) {
+    if (isVeryYoung && patientPersona.guardian) {
       return {
         patient: null,
         guardian: cleanResponse
