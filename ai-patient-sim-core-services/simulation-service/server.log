@@ -1,0 +1,7 @@
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+⚠️ OpenRouter API key not configured
+🏥 Starting Simulation Service...
+🏥 Simulation Service running on http://localhost:3002
+📍 Health check: http://localhost:3002/health
+🔗 API endpoints: http://localhost:3002/api/simulations
+🌍 Environment: development
