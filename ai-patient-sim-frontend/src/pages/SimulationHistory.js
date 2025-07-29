@@ -495,11 +495,6 @@ const SimulationHistory = () => {
                             )}
                           </div>
                         </td>
-                                Review
-                              </button>
-                            )}
-                          </div>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
