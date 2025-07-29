@@ -16,10 +16,10 @@ app.use(
   cors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001',
+      'http://localhost:3001', 
       'http://localhost:3002',
       'http://localhost:4000',
-      'https://simulatech.netlify.app',  // ✅ Fixed typo: was 'simuatech'
+      'https://simulatech.netlify.app',  // ✅ Fixed typo
       'https://ai-patient-sim-gateway.onrender.com',
       process.env.FRONTEND_URL,
       process.env.GATEWAY_URL,
