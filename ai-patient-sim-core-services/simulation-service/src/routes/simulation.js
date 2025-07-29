@@ -1480,5 +1480,912 @@ function getExpectedActions(condition) {
   );
 }
 
+// Add these helper functions at the END of your simulation-service/src/routes/simulation.js file
+// (after all the routes but before module.exports)
+
+// Helper function to generate clinical results
+async function generateClinicalResult(action, details, patientPersona) {
+  const { currentCondition, vitalSigns, physicalExam, expectedFindings } = patientPersona;
+
+  switch (action) {
+    case 'physical_exam':
+      return generatePhysicalExamFindings(currentCondition, details, physicalExam);
+
+    case 'order_labs':
+      return generateLabResults(currentCondition, details, expectedFindings);
+
+    case 'order_imaging':
+      return generateImagingResults(currentCondition, details, expectedFindings);
+
+    case 'history_taking':
+      return {
+        category: 'history',
+        findings: `Additional history obtained regarding ${details}`,
+        clinicalRelevance: getHistoryRelevance(details, currentCondition),
+      };
+
+    case 'diagnosis':
+      return {
+        category: 'diagnosis',
+        assessment: details,
+        accuracy: evaluateDiagnosticAccuracy(details, currentCondition),
+      };
+
+    case 'treatment_plan':
+      return {
+        category: 'treatment',
+        plan: details,
+        appropriateness: evaluateTreatmentPlan(details, currentCondition),
+      };
+
+    default:
+      return {
+        category: 'general',
+        status: 'completed',
+        details: `${action} performed: ${details}`,
+      };
+  }
+}
+
+function generatePhysicalExamFindings(condition, examType, physicalExam) {
+  // Realistic physical exam findings based on condition
+  const findings = {
+    acute_inferior_stemi: {
+      general: 'Diaphoretic, anxious, clutching chest',
+      cardiac: 'Tachycardic regular rhythm, S4 gallop present, no murmurs',
+      lungs: 'Bibasilar fine rales, no wheezes',
+      abdomen: 'Soft, non-tender, bowel sounds present',
+      extremities: 'No peripheral edema, pulses intact',
+      neurological: 'Alert and oriented x3, no focal deficits',
+    },
+    viral_upper_respiratory_infection: {
+      general: 'Fussy but consolable, good color when calm',
+      eent: 'Clear rhinorrhea, mildly erythematous throat, no exudate',
+      cardiac: 'Tachycardic regular rhythm, no murmurs',
+      lungs: 'Clear to auscultation bilaterally',
+      abdomen: 'Soft, non-distended, bowel sounds present',
+      skin: 'Warm, dry, no rash',
+    },
+    moderate_asthma_exacerbation: {
+      general: 'Mild respiratory distress, sitting upright',
+      lungs: 'Expiratory wheeze bilateral, decreased air entry bases',
+      cardiac: 'Tachycardic regular rhythm',
+      extremities: 'No clubbing or cyanosis',
+      peak_flow: '60% of predicted value',
+    },
+    classic_migraine_with_aura: {
+      general: 'Photophobic, phonophobic, appears uncomfortable',
+      neurological: 'Cranial nerves II-XII intact, no focal motor deficits',
+      neck: 'Supple, no nuchal rigidity or meningismus',
+      fundoscopic: 'Discs sharp, no papilledema',
+    },
+    acute_appendicitis_without_perforation: {
+      general: 'Appears ill, guarding abdomen when walking',
+      abdomen: "McBurney's point tenderness, positive Rovsing's sign, no rebound",
+      bowel_sounds: 'Hypoactive bowel sounds',
+      rectal: 'Deferred in pediatric patient',
+    },
+    ventricular_septal_defect_moderate_with_chf: {
+      general: 'Failure to thrive, mild tachypnea at rest',
+      cardiac: 'Grade 3/6 systolic murmur at LLSB, thrill palpable',
+      lungs: 'Clear, mild subcostal retractions with feeding',
+      extremities: 'No cyanosis or clubbing, good perfusion',
+    },
+  };
+
+  const conditionFindings = findings[condition] || {
+    general: 'Physical examination findings documented',
+    system_specific: `${examType} examination completed`,
+  };
+
+  return {
+    category: 'physical_exam',
+    findings: conditionFindings,
+    examType: examType,
+    clinicalSignificance: getExamSignificance(condition, examType),
+  };
+}
+
+function generateLabResults(condition, labType, expectedFindings) {
+  const results = {
+    acute_inferior_stemi: {
+      troponin: { value: '15.2 ng/mL', reference: '<0.04', status: 'CRITICAL HIGH' },
+      ck_mb: { value: '45 ng/mL', reference: '<6.3', status: 'HIGH' },
+      basic_metabolic: {
+        sodium: '138 mEq/L',
+        potassium: '4.2 mEq/L',
+        chloride: '102 mEq/L',
+        co2: '24 mEq/L',
+        glucose: '145 mg/dL',
+        bun: '18 mg/dL',
+        creatinine: '1.1 mg/dL',
+      },
+    },
+    viral_upper_respiratory_infection: {
+      cbc: {
+        wbc: '8.5 K/uL (normal)',
+        neutrophils: '35%',
+        lymphocytes: '55%',
+        hemoglobin: '11.2 g/dL',
+        platelets: '285 K/uL',
+      },
+      basic_metabolic: 'Within normal limits for age',
+    },
+    moderate_asthma_exacerbation: {
+      abg: {
+        ph: '7.42',
+        pco2: '38 mmHg',
+        po2: '78 mmHg',
+        hco3: '24 mEq/L',
+        o2_sat: '92%',
+      },
+      peak_flow: '180 L/min (60% predicted)',
+    },
+    acute_appendicitis_without_perforation: {
+      cbc: {
+        wbc: '14.2 K/uL',
+        neutrophils: '78%',
+        bands: '8%',
+        hemoglobin: '12.1 g/dL',
+      },
+      basic_metabolic: 'Normal',
+      urinalysis: 'Few WBCs, no bacteria',
+    },
+  };
+
+  const conditionResults = results[condition] || {
+    pending: `${labType} results will be available in 30-60 minutes`,
+  };
+
+  return {
+    category: 'laboratory',
+    results: conditionResults,
+    orderType: labType,
+    interpretation: getLabInterpretation(condition, labType, conditionResults),
+  };
+}
+
+function generateImagingResults(condition, imagingType, expectedFindings) {
+  const results = {
+    acute_inferior_stemi: {
+      chest_xray: {
+        findings: 'Mild cardiomegaly, no acute pulmonary edema, clear lung fields',
+        impression: 'Borderline cardiac enlargement',
+      },
+      ecg: {
+        findings: 'ST elevation 2-3mm in leads II, III, aVF. Reciprocal depression in I, aVL',
+        impression: 'Acute inferior STEMI',
+      },
+    },
+    viral_upper_respiratory_infection: {
+      chest_xray: {
+        findings: 'Clear lung fields bilaterally, normal cardiac silhouette',
+        impression: 'No acute pulmonary process',
+      },
+    },
+    moderate_asthma_exacerbation: {
+      chest_xray: {
+        findings: 'Hyperinflation, flattened diaphragms, no infiltrates',
+        impression: 'Changes consistent with asthma, no pneumonia',
+      },
+    },
+    acute_appendicitis_without_perforation: {
+      ultrasound: {
+        findings: 'Thickened appendiceal wall (8mm), no free fluid',
+        impression: 'Findings consistent with acute appendicitis',
+      },
+      ct_abdomen: {
+        findings: 'Appendiceal wall thickening and periappendiceal fat stranding',
+        impression: 'Acute appendicitis without perforation',
+      },
+    },
+    ventricular_septal_defect_moderate_with_chf: {
+      chest_xray: {
+        findings: 'Cardiomegaly, increased pulmonary vascular markings',
+        impression: 'Cardiac enlargement with pulmonary overcirculation',
+      },
+      echocardiogram: {
+        findings: 'Moderate perimembranous VSD (8mm), left-to-right shunt, mild LV enlargement',
+        impression: 'Moderate VSD with volume overload',
+      },
+    },
+  };
+
+  const conditionResults = results[condition] || {
+    pending: `${imagingType} scheduled, results pending`,
+  };
+
+  return {
+    category: 'imaging',
+    results: conditionResults,
+    modality: imagingType,
+    clinicalCorrelation: getImagingCorrelation(condition, imagingType),
+  };
+}
+
+function getHistoryRelevance(details, condition) {
+  const relevanceMap = {
+    acute_inferior_stemi: {
+      'chest pain': 'Highly relevant - central to diagnosis',
+      'smoking': 'Major risk factor for coronary artery disease',
+      'family history': 'Important risk stratification',
+      'medications': 'Critical for treatment planning',
+    },
+    viral_upper_respiratory_infection: {
+      'fever': 'Key symptom for viral illness',
+      'appetite': 'Important for hydration status',
+      'daycare exposure': 'Common source of viral infections',
+      'immunizations': 'Rule out vaccine-preventable diseases',
+    },
+    moderate_asthma_exacerbation: {
+      'triggers': 'Important for identifying precipitating factors',
+      'inhaler use': 'Assessment of current treatment adequacy',
+      'previous attacks': 'Risk stratification for severity',
+    },
+    acute_appendicitis_without_perforation: {
+      'abdominal pain': 'Central symptom for diagnosis',
+      'nausea': 'Common associated symptom',
+      'fever': 'May indicate progression',
+    },
+  };
+
+  const conditionMap = relevanceMap[condition] || {};
+  const lowerDetails = details.toLowerCase();
+
+  for (const [key, relevance] of Object.entries(conditionMap)) {
+    if (lowerDetails.includes(key)) {
+      return relevance;
+    }
+  }
+
+  return 'Additional clinical context obtained';
+}
+
+function evaluateDiagnosticAccuracy(diagnosis, actualCondition) {
+  const diagnosisMap = {
+    acute_inferior_stemi: ['stemi', 'myocardial infarction', 'heart attack', 'mi'],
+    viral_upper_respiratory_infection: ['viral', 'uri', 'cold', 'respiratory infection'],
+    moderate_asthma_exacerbation: ['asthma', 'bronchospasm', 'reactive airway'],
+    classic_migraine_with_aura: ['migraine', 'headache', 'cephalgia'],
+    acute_appendicitis_without_perforation: ['appendicitis', 'appendix'],
+    ventricular_septal_defect_moderate_with_chf: ['vsd', 'septal defect', 'heart defect'],
+  };
+
+  const correctTerms = diagnosisMap[actualCondition] || [];
+  const diagnosisLower = diagnosis.toLowerCase();
+
+  const isCorrect = correctTerms.some((term) => diagnosisLower.includes(term));
+
+  return {
+    accuracy: isCorrect ? 'correct' : 'needs_review',
+    feedback: isCorrect
+      ? 'Diagnostic assessment aligns with clinical presentation'
+      : 'Consider reviewing clinical findings and differential diagnosis',
+    score: isCorrect ? 90 : 60,
+  };
+}
+
+function evaluateTreatmentPlan(plan, condition) {
+  const appropriateTreatments = {
+    acute_inferior_stemi: [
+      'aspirin',
+      'clopidogrel',
+      'statin',
+      'beta blocker',
+      'ace inhibitor',
+      'cardiac catheterization',
+    ],
+    viral_upper_respiratory_infection: [
+      'supportive care',
+      'fluids',
+      'rest',
+      'fever reducer',
+      'follow up',
+    ],
+    moderate_asthma_exacerbation: [
+      'albuterol',
+      'corticosteroids',
+      'oxygen',
+      'peak flow monitoring',
+    ],
+    classic_migraine_with_aura: ['sumatriptan', 'nsaids', 'rest', 'dark room', 'hydration'],
+    acute_appendicitis_without_perforation: [
+      'surgery',
+      'appendectomy',
+      'antibiotics',
+      'iv fluids',
+    ],
+    ventricular_septal_defect_moderate_with_chf: [
+      'diuretics',
+      'ace inhibitor',
+      'nutrition support',
+      'cardiology consult',
+    ],
+  };
+
+  const appropriateList = appropriateTreatments[condition] || [];
+  const planLower = plan.toLowerCase();
+
+  const matchedTreatments = appropriateList.filter((treatment) =>
+    planLower.includes(treatment)
+  );
+
+  const appropriatenessScore =
+    matchedTreatments.length > 0
+      ? Math.min(100, (matchedTreatments.length / appropriateList.length) * 100)
+      : 50;
+
+  return {
+    appropriateness: appropriatenessScore > 70 ? 'appropriate' : 'needs_optimization',
+    matchedTreatments,
+    suggestions: appropriateList.slice(0, 3),
+    score: Math.round(appropriatenessScore),
+  };
+}
+
+function getExamSignificance(condition, examType) {
+  const significanceMap = {
+    acute_inferior_stemi: {
+      cardiac: 'Critical for detecting heart failure signs and murmurs',
+      pulmonary: 'Important for assessing pulmonary edema',
+      general: 'Overall assessment of hemodynamic stability',
+    },
+    viral_upper_respiratory_infection: {
+      general: 'Assess overall appearance and hydration status',
+      eent: 'Key to identifying viral vs bacterial causes',
+      pulmonary: 'Rule out lower respiratory involvement',
+    },
+  };
+
+  return significanceMap[condition]?.[examType] || 'Standard physical examination component';
+}
+
+function getLabInterpretation(condition, labType, results) {
+  if (condition === 'acute_inferior_stemi' && labType.includes('cardiac')) {
+    return 'Elevated cardiac enzymes confirm myocardial injury';
+  }
+  if (condition === 'viral_upper_respiratory_infection' && labType.includes('cbc')) {
+    return 'Lymphocytic predominance suggests viral etiology';
+  }
+  return 'Laboratory results provide clinical context';
+}
+
+function getImagingCorrelation(condition, imagingType) {
+  const correlationMap = {
+    acute_inferior_stemi: {
+      ecg: 'Diagnostic for STEMI location and extent',
+      chest_xray: 'Assesses for complications like pulmonary edema',
+    },
+    acute_appendicitis_without_perforation: {
+      ultrasound: 'First-line imaging in pediatric patients',
+      ct: 'High sensitivity and specificity for appendicitis',
+    },
+  };
+
+  return correlationMap[condition]?.[imagingType] || 'Imaging supports clinical assessment';
+}
+
+// NEW ROUTE: Generate detailed simulation report
+router.get('/:id/report', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const simulation = await Simulation.findOne({ id, userId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found or access denied',
+      });
+    }
+
+    console.log(`📊 Generating report for simulation ${id}`);
+
+    // Generate comprehensive report
+    const report = await generateSimulationReport(simulation);
+
+    res.json({
+      success: true,
+      report,
+      simulationId: id,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating simulation report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate simulation report',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+// ENHANCED: Update the complete simulation route to include report generation
+router.post('/:id/complete', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'completed' } = req.body;
+    const userId = req.user.id;
+
+    const simulation = await Simulation.findOne({ id, userId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found',
+      });
+    }
+
+    if (simulation.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Simulation already completed',
+      });
+    }
+
+    console.log(`🏁 Completing simulation ${id} for user ${userId}, reason: ${reason}`);
+
+    // Calculate session duration
+    const endTime = new Date();
+    const duration = Math.round((endTime - simulation.sessionMetrics.startTime) / (1000 * 60));
+
+    // Generate AI feedback
+    let feedback = 'Simulation completed. Please review your performance with your instructor.';
+    try {
+      feedback = await openRouterService.generateClinicalFeedback(
+        simulation,
+        simulation.clinicalActions
+      );
+    } catch (feedbackError) {
+      console.error('⚠️ Feedback generation failed:', feedbackError.message);
+    }
+
+    // Calculate final scores
+    const finalScores = calculateFinalScores(simulation);
+
+    // Update simulation
+    simulation.status = 'completed';
+    simulation.sessionMetrics.endTime = endTime;
+    simulation.sessionMetrics.totalDuration = duration;
+    simulation.feedbackProvided = true;
+    simulation.learningProgress = { ...simulation.learningProgress, ...finalScores };
+
+    // Add feedback to conversation
+    simulation.conversationHistory.push({
+      sender: 'system',
+      message: feedback,
+      messageType: 'system_feedback',
+      timestamp: new Date(),
+    });
+
+    await simulation.save();
+
+    // Generate detailed report
+    const detailedReport = await generateSimulationReport(simulation);
+
+    res.json({
+      success: true,
+      message: 'Simulation completed successfully',
+      feedback,
+      sessionSummary: {
+        duration: `${duration} minutes`,
+        messagesExchanged: simulation.sessionMetrics.messageCount,
+        clinicalActions: simulation.sessionMetrics.clinicalActionsCount,
+        completionStatus: simulation.status,
+        finalScores: finalScores,
+      },
+      learningProgress: simulation.learningProgress,
+      // ADD: Include detailed report for immediate access
+      detailedReport: detailedReport,
+      reportUrl: `/api/simulations/${id}/report`
+    });
+
+  } catch (error) {
+    console.error('❌ Error completing simulation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to complete simulation',
+    });
+  }
+});
+
+// HELPER FUNCTION: Generate comprehensive simulation report
+async function generateSimulationReport(simulation) {
+  const startTime = simulation.sessionMetrics.startTime;
+  const endTime = simulation.sessionMetrics.endTime || new Date();
+  const duration = Math.round((endTime - startTime) / (1000 * 60));
+
+  // 1. Simulation Overview
+  const overview = {
+    scenarioDetails: {
+      caseName: simulation.caseName,
+      patientName: simulation.patientPersona.patient?.name || 'Patient',
+      patientAge: simulation.patientPersona.patient?.age || 'Unknown',
+      chiefComplaint: simulation.patientPersona.chiefComplaint,
+      condition: simulation.patientPersona.currentCondition,
+      programArea: simulation.programArea?.replace('_', ' ').toUpperCase(),
+      specialty: simulation.patientPersona.specialty || 'General'
+    },
+    learningObjectives: simulation.patientPersona.learningObjectives || [],
+    difficultyLevel: simulation.difficulty,
+    sessionInfo: {
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      totalDuration: `${duration} minutes`,
+      completionStatus: simulation.status
+    }
+  };
+
+  // 2. Performance Metrics & Scoring
+  const performanceMetrics = calculatePerformanceMetrics(simulation);
+
+  // 3. Clinical Decision-Making Analysis
+  const clinicalAnalysis = analyzeClinicalDecisionMaking(simulation);
+
+  // 4. Communication & Professionalism Assessment
+  const communicationAssessment = assessCommunicationSkills(simulation);
+
+  // 5. Timeline Analysis
+  const timelineAnalysis = generateTimelineAnalysis(simulation);
+
+  // 6. Detailed Action Review
+  const actionReview = generateActionReview(simulation);
+
+  // 7. Areas for Improvement & Recommendations
+  const recommendations = generateRecommendations(simulation, performanceMetrics);
+
+  return {
+    overview,
+    performanceMetrics,
+    clinicalAnalysis,
+    communicationAssessment,
+    timelineAnalysis,
+    actionReview,
+    recommendations,
+    generatedAt: new Date().toISOString(),
+    reportVersion: '1.0'
+  };
+}
+
+function calculatePerformanceMetrics(simulation) {
+  const expectedActions = getExpectedActions(simulation.patientPersona.currentCondition);
+  const completedActions = simulation.clinicalActions.map(action => action.action);
+  
+  // Calculate completion rates
+  const criticalActionsCompleted = expectedActions.filter(action => 
+    completedActions.includes(action)
+  );
+  
+  const missedActions = expectedActions.filter(action => 
+    !completedActions.includes(action)
+  );
+
+  // Time-based scoring
+  const conversationMessages = simulation.conversationHistory.filter(msg => 
+    msg.sender === 'student'
+  ).length;
+
+  const clinicalActionsCount = simulation.clinicalActions.length;
+
+  return {
+    overallScore: simulation.learningProgress.overallProgress || 0,
+    completionRate: Math.round((criticalActionsCompleted.length / expectedActions.length) * 100),
+    criticalActions: {
+      expected: expectedActions,
+      completed: criticalActionsCompleted,
+      missed: missedActions
+    },
+    efficiency: {
+      messagesExchanged: conversationMessages,
+      clinicalActionsPerformed: clinicalActionsCount,
+      averageTimePerAction: clinicalActionsCount > 0 ? 
+        Math.round(simulation.sessionMetrics.totalDuration / clinicalActionsCount) : 0
+    },
+    scores: {
+      clinicalReasoning: simulation.learningProgress.clinicalReasoningScore || 0,
+      communication: simulation.learningProgress.communicationScore || 0,
+      diagnosticAccuracy: simulation.learningProgress.diagnosticAccuracy || 0
+    }
+  };
+}
+
+function analyzeClinicalDecisionMaking(simulation) {
+  const actions = simulation.clinicalActions;
+  const condition = simulation.patientPersona.currentCondition;
+  
+  const strengths = [];
+  const improvements = [];
+  const alternatives = [];
+
+  // Analyze action sequence
+  const actionSequence = actions.map(action => action.action);
+  
+  // Check if followed logical sequence
+  if (actionSequence.includes('history_taking')) {
+    strengths.push('Appropriately gathered patient history');
+  } else {
+    improvements.push('Should have taken detailed history before proceeding');
+    alternatives.push('Start with comprehensive history taking to understand the presenting complaint');
+  }
+
+  if (actionSequence.includes('physical_exam')) {
+    strengths.push('Performed physical examination');
+  } else {
+    improvements.push('Physical examination was not documented');
+    alternatives.push('Physical exam is crucial for clinical assessment');
+  }
+
+  // Check for appropriate diagnostic workup
+  if (actionSequence.includes('order_labs') || actionSequence.includes('order_imaging')) {
+    strengths.push('Ordered appropriate diagnostic tests');
+  }
+
+  // Check diagnostic reasoning
+  const diagnosisActions = actions.filter(action => action.action === 'diagnosis');
+  if (diagnosisActions.length > 0) {
+    const lastDiagnosis = diagnosisActions[diagnosisActions.length - 1];
+    if (lastDiagnosis.result && lastDiagnosis.result.accuracy === 'correct') {
+      strengths.push('Accurate diagnostic assessment');
+    } else {
+      improvements.push('Diagnostic accuracy could be improved');
+      alternatives.push('Consider reviewing differential diagnosis and clinical findings');
+    }
+  }
+
+  return {
+    strengths,
+    areasForImprovement: improvements,
+    alternativeApproaches: alternatives,
+    actionSequence: actionSequence,
+    clinicalReasoningScore: simulation.learningProgress.clinicalReasoningScore || 0
+  };
+}
+
+function assessCommunicationSkills(simulation) {
+  const studentMessages = simulation.conversationHistory.filter(msg => msg.sender === 'student');
+  const totalMessages = studentMessages.length;
+  
+  let empathyScore = 0;
+  let clarityScore = 0;
+  let professionalismScore = 0;
+  
+  // Analyze communication patterns
+  studentMessages.forEach(msg => {
+    const message = msg.message.toLowerCase();
+    
+    // Empathy indicators
+    if (message.includes('understand') || message.includes('sorry') || 
+        message.includes('worry') || message.includes('concern')) {
+      empathyScore += 1;
+    }
+    
+    // Clarity indicators
+    if (message.includes('can you') || message.includes('please') || 
+        message.includes('tell me') || message.includes('explain')) {
+      clarityScore += 1;
+    }
+    
+    // Professionalism indicators
+    if (message.includes('thank you') || message.includes('appreciate') || 
+        !message.includes('bad') || !message.includes('wrong')) {
+      professionalismScore += 1;
+    }
+  });
+
+  // Calculate percentages
+  const empathyPercentage = totalMessages > 0 ? Math.round((empathyScore / totalMessages) * 100) : 0;
+  const clarityPercentage = totalMessages > 0 ? Math.round((clarityScore / totalMessages) * 100) : 0;
+  const professionalismPercentage = totalMessages > 0 ? Math.round((professionalismScore / totalMessages) * 100) : 0;
+
+  return {
+    overallCommunicationScore: simulation.learningProgress.communicationScore || 0,
+    patientInteraction: {
+      empathy: empathyPercentage,
+      clarity: clarityPercentage,
+      professionalism: professionalismPercentage
+    },
+    messageAnalysis: {
+      totalMessages: totalMessages,
+      averageMessageLength: totalMessages > 0 ? 
+        Math.round(studentMessages.reduce((sum, msg) => sum + msg.message.length, 0) / totalMessages) : 0,
+      questioningTechnique: studentMessages.filter(msg => msg.message.includes('?')).length
+    },
+    communicationStrengths: generateCommunicationStrengths(empathyPercentage, clarityPercentage, professionalismPercentage),
+    communicationImprovements: generateCommunicationImprovements(empathyPercentage, clarityPercentage, professionalismPercentage)
+  };
+}
+
+function generateTimelineAnalysis(simulation) {
+  const actions = simulation.clinicalActions;
+  const messages = simulation.conversationHistory;
+  const startTime = simulation.sessionMetrics.startTime;
+
+  const timeline = [];
+
+  // Add conversation milestones
+  messages.forEach((msg, index) => {
+    if (msg.sender === 'student' && index % 3 === 0) { // Every 3rd student message
+      timeline.push({
+        timestamp: new Date(msg.timestamp),
+        relativeTime: Math.round((new Date(msg.timestamp) - startTime) / (1000 * 60)),
+        type: 'conversation',
+        description: `Patient interaction: ${msg.message.substring(0, 50)}...`,
+        significance: 'Information gathering'
+      });
+    }
+  });
+
+  // Add clinical actions
+  actions.forEach(action => {
+    timeline.push({
+      timestamp: new Date(action.timestamp),
+      relativeTime: Math.round((new Date(action.timestamp) - startTime) / (1000 * 60)),
+      type: 'clinical_action',
+      description: `${action.action.replace('_', ' ').toUpperCase()}: ${action.details}`,
+      significance: getActionSignificance(action.action)
+    });
+  });
+
+  // Sort by time
+  timeline.sort((a, b) => a.timestamp - b.timestamp);
+
+  return {
+    timeline,
+    totalDuration: Math.round((simulation.sessionMetrics.endTime - startTime) / (1000 * 60)),
+    criticalMilestones: timeline.filter(item => item.type === 'clinical_action'),
+    pacing: timeline.length > 0 ? 'Appropriate' : 'Could be more structured'
+  };
+}
+
+function generateActionReview(simulation) {
+  const actions = simulation.clinicalActions;
+  
+  return actions.map((action, index) => ({
+    sequence: index + 1,
+    action: action.action.replace('_', ' ').toUpperCase(),
+    details: action.details,
+    timestamp: action.timestamp,
+    result: action.result,
+    feedback: getActionFeedback(action),
+    appropriateness: getActionAppropriateness(action, simulation.patientPersona.currentCondition)
+  }));
+}
+
+function generateRecommendations(simulation, performanceMetrics) {
+  const recommendations = [];
+  const resources = [];
+  const nextSteps = [];
+
+  // Based on completion rate
+  if (performanceMetrics.completionRate < 70) {
+    recommendations.push('Focus on systematic approach to patient assessment');
+    nextSteps.push('Practice structured clinical examination techniques');
+  }
+
+  // Based on communication score
+  if (performanceMetrics.scores.communication < 75) {
+    recommendations.push('Improve patient communication and empathy');
+    nextSteps.push('Complete communication skills training module');
+    resources.push('Calgary-Cambridge Communication Guide');
+  }
+
+  // Based on diagnostic accuracy
+  if (performanceMetrics.scores.diagnosticAccuracy < 80) {
+    recommendations.push('Strengthen diagnostic reasoning skills');
+    nextSteps.push('Review differential diagnosis frameworks');
+    resources.push('Clinical reasoning textbooks and case studies');
+  }
+
+  // Condition-specific recommendations
+  const condition = simulation.patientPersona.currentCondition;
+  if (condition) {
+    resources.push(getConditionSpecificResources(condition));
+  }
+
+  return {
+    keyRecommendations: recommendations,
+    nextSteps: nextSteps,
+    studyResources: resources.flat(),
+    personalizedLearningPlan: generatePersonalizedPlan(simulation, performanceMetrics)
+  };
+}
+
+// Helper functions for recommendations
+function generateCommunicationStrengths(empathy, clarity, professionalism) {
+  const strengths = [];
+  if (empathy > 60) strengths.push('Shows good empathy and understanding');
+  if (clarity > 70) strengths.push('Asks clear and appropriate questions');
+  if (professionalism > 80) strengths.push('Maintains professional communication');
+  return strengths.length > 0 ? strengths : ['Demonstrated basic communication skills'];
+}
+
+function generateCommunicationImprovements(empathy, clarity, professionalism) {
+  const improvements = [];
+  if (empathy < 50) improvements.push('Could show more empathy and understanding');
+  if (clarity < 60) improvements.push('Could ask clearer, more focused questions');
+  if (professionalism < 70) improvements.push('Could maintain more professional tone');
+  return improvements;
+}
+
+function getActionSignificance(action) {
+  const significance = {
+    'history_taking': 'Foundation for diagnosis',
+    'physical_exam': 'Clinical assessment',
+    'order_labs': 'Diagnostic workup',
+    'order_imaging': 'Advanced diagnostics',
+    'diagnosis': 'Clinical reasoning',
+    'treatment_plan': 'Patient management'
+  };
+  return significance[action] || 'Clinical action';
+}
+
+function getActionFeedback(action) {
+  // This would be more sophisticated in production
+  if (action.result && action.result.accuracy === 'correct') {
+    return 'Excellent clinical decision';
+  } else if (action.result && action.result.appropriateness === 'appropriate') {
+    return 'Good clinical approach';
+  }
+  return 'Consider alternative approaches';
+}
+
+function getActionAppropriateness(action, condition) {
+  // Simplified appropriateness check
+  const expectedActions = getExpectedActions(condition);
+  return expectedActions.includes(action.action) ? 'Appropriate' : 'Consider timing';
+}
+
+function getConditionSpecificResources(condition) {
+  const resources = {
+    'acute_inferior_stemi': [
+      'AHA/ACC STEMI Guidelines',
+      'ECG interpretation resources',
+      'Cardiac catheterization protocols'
+    ],
+    'viral_upper_respiratory_infection': [
+      'Pediatric fever management guidelines',
+      'Viral vs bacterial infection differentiation',
+      'Family communication in pediatric care'
+    ],
+    'acute_appendicitis_without_perforation': [
+      'Pediatric appendicitis diagnosis',
+      'Imaging in pediatric abdominal pain',
+      'Surgical consultation guidelines'
+    ]
+  };
+  return resources[condition] || ['General medical resources'];
+}
+
+function generatePersonalizedPlan(simulation, metrics) {
+  const plan = [];
+  
+  if (metrics.scores.clinicalReasoning < 75) {
+    plan.push({
+      area: 'Clinical Reasoning',
+      priority: 'High',
+      activities: ['Complete diagnostic reasoning cases', 'Practice differential diagnosis'],
+      timeframe: '2 weeks'
+    });
+  }
+
+  if (metrics.scores.communication < 70) {
+    plan.push({
+      area: 'Communication Skills',
+      priority: 'Medium',
+      activities: ['Patient interview practice', 'Empathy training exercises'],
+      timeframe: '1 week'
+    });
+  }
+
+  plan.push({
+    area: 'Skill Reinforcement',
+    priority: 'Ongoing',
+    activities: ['Repeat similar cases', 'Focus on missed learning objectives'],
+    timeframe: 'Continuous'
+  });
+
+  return plan;
+}
+
 // Export the router
 module.exports = router;
