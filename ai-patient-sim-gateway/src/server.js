@@ -117,6 +117,9 @@ const simulationProxy = createProxyMiddleware({
     '^/api/simulations': '/api/simulations'
   },
   onProxyReq: (proxyReq, req, res) => {
+    if (req.headers.authorization) {
+      proxyReq.setHeader('Authorization', req.headers.authorization);
+    }
     console.log(`🔄 [SIMULATION] Proxying ${req.method} ${req.originalUrl} to ${SIMULATION_SERVICE_URL}${proxyReq.path}`);
   },
   onProxyRes: (proxyRes, req, res) => {
