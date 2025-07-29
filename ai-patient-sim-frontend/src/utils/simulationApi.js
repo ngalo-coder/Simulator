@@ -9,7 +9,7 @@ export const simulationAPI = {
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
-      
+
       console.log('🔍 Fetching cases with filters:', filters);
       const response = await api.get(`/api/simulations/cases?${params}`);
       console.log('✅ Cases fetched successfully:', response.data);
@@ -106,7 +106,6 @@ export const simulationAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Error fetching simulation report:', error);
-      // Return error structure for graceful handling
       return {
         success: false,
         error: error.message || 'Failed to fetch simulation report',
@@ -120,14 +119,12 @@ export const simulationAPI = {
     try {
       console.log('📄 Downloading PDF report:', simulationId);
       const response = await api.get(`/api/simulations/${simulationId}/report/pdf`, {
-        responseType: 'blob' // Important for PDF download
+        responseType: 'blob'
       });
-      
-      // Create blob URL for download
+
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-      
-      // Trigger download
+
       const link = document.createElement('a');
       link.href = url;
       link.download = `simulation-report-${simulationId}.pdf`;
@@ -135,7 +132,7 @@ export const simulationAPI = {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       console.log('✅ PDF downloaded successfully');
       return { success: true, message: 'Report downloaded successfully' };
     } catch (error) {
@@ -194,26 +191,24 @@ export const simulationAPI = {
         page: page.toString(),
         limit: limit.toString()
       });
-      
-      // Add filters
+
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== '') params.append(key, value);
       });
-      
+
       console.log('📚 Fetching simulation history:', { page, limit, filters });
       const response = await api.get(`/api/simulations/user/history?${params}`);
       console.log('✅ History fetched:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Error fetching history:', error);
-      // Return empty data structure for graceful degradation
       return {
         success: false,
         simulations: [],
-        pagination: { 
-          page: parseInt(page), 
-          limit: parseInt(limit), 
-          total: 0, 
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
           pages: 0,
           hasNext: false,
           hasPrev: false
@@ -232,7 +227,6 @@ export const simulationAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Error fetching statistics:', error);
-      // Return basic structure for graceful degradation
       return {
         success: false,
         overview: {
@@ -325,10 +319,10 @@ export const simulationAPI = {
       return response.data;
     } catch (error) {
       console.error('❌ Connection test failed:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: 'Connection test failed',
-        error: error.message 
+        error: error.message
       };
     }
   },
@@ -343,13 +337,13 @@ export const simulationAPI = {
 
     return {
       ...simulation,
-      formattedDuration: simulation.sessionMetrics?.totalDuration 
+      formattedDuration: simulation.sessionMetrics?.totalDuration
         ? `${simulation.sessionMetrics.totalDuration} minutes`
         : simulation.duration || 'In progress',
-      formattedStartTime: simulation.sessionMetrics?.startTime 
+      formattedStartTime: simulation.sessionMetrics?.startTime
         ? new Date(simulation.sessionMetrics.startTime).toLocaleString()
         : simulation.createdAt ? new Date(simulation.createdAt).toLocaleString() : 'Unknown',
-      overallGrade: simulation.learningProgress?.overallProgress 
+      overallGrade: simulation.learningProgress?.overallProgress
         ? getGradeFromScore(simulation.learningProgress.overallProgress)
         : simulation.overallScore ? getGradeFromScore(simulation.overallScore) : 'N/A',
       statusColor: getStatusColor(simulation.status),
@@ -379,11 +373,11 @@ export const simulationAPI = {
   // Validate simulation data
   validateSimulationData: (data) => {
     const errors = [];
-    
+
     if (!data.caseId) {
       errors.push('Case ID is required');
     }
-    
+
     if (!data.difficulty || !['student', 'resident', 'fellow'].includes(data.difficulty)) {
       errors.push('Valid difficulty level is required');
     }
@@ -392,12 +386,72 @@ export const simulationAPI = {
       isValid: errors.length === 0,
       errors,
     };
+  },
+
+  // Generate comprehensive simulation report
+  generateReport: async (simulationId) => {
+    try {
+      console.log('📊 Generating comprehensive report for simulation:', simulationId);
+      const response = await api.get(`/api/simulations/${simulationId}/report`);
+      console.log('✅ Report generated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error generating report:', error);
+      throw error;
+    }
+  },
+
+  // Get simulation report summary
+  getReportSummary: async (simulationId) => {
+    try {
+      console.log('📋 Fetching report summary for simulation:', simulationId);
+      const response = await api.get(`/api/simulations/${simulationId}/report/summary`);
+      console.log('✅ Report summary fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching report summary:', error);
+      throw error;
+    }
   }
 };
 
-// ====================
-// HELPER FUNCTIONS
-// ====================
+// Export default for backward compatibility
+export default simulationAPI;
+
+/**
+ * Handle API errors with user-friendly messages
+ */
+export const handleSimulationError = (error) => {
+  console.error('Simulation API Error:', error);
+
+  const errorMessage = error.message || error.response?.data?.error || 'An unexpected error occurred';
+
+  if (errorMessage.includes('401') || errorMessage.includes('authentication')) {
+    return 'Please log in again to continue';
+  }
+
+  if (errorMessage.includes('404')) {
+    return 'The requested simulation was not found';
+  }
+
+  if (errorMessage.includes('403')) {
+    return 'You do not have permission to access this simulation';
+  }
+
+  if (errorMessage.includes('429')) {
+    return 'Too many requests. Please try again in a moment';
+  }
+
+  if (errorMessage.includes('500')) {
+    return 'Server error. Please try again later';
+  }
+
+  if (errorMessage.includes('Network')) {
+    return 'Network error. Please check your connection';
+  }
+
+  return errorMessage;
+};
 
 /**
  * Get grade letter from numerical score
@@ -434,69 +488,3 @@ const getDifficultyColor = (difficulty) => {
   };
   return colors[difficulty] || 'text-gray-600 bg-gray-100';
 };
-
-/**
- * Handle API errors with user-friendly messages
- */
-export const handleSimulationError = (error) => {
-  console.error('Simulation API Error:', error);
-
-  const errorMessage = error.message || error.response?.data?.error || 'An unexpected error occurred';
-  
-  // Common error patterns
-  if (errorMessage.includes('401') || errorMessage.includes('authentication')) {
-    return 'Please log in again to continue';
-  }
-  
-  if (errorMessage.includes('404')) {
-    return 'The requested simulation was not found';
-  }
-  
-  if (errorMessage.includes('403')) {
-    return 'You do not have permission to access this simulation';
-  }
-  
-  if (errorMessage.includes('429')) {
-    return 'Too many requests. Please try again in a moment';
-  }
-  
-  if (errorMessage.includes('500')) {
-    return 'Server error. Please try again later';
-  }
-  
-  if (errorMessage.includes('Network')) {
-    return 'Network error. Please check your connection';
-  }
-
-  return errorMessage;
-};
-
-  // Generate comprehensive simulation report
-  generateReport: async (simulationId) => {
-    try {
-      console.log('📊 Generating comprehensive report for simulation:', simulationId);
-      const response = await api.get(`/api/simulations/${simulationId}/report`);
-      console.log('✅ Report generated successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Error generating report:', error);
-      throw error;
-    }
-  },
-
-  // Get simulation report summary
-  getReportSummary: async (simulationId) => {
-    try {
-      console.log('📋 Fetching report summary for simulation:', simulationId);
-      const response = await api.get(`/api/simulations/${simulationId}/report/summary`);
-      console.log('✅ Report summary fetched:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Error fetching report summary:', error);
-      throw error;
-    }
-  }
-};
-
-// Export default for backward compatibility
-export default simulationAPI;

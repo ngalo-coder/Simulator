@@ -211,16 +211,17 @@ const SimulationPage = () => {
       const response = await simulationAPI.completeSimulation(id);
       if (response.success) {
         setSimulation(prev => ({ ...prev, status: 'completed' }));
-        toast.success('Simulation completed!');
+        toast.success('Simulation completed! You can now view your evaluation report.');
         
-        // Show feedback modal or navigate to feedback page
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+        // Don't auto-navigate, let user choose to view report or go back
       }
     } catch (error) {
       toast.error('Failed to complete simulation');
     }
+  };
+
+  const handleViewReport = () => {
+    navigate(`/simulation/${id}/report`);
   };
 
   const toggleSection = (section) => {
@@ -336,9 +337,11 @@ const SimulationPage = () => {
                       ? 'bg-green-100 text-green-800'
                       : simulation.status === 'paused'
                       ? 'bg-yellow-100 text-yellow-800'
+                      : simulation.status === 'completed'
+                      ? 'bg-blue-100 text-blue-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {simulation.status}
+                    {simulation.status === 'completed' ? 'Completed - View Report Available' : simulation.status}
                   </span>
                 </div>
               </div>
@@ -374,10 +377,48 @@ const SimulationPage = () => {
                   Complete
                 </button>
               )}
+
+              {simulation.status === 'completed' && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleViewReport}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    View Evaluation Report
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back to Dashboard
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Completion Success Message */}
+      {simulation.status === 'completed' && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700">
+                  <strong>Simulation Completed!</strong> Your performance has been evaluated. 
+                  Click "View Evaluation Report" above to see your detailed analysis and feedback.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
