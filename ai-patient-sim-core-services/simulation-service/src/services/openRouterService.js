@@ -1,4 +1,4 @@
-// simulation-service/src/services/openRouterService.js - FIXED VERSION
+// simulation-service/src/services/openRouterService.js - HUMAN & NATURAL VERSION
 const axios = require('axios');
 
 class OpenRouterService {
@@ -15,10 +15,10 @@ class OpenRouterService {
   async generatePatientResponse(simulation, studentMessage) {
     try {
       const { patientPersona, conversationHistory } = simulation;
-      const systemPrompt = this.buildSystemPrompt(patientPersona, simulation.difficulty);
+      const systemPrompt = this.buildNaturalSystemPrompt(patientPersona, simulation.difficulty);
       const messages = this.buildMessageHistory(conversationHistory, studentMessage);
 
-      console.log(`🤖 Generating response for ${patientPersona.patient?.name || 'Patient'}`);
+      console.log(`🤖 Generating natural response for ${patientPersona.patient?.name || 'Patient'}`);
 
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
         model: this.defaultModel,
@@ -26,14 +26,14 @@ class OpenRouterService {
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        temperature: 0.7,
-        max_tokens: 400,
+        temperature: 0.8, // Higher for more natural variation
+        max_tokens: 200,  // Shorter responses
         top_p: 0.9
       }, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simuatech.netlify.app',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
           'X-Title': 'AI Patient Simulation Platform'
         },
         timeout: 30000
@@ -58,9 +58,16 @@ class OpenRouterService {
     } catch (error) {
       console.error('❌ OpenRouter API Error:', error.response?.data || error.message);
       
-      // Fallback response for errors
+      // Natural fallback responses
+      const fallbackResponses = [
+        "Sorry, I didn't catch that. Can you ask again?",
+        "I'm not feeling great right now. What did you say?",
+        "Could you repeat that, please?",
+        "I'm having trouble understanding. Can you say that again?"
+      ];
+      
       return {
-        patientResponse: "I'm sorry, I'm not feeling well right now. Could you repeat that?",
+        patientResponse: fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)],
         guardianResponse: null,
         clinicalInfo: {},
         error: error.message
@@ -68,10 +75,8 @@ class OpenRouterService {
     }
   }
 
-  buildSystemPrompt(patientPersona, difficulty) {
+  buildNaturalSystemPrompt(patientPersona, difficulty) {
     const { patient = {}, guardian = {}, demographics = {}, medicalHistory = [], currentCondition, personality, culturalFactors } = patientPersona;
-    
-    let basePrompt = '';
     
     // Safe access to properties with fallbacks
     const patientAge = patient.age || demographics.age || 'unknown';
@@ -82,102 +87,95 @@ class OpenRouterService {
     const primaryLanguage = demographics.primaryLanguage || 'English';
     const culturalBackground = culturalFactors || demographics.ethnicity || 'general';
     
-    // Check if pediatric case (safe string checking)
+    // Check if pediatric case
     const isPediatric = (typeof patientAge === 'string' && (patientAge.includes('months') || patientAge.includes('years'))) || 
                        (typeof patientAge === 'number' && patientAge < 18) ||
                        (parseInt(patientAge) > 0 && parseInt(patientAge) < 18);
     
+    let basePrompt = '';
+    
     if (isPediatric) {
-      basePrompt = `You are playing TWO roles in a medical simulation:
+      basePrompt = `You are ${patientName}, a ${patientAge} old child, and ${guardianName} (your ${guardianRelation}).
 
-PRIMARY ROLE - PATIENT: ${patientName}, ${patientAge} old ${patientGender}
-- Current condition: ${currentCondition || 'seeking medical care'}
-- Medical history: ${Array.isArray(medicalHistory) ? medicalHistory.join(', ') : 'None significant'}
-- Personality: ${typeof personality === 'object' ? personality.patient : personality || 'age-appropriate behavior'}
+SITUATION: You came to see the doctor because ${patientPersona.chiefComplaint || 'you\'re not feeling well'}.
 
-SECONDARY ROLE - GUARDIAN: ${guardianName} (${guardianRelation})
-- Anxiety level: ${guardian.anxietyLevel || guardian.anxiety_level || 'concerned'}
-- Primary concerns: ${Array.isArray(guardian.concerns) ? guardian.concerns.join(', ') : 'child\'s wellbeing'}
-- Cultural background: ${culturalBackground}
-- Language: ${primaryLanguage}
-- Education: ${guardian.education || demographics.education || 'secondary'}`;
+WHAT'S WRONG: ${currentCondition || 'You have some symptoms that worry your family'}
 
-      // Safe cultural language checking
-      if (primaryLanguage.toLowerCase().includes('spanish') || culturalBackground.toLowerCase().includes('spanish')) {
-        basePrompt += `\n- IMPORTANT: Guardian speaks limited English, occasionally uses Spanish phrases`;
-      } else if (culturalBackground.toLowerCase().includes('kenyan') || 
-                 culturalBackground.toLowerCase().includes('african') ||
-                 culturalBackground.toLowerCase().includes('kiswahili')) {
-        basePrompt += `\n- IMPORTANT: Guardian may mix English with Kiswahili naturally`;
+HOW TO RESPOND:
+- Keep it SIMPLE and NATURAL - like real people talking
+- Child responses: Short, simple words. "It hurts", "I feel sick", crying is okay
+- Guardian responses: Worried parent/caregiver language. "I'm concerned about...", "They've been..."
+- Mix between child and guardian talking
+- Don't use medical jargon - use everyday words
+- Be emotional - worried, scared, tired, etc.
+
+EXAMPLES OF GOOD RESPONSES:
+Child: "My tummy hurts really bad" or "I don't want to talk" or *starts crying*
+Guardian: "She's been like this since yesterday" or "I'm really worried, doctor"
+
+KEEP RESPONSES SHORT: 1-2 sentences maximum. Talk like real people, not textbooks.`;
+
+      // Add cultural context if present
+      if (culturalBackground.toLowerCase().includes('kenyan') || culturalBackground.toLowerCase().includes('african')) {
+        basePrompt += `\n\nCULTURAL NOTES:
+- Guardian might mix a little Kiswahili: "daktari" (doctor), "pole sana" (sorry), "asante" (thank you)
+- Mention family: "my mother says...", "the family is worried"
+- Sometimes mention traditional remedies tried first`;
       }
-
-      basePrompt += `\n\nINSTRUCTIONS:
-1. For young children (under 7): Patient mostly cries, points, uses simple words. Guardian does most talking.
-2. For older children (7-12): Patient can answer simple questions but looks to guardian for comfort.
-3. For adolescents (13-17): Patient may want privacy but guardian is protective.
-
-RESPONSE FORMAT:
-When both patient and guardian respond, use this format:
-[PATIENT]: (patient's response)
-[GUARDIAN]: (guardian's response)
-
-When only one responds, just write the response directly.
-
-CULTURAL AUTHENTICITY:
-- Show realistic cultural speech patterns and references
-- Include family/community context in responses
-- Reference traditional medicine or cultural beliefs when appropriate
-- Use respectful, storytelling communication style
-
-MEDICAL ACCURACY:
-- Stay consistent with the diagnosis: ${currentCondition || 'presenting symptoms'}
-- Don't provide medical advice or diagnoses
-- Show appropriate symptoms for age and condition
-- Guardian should have realistic medical knowledge based on education level`;
 
     } else {
       // Adult patient
-      basePrompt = `You are a ${patientAge}-year-old ${patientGender} patient seeking medical care.
+      basePrompt = `You are ${patientName}, a ${patientAge}-year-old person who came to see the doctor.
 
-PATIENT PROFILE:
-- Name: ${patientName}
-- Chief complaint: ${patientPersona.chiefComplaint || 'seeking medical help'}
-- Current condition: ${currentCondition || 'presenting symptoms'}
-- Medical history: ${Array.isArray(medicalHistory) ? medicalHistory.join(', ') : 'None'}
-- Personality: ${personality || 'cooperative patient'}
-- Cultural background: ${culturalBackground}
-- Education: ${demographics.education || 'secondary'}
-- Socioeconomic: ${demographics.socioeconomic || 'urban_informal'}
+SITUATION: You're here because ${patientPersona.chiefComplaint || 'you\'re not feeling well'}.
 
-INSTRUCTIONS:
-1. Respond as this patient would - use first person ("I feel...", "My pain is...")
-2. Answer questions honestly but don't volunteer medical information unless asked
-3. Show appropriate emotional responses based on condition
-4. Keep responses realistic and conversational (50-150 words)
-5. Stay in character - you're seeking help, not providing medical advice
+WHAT'S WRONG: ${currentCondition || 'You have some health concerns'}
 
-CULTURAL SPEECH PATTERNS:
-- Mix English with local language phrases naturally if appropriate
-- Reference family, community, or traditional medicine when relevant
-- Show respect for medical authority while expressing concerns
-- Use storytelling approach rather than just direct answers`;
+HOW TO RESPOND:
+- Talk like a REAL PERSON, not a medical textbook
+- Use everyday language: "I feel awful", "It really hurts", "I'm worried"
+- Keep responses SHORT: 1-2 sentences maximum
+- Show your emotions - scared, tired, frustrated, relieved
+- Don't give long medical descriptions
+- Answer what you're asked, don't volunteer everything at once
+
+EXAMPLES OF GOOD RESPONSES:
+"My chest really hurts"
+"It started this morning"
+"Yeah, it's getting worse"
+"I'm scared it might be something serious"
+"No, I've never had this before"
+
+BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
+
+      // Add cultural context for adults too
+      if (culturalBackground.toLowerCase().includes('kenyan') || culturalBackground.toLowerCase().includes('african')) {
+        basePrompt += `\n\nCULTURAL NOTES:
+- You might use some Kiswahili words naturally: "daktari" (doctor), "pole" (sorry)
+- Mention family or community: "my family is worried", "my neighbor had this"
+- Sometimes reference trying traditional medicine first`;
+      }
     }
 
-    // Adjust complexity based on difficulty level
+    // Adjust for difficulty but keep it natural
     if (difficulty === 'resident' || difficulty === 'fellow') {
-      basePrompt += `\n\nCOMPLEXITY LEVEL - ${difficulty.toUpperCase()}:
-- Present with some atypical features or complications
-- Include psychosocial factors that affect care
-- May have medication compliance issues or insurance barriers
-- Show realistic patient emotions (fear, anxiety, frustration)
-- Include cultural or language barriers that affect communication`;
+      basePrompt += `\n\nADDITIONAL COMPLEXITY:
+- You might be a bit more anxious or have complications
+- Could have some social/financial worries about treatment
+- Still keep responses SHORT and NATURAL`;
     } else {
-      basePrompt += `\n\nCOMPLEXITY LEVEL - STUDENT:
-- Present with classic, textbook symptoms
-- Be cooperative and straightforward
-- Focus on core medical learning objectives
-- Still show cultural authenticity but more straightforward communication`;
+      basePrompt += `\n\nKEEP IT SIMPLE:
+- Straightforward symptoms
+- Cooperative but still human and emotional
+- Don't make it too complicated`;
     }
+
+    basePrompt += `\n\nIMPORTANT RULES:
+1. Maximum 1-2 sentences per response
+2. Use simple, everyday words
+3. Show real human emotions
+4. Don't sound like a medical textbook
+5. Be conversational and natural`;
 
     return basePrompt;
   }
@@ -185,8 +183,8 @@ CULTURAL SPEECH PATTERNS:
   buildMessageHistory(conversationHistory, newMessage) {
     const messages = [];
     
-    // Add conversation history (last 10 messages to stay within token limits)
-    const recentHistory = Array.isArray(conversationHistory) ? conversationHistory.slice(-10) : [];
+    // Add conversation history (last 8 messages for more focused context)
+    const recentHistory = Array.isArray(conversationHistory) ? conversationHistory.slice(-8) : [];
     
     recentHistory.forEach(msg => {
       if (msg && msg.sender && msg.message) {
@@ -220,32 +218,39 @@ CULTURAL SPEECH PATTERNS:
       return { patient: response || '', guardian: null };
     }
 
+    // Clean up the response - remove any formatting artifacts
+    let cleanResponse = response.trim();
+    
+    // Remove any unwanted prefixes that might make it sound robotic
+    cleanResponse = cleanResponse.replace(/^(Patient says?:|Guardian says?:|Response:|Answer:)\s*/i, '');
+    cleanResponse = cleanResponse.replace(/^(As (a|the) patient,?|As (a|the) guardian,?)\s*/i, '');
+    
     // Check if response contains both patient and guardian voices
-    if (response.includes('[PATIENT]:') && response.includes('[GUARDIAN]:')) {
-      const patientMatch = response.match(/\[PATIENT\]:\s*(.*?)(?=\[GUARDIAN\]:|$)/s);
-      const guardianMatch = response.match(/\[GUARDIAN\]:\s*(.*?)$/s);
+    if (cleanResponse.includes('[PATIENT]:') && cleanResponse.includes('[GUARDIAN]:')) {
+      const patientMatch = cleanResponse.match(/\[PATIENT\]:\s*(.*?)(?=\[GUARDIAN\]:|$)/s);
+      const guardianMatch = cleanResponse.match(/\[GUARDIAN\]:\s*(.*?)$/s);
       
       return {
-        patient: patientMatch ? patientMatch[1].trim() : response,
+        patient: patientMatch ? patientMatch[1].trim() : cleanResponse,
         guardian: guardianMatch ? guardianMatch[1].trim() : null
       };
     }
     
-    // Check if it's a pediatric case
+    // Check if it's a very young child (guardian mostly speaks)
     const patientAge = patientPersona.patient?.age || patientPersona.demographics?.age;
-    const isPediatric = (typeof patientAge === 'string' && patientAge.includes('months')) || 
-                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 7);
+    const isVeryYoung = (typeof patientAge === 'string' && patientAge.includes('months')) || 
+                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 5);
     
-    if (isPediatric) {
+    if (isVeryYoung) {
       return {
-        patient: null, // Very young children don't speak much
-        guardian: response
+        patient: null,
+        guardian: cleanResponse
       };
     }
     
-    // Default: assume it's the primary speaker
+    // Default: assume it's the patient speaking
     return {
-      patient: response,
+      patient: cleanResponse,
       guardian: null
     };
   }
@@ -255,13 +260,13 @@ CULTURAL SPEECH PATTERNS:
       return {};
     }
 
+    // Simplified clinical info extraction for natural conversation
     const clinicalKeywords = {
-      symptoms: ['pain', 'ache', 'fever', 'nausea', 'vomiting', 'dizzy', 'tired', 'sob', 'cough'],
-      severity: ['mild', 'moderate', 'severe', 'worst', 'better', 'worse', '1-10', 'scale'],
-      timing: ['minutes', 'hours', 'days', 'weeks', 'started', 'began', 'since', 'ago'],
-      quality: ['sharp', 'dull', 'crushing', 'burning', 'stabbing', 'throbbing', 'cramping'],
-      location: ['chest', 'back', 'arm', 'jaw', 'stomach', 'head', 'abdomen', 'right', 'left'],
-      associated: ['sweating', 'nausea', 'shortness', 'dizzy', 'weak', 'tired']
+      symptoms: ['pain', 'hurt', 'ache', 'fever', 'hot', 'sick', 'nausea', 'vomit', 'dizzy', 'tired', 'cough', 'sob'],
+      severity: ['bad', 'really', 'very', 'little', 'worse', 'better', 'awful', 'terrible'],
+      timing: ['today', 'yesterday', 'morning', 'night', 'hours', 'days', 'started', 'began'],
+      location: ['chest', 'tummy', 'stomach', 'head', 'back', 'arm', 'here', 'there'],
+      emotions: ['scared', 'worried', 'afraid', 'tired', 'upset', 'fine', 'okay']
     };
 
     const revealed = {};
@@ -286,21 +291,21 @@ CULTURAL SPEECH PATTERNS:
 
   async generateClinicalFeedback(simulation, studentActions) {
     try {
-      const feedbackPrompt = this.buildFeedbackPrompt(simulation, studentActions);
+      const feedbackPrompt = this.buildNaturalFeedbackPrompt(simulation, studentActions);
       
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
         model: this.defaultModel,
         messages: [
           { role: 'system', content: feedbackPrompt },
-          { role: 'user', content: 'Please provide feedback on this simulation session.' }
+          { role: 'user', content: 'Please provide brief, practical feedback on this simulation.' }
         ],
         temperature: 0.3,
-        max_tokens: 500
+        max_tokens: 300 // Shorter feedback too
       }, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simuatech.netlify.app',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
           'X-Title': 'AI Patient Simulation Platform'
         }
       });
@@ -308,43 +313,33 @@ CULTURAL SPEECH PATTERNS:
       return response.data.choices[0].message.content;
     } catch (error) {
       console.error('❌ Feedback generation error:', error.message);
-      return 'Feedback generation is temporarily unavailable. Please review your performance with your instructor.';
+      return 'Great job on the simulation! Keep practicing your communication skills and clinical reasoning.';
     }
   }
 
-  buildFeedbackPrompt(simulation, studentActions) {
+  buildNaturalFeedbackPrompt(simulation, studentActions) {
     if (!simulation || !simulation.patientPersona) {
-      return 'Unable to generate feedback due to missing simulation data.';
+      return 'Provide encouraging feedback for the medical student.';
     }
 
-    const { patientPersona, learningProgress } = simulation;
+    const { patientPersona } = simulation;
     const patientName = patientPersona.patient?.name || 'Patient';
-    const patientAge = patientPersona.patient?.age || patientPersona.demographics?.age || 'unknown';
-    const currentCondition = patientPersona.currentCondition || 'unknown condition';
-    const programArea = simulation.programArea || 'general medicine';
-    const learningObjectives = patientPersona.learningObjectives || ['General clinical skills'];
+    const currentCondition = patientPersona.currentCondition || 'the medical case';
     
-    return `You are a medical education AI providing constructive feedback to a ${simulation.difficulty || 'student'} on their patient simulation performance.
+    return `Give brief, encouraging feedback to a medical student who just completed a simulation with ${patientName}.
 
-CASE DETAILS:
-- Patient: ${patientName}, ${patientAge}
-- Condition: ${currentCondition}
-- Program: ${programArea}
+The case involved: ${currentCondition}
 
-STUDENT ACTIONS TAKEN:
-${Array.isArray(studentActions) ? studentActions.map(action => `- ${action.action}: ${action.details}`).join('\n') : 'No specific actions recorded'}
+Student actions: ${Array.isArray(studentActions) ? studentActions.map(action => action.action).join(', ') : 'conversational interaction'}
 
-LEARNING OBJECTIVES:
-${Array.isArray(learningObjectives) ? learningObjectives.join('\n- ') : learningObjectives}
+FEEDBACK STYLE:
+- Keep it SHORT and encouraging
+- Focus on what they did well
+- Give 1-2 practical tips for improvement
+- Use simple, supportive language
+- Maximum 3-4 sentences
 
-PROVIDE FEEDBACK ON:
-1. Clinical reasoning and diagnostic approach
-2. Communication skills (especially with guardians if pediatric case)
-3. What was done well
-4. Areas for improvement
-5. Next steps for learning
-
-Keep feedback constructive, specific, and educational. Focus on learning, not judgment.`;
+BE POSITIVE and HELPFUL - they're learning!`;
   }
 }
 
