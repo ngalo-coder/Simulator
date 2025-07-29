@@ -5,11 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
 import { 
   LogOut, 
-  User, 
-  Building, 
-  Mail, 
-  UserCheck,
-  Play,
   BookOpen,
   History,
   BarChart3,
@@ -33,7 +28,6 @@ import {
   AlertTriangle,
   Eye
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 const DashboardPage = () => {
   const navigate = useNavigate();

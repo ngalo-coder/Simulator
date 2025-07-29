@@ -54,22 +54,13 @@ module.exports = {
       strategy: 'class', // Only apply to elements with 'form-' classes
     }),
   ],
-  // Production optimizations
-  purge: {
-    enabled: process.env.NODE_ENV === 'production',
-    content: [
-      './src/**/*.{js,jsx,ts,tsx}',
-      './public/index.html'
-    ],
-    options: {
-      safelist: [
-        // Keep dynamic classes that might be generated
-        'bg-red-100', 'bg-green-100', 'bg-blue-100', 'bg-yellow-100',
-        'text-red-800', 'text-green-800', 'text-blue-800', 'text-yellow-800',
-        'border-red-500', 'border-green-500', 'border-blue-500', 'border-purple-500',
-        // Animation classes
-        'animate-spin', 'animate-pulse', 'animate-bounce'
-      ]
-    }
-  }
+  // Production optimizations - Updated for Tailwind CSS v3.0+
+  safelist: [
+    // Keep dynamic classes that might be generated
+    'bg-red-100', 'bg-green-100', 'bg-blue-100', 'bg-yellow-100',
+    'text-red-800', 'text-green-800', 'text-blue-800', 'text-yellow-800',
+    'border-red-500', 'border-green-500', 'border-blue-500', 'border-purple-500',
+    // Animation classes
+    'animate-spin', 'animate-pulse', 'animate-bounce'
+  ]
 }
