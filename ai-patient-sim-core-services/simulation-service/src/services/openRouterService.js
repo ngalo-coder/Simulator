@@ -33,7 +33,7 @@ class OpenRouterService {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simuatech.netlify.app',
           'X-Title': 'AI Patient Simulation Platform'
         },
         timeout: 30000
@@ -300,7 +300,7 @@ CULTURAL SPEECH PATTERNS:
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'https://simuatech.netlify.app',
           'X-Title': 'AI Patient Simulation Platform'
         }
       });
