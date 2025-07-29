@@ -16,7 +16,8 @@ import {
   Award,
   Target,
   ArrowLeft,
-  Eye
+  Eye,
+  FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -473,11 +474,27 @@ const SimulationHistory = () => {
                                 Continue
                               </button>
                             ) : (
-                              <button
-                                onClick={() => navigate(`/simulation/${simulation.id}`)}
-                                className="text-gray-600 hover:text-gray-500 flex items-center"
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
+                              <>
+                                <button
+                                  onClick={() => navigate(`/simulation/${simulation.id}`)}
+                                  className="text-gray-600 hover:text-gray-500 flex items-center"
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </button>
+                                {simulation.status === 'completed' && (
+                                  <button
+                                    onClick={() => navigate(`/simulation/${simulation.id}/report`)}
+                                    className="text-green-600 hover:text-green-500 flex items-center"
+                                  >
+                                    <FileText className="h-4 w-4 mr-1" />
+                                    Report
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
                                 Review
                               </button>
                             )}

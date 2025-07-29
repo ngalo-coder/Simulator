@@ -471,5 +471,32 @@ export const handleSimulationError = (error) => {
   return errorMessage;
 };
 
+  // Generate comprehensive simulation report
+  generateReport: async (simulationId) => {
+    try {
+      console.log('📊 Generating comprehensive report for simulation:', simulationId);
+      const response = await api.get(`/api/simulations/${simulationId}/report`);
+      console.log('✅ Report generated successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error generating report:', error);
+      throw error;
+    }
+  },
+
+  // Get simulation report summary
+  getReportSummary: async (simulationId) => {
+    try {
+      console.log('📋 Fetching report summary for simulation:', simulationId);
+      const response = await api.get(`/api/simulations/${simulationId}/report/summary`);
+      console.log('✅ Report summary fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching report summary:', error);
+      throw error;
+    }
+  }
+};
+
 // Export default for backward compatibility
 export default simulationAPI;

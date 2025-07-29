@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import CaseSelection from './components/simulation/CaseSelection';
 import SimulationPage from './pages/SimulationPage';
 import SimulationHistory from './pages/SimulationHistory';
+import SimulationReport from './components/SimulationReport';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -101,6 +102,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SimulationHistory />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Simulation Report */}
+              <Route
+                path="/simulation/:simulationId/report"
+                element={
+                  <ProtectedRoute>
+                    <SimulationReport />
                   </ProtectedRoute>
                 }
               />

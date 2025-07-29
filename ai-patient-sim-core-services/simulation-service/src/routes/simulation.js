@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const Simulation = require('../models/Simulation');
 const PatientCase = require('../models/PatientCase');
 const OpenRouterService = require('../services/openRouterService');
+const ReportGenerator = require('../services/reportGenerator');
 const { PATIENT_PERSONAS, PROGRAM_AREAS } = require('../data/patientPersonas');
 const { authMiddleware, authorize } = require('../middleware/auth');
 const DialogueEnhancer = require('../services/dialogue/dialogueEnhancer');
@@ -12,6 +13,7 @@ const DialogueEnhancer = require('../services/dialogue/dialogueEnhancer');
 
 const router = express.Router();
 const openRouterService = new OpenRouterService();
+const reportGenerator = new ReportGenerator();
 
 // Health check for simulation service (add this route)
 router.get('/health', (req, res) => {
@@ -2413,6 +2415,113 @@ function generatePersonalizedPlan(simulation, metrics) {
 
   return plan;
 }
+
+// Generate comprehensive simulation report
+router.get('/:id/report', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log(`📊 Generating report for simulation ${id} by user ${userId}`);
+
+    // Find the simulation
+    const simulation = await Simulation.findOne({ id, userId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found or access denied'
+      });
+    }
+
+    // Only generate reports for completed simulations
+    if (simulation.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Report can only be generated for completed simulations',
+        currentStatus: simulation.status
+      });
+    }
+
+    // Generate the comprehensive report
+    const reportResult = await reportGenerator.generateSimulationReport(simulation);
+
+    if (!reportResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate simulation report',
+        details: reportResult.error
+      });
+    }
+
+    console.log(`✅ Report generated successfully for simulation ${id}`);
+
+    res.json({
+      success: true,
+      simulationId: id,
+      report: reportResult.report,
+      generatedAt: reportResult.generatedAt,
+      metadata: {
+        caseName: simulation.caseName,
+        programArea: simulation.programArea,
+        difficulty: simulation.difficulty,
+        duration: simulation.sessionMetrics.totalDuration || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating simulation report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate simulation report',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Get simulation report summary (lighter version)
+router.get('/:id/report/summary', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const simulation = await Simulation.findOne({ id, userId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found or access denied'
+      });
+    }
+
+    // Generate summary report
+    const summary = {
+      simulationOverview: reportGenerator.generateSimulationOverview(simulation),
+      performanceMetrics: reportGenerator.calculatePerformanceMetrics(simulation),
+      overallScore: reportGenerator.calculateOverallScore(simulation),
+      keyInsights: {
+        strengths: simulation.learningProgress.objectivesCompleted || [],
+        areasForImprovement: simulation.learningProgress.clinicalSkillsAssessed
+          .filter(skill => skill.competencyLevel === 'novice' || skill.competencyLevel === 'advanced_beginner')
+          .map(skill => skill.skill) || [],
+        totalActions: simulation.clinicalActions.length,
+        communicationScore: simulation.learningProgress.communicationScore || 0
+      }
+    };
+
+    res.json({
+      success: true,
+      simulationId: id,
+      summary,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating report summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate report summary'
+    });
+  }
+});
 
 // Export the router
 module.exports = router;
