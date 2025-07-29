@@ -1,4 +1,4 @@
-// simulation-service/src/services/openRouterService.js - HUMAN & NATURAL VERSION
+// simulation-service/src/services/openRouterService.js - FINAL SAFE VERSION
 const axios = require('axios');
 
 class OpenRouterService {
@@ -76,7 +76,15 @@ class OpenRouterService {
   }
 
   buildNaturalSystemPrompt(patientPersona, difficulty) {
-    const { patient = {}, guardian = {}, demographics = {}, medicalHistory = [], currentCondition, personality, culturalFactors } = patientPersona;
+    // SAFE: Extract with defaults to prevent undefined errors
+    const patient = patientPersona.patient || {};
+    const guardian = patientPersona.guardian || {};
+    const demographics = patientPersona.demographics || {};
+    const medicalHistory = Array.isArray(patientPersona.medicalHistory) ? patientPersona.medicalHistory : [];
+    const currentCondition = patientPersona.currentCondition || 'seeking medical help';
+    const personality = patientPersona.personality || 'cooperative patient';
+    const culturalFactors = patientPersona.culturalFactors || patientPersona.culturalBackground || demographics.ethnicity || '';
+    const chiefComplaint = patientPersona.chiefComplaint || 'not feeling well';
     
     // Safe access to properties with fallbacks
     const patientAge = patient.age || demographics.age || 'unknown';
@@ -85,21 +93,22 @@ class OpenRouterService {
     const guardianName = guardian.name || 'Guardian';
     const guardianRelation = guardian.relationship || 'family member';
     const primaryLanguage = demographics.primaryLanguage || 'English';
-    const culturalBackground = culturalFactors || demographics.ethnicity || 'general';
     
-    // Check if pediatric case
-    const isPediatric = (typeof patientAge === 'string' && (patientAge.includes('months') || patientAge.includes('years'))) || 
-                       (typeof patientAge === 'number' && patientAge < 18) ||
-                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 18);
+    // Safe check for pediatric case
+    const ageString = String(patientAge).toLowerCase();
+    const isPediatric = ageString.includes('months') || 
+                       ageString.includes('year') || 
+                       ageString.includes('old') ||
+                       (!isNaN(patientAge) && parseInt(patientAge) < 18);
     
     let basePrompt = '';
     
     if (isPediatric) {
-      basePrompt = `You are ${patientName}, a ${patientAge} old child, and ${guardianName} (your ${guardianRelation}).
+      basePrompt = `You are ${patientName}, a ${patientAge} child, and ${guardianName} (your ${guardianRelation}).
 
-SITUATION: You came to see the doctor because ${patientPersona.chiefComplaint || 'you\'re not feeling well'}.
+SITUATION: You came to see the doctor because ${chiefComplaint}.
 
-WHAT'S WRONG: ${currentCondition || 'You have some symptoms that worry your family'}
+WHAT'S WRONG: ${currentCondition}
 
 HOW TO RESPOND:
 - Keep it SIMPLE and NATURAL - like real people talking
@@ -115,8 +124,11 @@ Guardian: "She's been like this since yesterday" or "I'm really worried, doctor"
 
 KEEP RESPONSES SHORT: 1-2 sentences maximum. Talk like real people, not textbooks.`;
 
-      // Add cultural context if present
-      if (culturalBackground.toLowerCase().includes('kenyan') || culturalBackground.toLowerCase().includes('african')) {
+      // Add cultural context if present - SAFE checking
+      const culturalBackground = String(culturalFactors).toLowerCase();
+      if (culturalBackground.includes('kenyan') || 
+          culturalBackground.includes('african') ||
+          culturalBackground.includes('kiswahili')) {
         basePrompt += `\n\nCULTURAL NOTES:
 - Guardian might mix a little Kiswahili: "daktari" (doctor), "pole sana" (sorry), "asante" (thank you)
 - Mention family: "my mother says...", "the family is worried"
@@ -127,9 +139,9 @@ KEEP RESPONSES SHORT: 1-2 sentences maximum. Talk like real people, not textbook
       // Adult patient
       basePrompt = `You are ${patientName}, a ${patientAge}-year-old person who came to see the doctor.
 
-SITUATION: You're here because ${patientPersona.chiefComplaint || 'you\'re not feeling well'}.
+SITUATION: You're here because ${chiefComplaint}.
 
-WHAT'S WRONG: ${currentCondition || 'You have some health concerns'}
+WHAT'S WRONG: ${currentCondition}
 
 HOW TO RESPOND:
 - Talk like a REAL PERSON, not a medical textbook
@@ -148,8 +160,11 @@ EXAMPLES OF GOOD RESPONSES:
 
 BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
 
-      // Add cultural context for adults too
-      if (culturalBackground.toLowerCase().includes('kenyan') || culturalBackground.toLowerCase().includes('african')) {
+      // Add cultural context for adults too - SAFE checking
+      const culturalBackground = String(culturalFactors).toLowerCase();
+      if (culturalBackground.includes('kenyan') || 
+          culturalBackground.includes('african') ||
+          culturalBackground.includes('kiswahili')) {
         basePrompt += `\n\nCULTURAL NOTES:
 - You might use some Kiswahili words naturally: "daktari" (doctor), "pole" (sorry)
 - Mention family or community: "my family is worried", "my neighbor had this"
@@ -236,10 +251,10 @@ BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
       };
     }
     
-    // Check if it's a very young child (guardian mostly speaks)
-    const patientAge = patientPersona.patient?.age || patientPersona.demographics?.age;
-    const isVeryYoung = (typeof patientAge === 'string' && patientAge.includes('months')) || 
-                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 5);
+    // SAFE: Check if it's a very young child
+    const patientAge = String(patientPersona.patient?.age || patientPersona.demographics?.age || '').toLowerCase();
+    const isVeryYoung = patientAge.includes('months') || 
+                       (patientAge.includes('year') && parseInt(patientAge) < 5);
     
     if (isVeryYoung) {
       return {
