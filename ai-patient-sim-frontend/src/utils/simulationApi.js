@@ -26,7 +26,7 @@ export const simulationAPI = {
       console.log('🚀 Starting simulation:', { caseId, difficulty });
       const response = await api.post('/api/simulations/start', {
         caseId,
-        difficulty
+        difficulty,
       });
       console.log('✅ Simulation started:', response.data);
       return response.data;
@@ -42,7 +42,7 @@ export const simulationAPI = {
       console.log('💬 Sending message:', { simulationId, message, messageType });
       const response = await api.post(`/api/simulations/${simulationId}/message`, {
         message,
-        messageType
+        messageType,
       });
       console.log('✅ Message sent:', response.data);
       return response.data;
@@ -59,7 +59,7 @@ export const simulationAPI = {
       const response = await api.post(`/api/simulations/${simulationId}/action`, {
         action,
         details,
-        category
+        category,
       });
       console.log('✅ Action performed:', response.data);
       return response.data;
@@ -87,7 +87,7 @@ export const simulationAPI = {
     try {
       console.log('🏁 Completing simulation:', { simulationId, reason });
       const response = await api.post(`/api/simulations/${simulationId}/complete`, {
-        reason
+        reason,
       });
       console.log('✅ Simulation completed with report:', response.data);
       return response.data;
@@ -109,7 +109,7 @@ export const simulationAPI = {
       return {
         success: false,
         error: error.message || 'Failed to fetch simulation report',
-        report: null
+        report: null,
       };
     }
   },
@@ -119,7 +119,7 @@ export const simulationAPI = {
     try {
       console.log('📄 Downloading PDF report:', simulationId);
       const response = await api.get(`/api/simulations/${simulationId}/report/pdf`, {
-        responseType: 'blob'
+        responseType: 'blob',
       });
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -152,8 +152,9 @@ export const simulationAPI = {
       console.error('❌ Error fetching AI feedback:', error);
       return {
         success: false,
-        feedback: 'AI feedback is temporarily unavailable. Please review your performance with your instructor.',
-        error: error.message
+        feedback:
+          'AI feedback is temporarily unavailable. Please review your performance with your instructor.',
+        error: error.message,
       };
     }
   },
@@ -189,7 +190,7 @@ export const simulationAPI = {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: limit.toString()
+        limit: limit.toString(),
       });
 
       Object.entries(filters).forEach(([key, value]) => {
@@ -211,9 +212,9 @@ export const simulationAPI = {
           total: 0,
           pages: 0,
           hasNext: false,
-          hasPrev: false
+          hasPrev: false,
         },
-        error: error.message
+        error: error.message,
       };
     }
   },
@@ -233,11 +234,11 @@ export const simulationAPI = {
           totalSimulations: 0,
           completedSimulations: 0,
           activeSimulations: 0,
-          completionRate: 0
+          completionRate: 0,
         },
         programBreakdown: [],
         availablePrograms: [],
-        error: error.message
+        error: error.message,
       };
     }
   },
@@ -255,7 +256,7 @@ export const simulationAPI = {
       return {
         success: false,
         statistics: {},
-        error: error.message
+        error: error.message,
       };
     }
   },
@@ -322,7 +323,7 @@ export const simulationAPI = {
       return {
         success: false,
         message: 'Connection test failed',
-        error: error.message
+        error: error.message,
       };
     }
   },
@@ -342,10 +343,14 @@ export const simulationAPI = {
         : simulation.duration || 'In progress',
       formattedStartTime: simulation.sessionMetrics?.startTime
         ? new Date(simulation.sessionMetrics.startTime).toLocaleString()
-        : simulation.createdAt ? new Date(simulation.createdAt).toLocaleString() : 'Unknown',
+        : simulation.createdAt
+        ? new Date(simulation.createdAt).toLocaleString()
+        : 'Unknown',
       overallGrade: simulation.learningProgress?.overallProgress
         ? getGradeFromScore(simulation.learningProgress.overallProgress)
-        : simulation.overallScore ? getGradeFromScore(simulation.overallScore) : 'N/A',
+        : simulation.overallScore
+        ? getGradeFromScore(simulation.overallScore)
+        : 'N/A',
       statusColor: getStatusColor(simulation.status),
       difficultyColor: getDifficultyColor(simulation.difficulty),
     };
@@ -354,7 +359,11 @@ export const simulationAPI = {
   // Get available difficulty levels
   getDifficultyLevels: () => [
     { value: 'student', label: 'Student', description: 'Basic level with straightforward cases' },
-    { value: 'resident', label: 'Resident', description: 'Intermediate level with complex scenarios' },
+    {
+      value: 'resident',
+      label: 'Resident',
+      description: 'Intermediate level with complex scenarios',
+    },
     { value: 'fellow', label: 'Fellow', description: 'Advanced level with rare and complex cases' },
   ],
 
@@ -412,7 +421,7 @@ export const simulationAPI = {
       console.error('❌ Error fetching report summary:', error);
       throw error;
     }
-  }
+  },
 };
 
 // Export default for backward compatibility
@@ -424,7 +433,8 @@ export default simulationAPI;
 export const handleSimulationError = (error) => {
   console.error('Simulation API Error:', error);
 
-  const errorMessage = error.message || error.response?.data?.error || 'An unexpected error occurred';
+  const errorMessage =
+    error.message || error.response?.data?.error || 'An unexpected error occurred';
 
   if (errorMessage.includes('401') || errorMessage.includes('authentication')) {
     return 'Please log in again to continue';

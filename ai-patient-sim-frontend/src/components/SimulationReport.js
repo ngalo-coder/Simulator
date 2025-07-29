@@ -36,10 +36,30 @@ const SimulationReport = () => {
     try {
       setLoading(true);
       const response = await simulationAPI.generateReport(simulationId);
-      setReport(response);
+      
+      // Debug logging
+      console.log('Report response:', response);
+      
+      if (response && response.success) {
+        setReport(response);
+      } else {
+        console.error('Report generation failed:', response);
+        toast.error(response?.error || 'Failed to generate simulation report');
+        setReport(null);
+      }
     } catch (error) {
       console.error('Error fetching report:', error);
-      toast.error('Failed to load simulation report');
+      
+      // Check if it's a 400 error (simulation not completed)
+      if (error.response?.status === 400) {
+        toast.error('Report can only be generated for completed simulations');
+      } else if (error.response?.status === 404) {
+        toast.error('Simulation not found');
+      } else {
+        toast.error('Failed to load simulation report');
+      }
+      
+      setReport(null);
     } finally {
       setLoading(false);
     }
@@ -98,246 +118,358 @@ const SimulationReport = () => {
     { id: 'next-steps', label: 'Next Steps', icon: BookOpen }
   ];
 
-  const renderOverview = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Simulation Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Case</p>
-            <p className="font-medium">{report.report.simulationOverview.scenarioDetails.caseName}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Patient</p>
-            <p className="font-medium">{report.report.simulationOverview.scenarioDetails.patientDescription}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Program Area</p>
-            <p className="font-medium">{report.report.simulationOverview.scenarioDetails.programArea}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Difficulty Level</p>
-            <p className="font-medium">{report.report.simulationOverview.difficultyLevel}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Duration</p>
-            <p className="font-medium">{report.report.simulationOverview.sessionInfo.duration} minutes</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Overall Score</p>
-            <p className="font-medium text-2xl text-blue-600">{report.report.overallScore}%</p>
+  const renderOverview = () => {
+    // Add null checks to prevent errors
+    const reportData = report?.report;
+    const overview = reportData?.simulationOverview;
+    const scenarioDetails = overview?.scenarioDetails;
+    const sessionInfo = overview?.sessionInfo;
+
+    if (!reportData || !overview) {
+      return (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Report Data Unavailable</h3>
+            <p className="text-gray-600">The simulation report data is not available or still being generated.</p>
           </div>
         </div>
-      </div>
+      );
+    }
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Learning Objectives</h3>
-        <ul className="space-y-2">
-          {report.report.simulationOverview.learningObjectives.map((objective, index) => (
-            <li key={index} className="flex items-start">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>{objective}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-
-  const renderPerformance = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Performance Scores</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(report.report.performanceMetrics.scoringRubric).map(([key, value]) => (
-            <div key={key} className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-              <p className="text-2xl font-bold text-blue-600">{value}%</p>
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Simulation Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Case</p>
+              <p className="font-medium">{scenarioDetails?.caseName || 'N/A'}</p>
             </div>
-          ))}
-        </div>
+            <div>
+              <p className="text-sm text-gray-600">Patient</p>
+              <p className="font-medium">{scenarioDetails?.patientDescription || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Program Area</p>
+              <p className="font-medium">{scenarioDetails?.programArea || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Difficulty Level</p>
+              <p className="font-medium">{overview?.difficultyLevel || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Duration</p>
+              <p className="font-medium">{sessionInfo?.duration || 'N/A'} minutes</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Overall Score</p>
+              <p className="font-medium text-2xl text-blue-600">{reportData?.overallScore || 0}%</p>
+            </div>
+          </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Actions Completed</h3>
-        <div className="space-y-3">
-          {report.report.performanceMetrics.checklistEvaluation.completedActions.map((action, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center">
-                {action.appropriate ? (
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-red-500 mr-3" />
-                )}
-                <div>
-                  <p className="font-medium capitalize">{action.action.replace(/_/g, ' ')}</p>
-                  <p className="text-sm text-gray-600">{action.details}</p>
-                </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Learning Objectives</h3>
+          <ul className="space-y-2">
+            {(overview?.learningObjectives || []).map((objective, index) => (
+              <li key={index} className="flex items-start">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span>{objective}</span>
+              </li>
+            ))}
+            {(!overview?.learningObjectives || overview.learningObjectives.length === 0) && (
+              <li className="text-gray-500 italic">No learning objectives available</li>
+            )}
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPerformance = () => {
+    const reportData = report?.report;
+    const performanceMetrics = reportData?.performanceMetrics;
+    const scoringRubric = performanceMetrics?.scoringRubric || {};
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Performance Scores</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(scoringRubric).map(([key, value]) => (
+              <div key={key} className="text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                <p className="text-2xl font-bold text-blue-600">{value || 0}%</p>
               </div>
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                action.timing === 'appropriate' ? 'bg-green-100 text-green-800' :
-                action.timing === 'early' ? 'bg-blue-100 text-blue-800' :
-                'bg-yellow-100 text-yellow-800'
-              }`}>
-                {action.timing}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderClinicalAnalysis = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-green-600">Strengths</h3>
-          <ul className="space-y-2">
-            {report.report.clinicalDecisionMaking.strengths.map((strength, index) => (
-              <li key={index} className="flex items-start">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{strength}</span>
-              </li>
             ))}
-          </ul>
+            {Object.keys(scoringRubric).length === 0 && (
+              <div className="col-span-full text-center text-gray-500 italic">
+                Performance scores not available
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-yellow-600">Areas for Improvement</h3>
-          <ul className="space-y-2">
-            {report.report.clinicalDecisionMaking.areasForImprovement.map((area, index) => (
-              <li key={index} className="flex items-start">
-                <AlertCircle className="h-4 w-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{area}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 text-blue-600">Alternative Approaches</h3>
-          <ul className="space-y-2">
-            {report.report.clinicalDecisionMaking.alternativeApproaches.map((approach, index) => (
-              <li key={index} className="flex items-start">
-                <Target className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{approach}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderCommunication = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Communication Assessment</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-medium mb-3">Patient Interaction</h4>
-            <div className="space-y-2">
-              {Object.entries(report.report.communicationAssessment.patientInteraction).map(([key, value]) => (
-                <div key={key} className="flex justify-between">
-                  <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <span className="font-medium">{typeof value === 'number' ? `${value}%` : value}</span>
+          <h3 className="text-lg font-semibold mb-4">Actions Completed</h3>
+          <div className="space-y-3">
+            {(performanceMetrics?.checklistEvaluation?.completedActions || []).map((action, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  {action.appropriate ? (
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-500 mr-3" />
+                  )}
+                  <div>
+                    <p className="font-medium capitalize">{action.action?.replace(/_/g, ' ') || 'Unknown Action'}</p>
+                    <p className="text-sm text-gray-600">{action.details || 'No details available'}</p>
+                  </div>
                 </div>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  action.timing === 'appropriate' ? 'bg-green-100 text-green-800' :
+                  action.timing === 'early' ? 'bg-blue-100 text-blue-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {action.timing || 'N/A'}
+                </span>
+              </div>
+            ))}
+            {(!performanceMetrics?.checklistEvaluation?.completedActions || performanceMetrics.checklistEvaluation.completedActions.length === 0) && (
+              <div className="text-center text-gray-500 italic py-4">
+                No actions recorded
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderClinicalAnalysis = () => {
+    const clinicalDecisionMaking = report?.report?.clinicalDecisionMaking;
+    
+    if (!clinicalDecisionMaking) {
+      return (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Clinical Analysis Unavailable</h3>
+            <p className="text-gray-600">Clinical decision-making analysis is not available for this simulation.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 text-green-600">Strengths</h3>
+            <ul className="space-y-2">
+              {(clinicalDecisionMaking.strengths || []).map((strength, index) => (
+                <li key={index} className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{strength}</span>
+                </li>
               ))}
-            </div>
+              {(!clinicalDecisionMaking.strengths || clinicalDecisionMaking.strengths.length === 0) && (
+                <li className="text-gray-500 italic text-sm">No strengths identified</li>
+              )}
+            </ul>
           </div>
-          <div>
-            <h4 className="font-medium mb-3">Professional Behavior</h4>
-            <div className="space-y-2">
-              {Object.entries(report.report.communicationAssessment.professionalBehavior).map(([key, value]) => (
-                <div key={key} className="flex justify-between">
-                  <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <span className="font-medium">{typeof value === 'number' ? `${value}%` : value}</span>
-                </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 text-yellow-600">Areas for Improvement</h3>
+            <ul className="space-y-2">
+              {(clinicalDecisionMaking.areasForImprovement || []).map((area, index) => (
+                <li key={index} className="flex items-start">
+                  <AlertCircle className="h-4 w-4 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{area}</span>
+                </li>
               ))}
-            </div>
+              {(!clinicalDecisionMaking.areasForImprovement || clinicalDecisionMaking.areasForImprovement.length === 0) && (
+                <li className="text-gray-500 italic text-sm">No areas for improvement identified</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 text-blue-600">Alternative Approaches</h3>
+            <ul className="space-y-2">
+              {(clinicalDecisionMaking.alternativeApproaches || []).map((approach, index) => (
+                <li key={index} className="flex items-start">
+                  <Target className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{approach}</span>
+                </li>
+              ))}
+              {(!clinicalDecisionMaking.alternativeApproaches || clinicalDecisionMaking.alternativeApproaches.length === 0) && (
+                <li className="text-gray-500 italic text-sm">No alternative approaches suggested</li>
+              )}
+            </ul>
           </div>
         </div>
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">{report.report.communicationAssessment.feedback}</p>
-        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const renderTimeline = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Session Timeline</h3>
-        <div className="space-y-4">
-          {report.report.timelineAnalysis.timeline.map((event, index) => (
-            <div key={index} className="flex items-start">
-              <div className="flex-shrink-0 w-16 text-sm text-gray-500">
-                {event.minutesFromStart}m
-              </div>
-              <div className={`w-3 h-3 rounded-full mr-4 mt-1 ${
-                event.type === 'clinical_action' ? 'bg-blue-500' : 'bg-green-500'
-              }`}></div>
-              <div className="flex-1">
-                <p className="text-sm">{event.description}</p>
-                <p className="text-xs text-gray-500 capitalize">{event.type.replace('_', ' ')}</p>
+  const renderCommunication = () => {
+    const communicationAssessment = report?.report?.communicationAssessment;
+    
+    if (!communicationAssessment) {
+      return (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Communication Assessment Unavailable</h3>
+            <p className="text-gray-600">Communication assessment data is not available for this simulation.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Communication Assessment</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium mb-3">Patient Interaction</h4>
+              <div className="space-y-2">
+                {Object.entries(communicationAssessment.patientInteraction || {}).map(([key, value]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="font-medium">{typeof value === 'number' ? `${value}%` : value || 'N/A'}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFeedback = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Debriefing Questions</h3>
-        <div className="space-y-4">
-          {report.report.debriefingQuestions.reflectionQuestions.map((question, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg">
-              <p className="font-medium text-blue-600">{question}</p>
+            <div>
+              <h4 className="font-medium mb-3">Professional Behavior</h4>
+              <div className="space-y-2">
+                {Object.entries(communicationAssessment.professionalBehavior || {}).map(([key, value]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="font-medium">{typeof value === 'number' ? `${value}%` : value || 'N/A'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          </div>
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">{communicationAssessment.feedback || 'No feedback available'}</p>
+          </div>
         </div>
       </div>
+    );
+  };
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Expert Feedback</h3>
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-blue-800">{report.report.debriefingQuestions.expertFeedback}</p>
+  const renderTimeline = () => {
+    const timelineAnalysis = report?.report?.timelineAnalysis;
+    const timeline = timelineAnalysis?.timeline || [];
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Session Timeline</h3>
+          <div className="space-y-4">
+            {timeline.map((event, index) => (
+              <div key={index} className="flex items-start">
+                <div className="flex-shrink-0 w-16 text-sm text-gray-500">
+                  {event.minutesFromStart || 0}m
+                </div>
+                <div className={`w-3 h-3 rounded-full mr-4 mt-1 ${
+                  event.type === 'clinical_action' ? 'bg-blue-500' : 'bg-green-500'
+                }`}></div>
+                <div className="flex-1">
+                  <p className="text-sm">{event.description || 'No description'}</p>
+                  <p className="text-xs text-gray-500 capitalize">{event.type?.replace('_', ' ') || 'Unknown'}</p>
+                </div>
+              </div>
+            ))}
+            {timeline.length === 0 && (
+              <div className="text-center text-gray-500 italic py-4">
+                No timeline data available
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const renderNextSteps = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Personalized Learning Plan</h3>
-        <ul className="space-y-3">
-          {report.report.actionableNextSteps.personalizedLearningPlan.map((step, index) => (
-            <li key={index} className="flex items-start">
-              <BookOpen className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
-              <span>{step}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+  const renderFeedback = () => {
+    const debriefingQuestions = report?.report?.debriefingQuestions;
+    const reflectionQuestions = debriefingQuestions?.reflectionQuestions || [];
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Debriefing Questions</h3>
+          <div className="space-y-4">
+            {reflectionQuestions.map((question, index) => (
+              <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-blue-600">{question}</p>
+              </div>
+            ))}
+            {reflectionQuestions.length === 0 && (
+              <div className="text-center text-gray-500 italic py-4">
+                No debriefing questions available
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Recommended Resources</h3>
-        <ul className="space-y-2">
-          {report.report.actionableNextSteps.recommendedResources.map((resource, index) => (
-            <li key={index} className="flex items-start">
-              <Target className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span className="text-sm">{resource}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Expert Feedback</h3>
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-blue-800">{debriefingQuestions?.expertFeedback || 'No expert feedback available'}</p>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderNextSteps = () => {
+    const actionableNextSteps = report?.report?.actionableNextSteps;
+    const learningPlan = actionableNextSteps?.personalizedLearningPlan || [];
+    const resources = actionableNextSteps?.recommendedResources || [];
+    
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Personalized Learning Plan</h3>
+          <ul className="space-y-3">
+            {learningPlan.map((step, index) => (
+              <li key={index} className="flex items-start">
+                <BookOpen className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
+                <span>{step}</span>
+              </li>
+            ))}
+            {learningPlan.length === 0 && (
+              <li className="text-gray-500 italic">No personalized learning plan available</li>
+            )}
+          </ul>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Recommended Resources</h3>
+          <ul className="space-y-2">
+            {resources.map((resource, index) => (
+              <li key={index} className="flex items-start">
+                <Target className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">{resource}</span>
+              </li>
+            ))}
+            {resources.length === 0 && (
+              <li className="text-gray-500 italic text-sm">No recommended resources available</li>
+            )}
+          </ul>
+        </div>
+      </div>
+    );
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
