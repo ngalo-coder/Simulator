@@ -30,15 +30,20 @@ app.use(
     origin: [
       'http://localhost:3000', // Frontend dev
       'http://localhost:4000', // Gateway dev
-      'https://simulatech.netlify.app', // Frontend production
+      'https://simuatech.netlify.app', // Frontend production - fixed typo
       process.env.FRONTEND_URL,
       process.env.GATEWAY_URL,
     ].filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
   })
 );
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

@@ -19,7 +19,7 @@ app.use(
       'http://localhost:3001', 
       'http://localhost:3002',
       'http://localhost:4000',
-      'https://simulatech.netlify.app',  // ✅ Fixed typo
+      'https://simuatech.netlify.app',  // ✅ Fixed typo - removed extra 'l'
       'https://ai-patient-sim-gateway.onrender.com',
       process.env.FRONTEND_URL,
       process.env.GATEWAY_URL,
@@ -27,8 +27,13 @@ app.use(
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
   })
 );
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Rate limiting
 const limiter = rateLimit({

@@ -14,13 +14,18 @@ app.use(cors({
   origin: [
     'http://localhost:3000', 
     'http://localhost:3001', 
-    'https://simulatech.netlify.app', // ✅ Fixed typo
+    'https://simuatech.netlify.app', // ✅ Fixed typo - removed extra 'l'
     'https://ai-patient-sim-gateway.onrender.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Service URLs
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || (process.env.NODE_ENV === 'production' 
