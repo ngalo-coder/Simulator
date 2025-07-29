@@ -1,11 +1,9 @@
-// ai-patient-sim-frontend/src/pages/SimulationHistory.js
-import React, { useState, useEffect } from 'react';
+// ai-patient-sim-frontend/src/pages/SimulationHistory.js - FIXED ESLint Issues
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
 import { 
   Clock, 
-  Calendar,
   CheckCircle,
   Pause,
   Play,
@@ -18,14 +16,12 @@ import {
   Award,
   Target,
   ArrowLeft,
-  Eye,
-  AlertTriangle
+  Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SimulationHistory = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   
   // Data state
   const [simulations, setSimulations] = useState([]);
@@ -44,12 +40,7 @@ const SimulationHistory = () => {
   
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchSimulationHistory();
-    fetchStatistics();
-  }, [currentPage, filters]);
-
-  const fetchSimulationHistory = async () => {
+  const fetchSimulationHistory = useCallback(async () => {
     setLoading(true);
     try {
       const response = await simulationAPI.getSimulationHistory(
@@ -73,9 +64,9 @@ const SimulationHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filters]);
 
-  const fetchStatistics = async () => {
+  const fetchStatistics = useCallback(async () => {
     setStatsLoading(true);
     try {
       const response = await simulationAPI.getStatistics();
@@ -90,7 +81,15 @@ const SimulationHistory = () => {
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSimulationHistory();
+  }, [fetchSimulationHistory]);
+
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({

@@ -1,8 +1,7 @@
-// ai-patient-sim-frontend/src/components/simulation/CaseSelection.js
-import React, { useState, useEffect } from 'react';
+// ai-patient-sim-frontend/src/components/simulation/CaseSelection.js - FIXED
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { simulationAPI } from '../../utils/simulationApi';
-import { useAuth } from '../../contexts/AuthContext';
 import { 
   Heart, 
   Baby, 
@@ -44,30 +43,9 @@ const CaseSelection = () => {
   });
   const [startingSimulation, setStartingSimulation] = useState(null);
   
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchCases();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [cases, filters]);
-
-  const fetchCases = async () => {
-    try {
-      const response = await simulationAPI.getCases();
-      setCases(response.cases || []);
-    } catch (error) {
-      console.error('Error fetching cases:', error);
-      toast.error('Failed to load cases');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...cases];
 
     if (filters.programArea) {
@@ -92,7 +70,27 @@ const CaseSelection = () => {
     }
 
     setFilteredCases(filtered);
-  };
+  }, [cases, filters]);
+
+  const fetchCases = useCallback(async () => {
+    try {
+      const response = await simulationAPI.getCases();
+      setCases(response.cases || []);
+    } catch (error) {
+      console.error('Error fetching cases:', error);
+      toast.error('Failed to load cases');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCases();
+  }, [fetchCases]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleStartSimulation = async (caseId, difficulty) => {
     setStartingSimulation(caseId);

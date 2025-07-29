@@ -1,5 +1,5 @@
-// ai-patient-sim-frontend/src/pages/DashboardPage.js - UPDATED WITH PROPER NAVIGATION
-import React, { useState, useEffect } from 'react';
+// ai-patient-sim-frontend/src/pages/DashboardPage.js - FIXED ESLint Issues
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
@@ -16,12 +16,8 @@ import {
   Stethoscope,
   Clock,
   Award,
-  TrendingUp,
   ArrowRight,
   Plus,
-  Target,
-  Star,
-  Calendar,
   Timer,
   CheckCircle2,
   XCircle,
@@ -36,18 +32,7 @@ const DashboardPage = () => {
   const [recentSimulations, setRecentSimulations] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Only fetch data if user is authenticated and token exists
-    if (user && localStorage.getItem('authToken')) {
-      console.log('📊 User authenticated, fetching dashboard data...');
-      fetchDashboardData();
-    } else {
-      console.log('⚠️ User not authenticated, skipping dashboard data fetch');
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     // Validate token before making API calls
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -108,7 +93,18 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Only fetch data if user is authenticated and token exists
+    if (user && localStorage.getItem('authToken')) {
+      console.log('📊 User authenticated, fetching dashboard data...');
+      fetchDashboardData();
+    } else {
+      console.log('⚠️ User not authenticated, skipping dashboard data fetch');
+      setLoading(false);
+    }
+  }, [user, fetchDashboardData]);
 
   const handleLogout = () => {
     logout();

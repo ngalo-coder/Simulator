@@ -1,5 +1,5 @@
-// ai-patient-sim-frontend/src/pages/SimulationPage.js
-import React, { useState, useEffect, useRef } from 'react';
+// ai-patient-sim-frontend/src/pages/SimulationPage.js - FIXED ESLint Issues
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
@@ -9,7 +9,6 @@ import {
   Users, 
   Clock, 
   Heart, 
-  Thermometer,
   Activity,
   Stethoscope,
   FileText,
@@ -45,40 +44,24 @@ const SimulationPage = () => {
   // Clinical actions state
   const [activeAction, setActiveAction] = useState(null);
   const [actionDetails, setActionDetails] = useState('');
-  const [clinicalActions, setClinicalActions] = useState([]);
   
   // UI state
   const [expandedSections, setExpandedSections] = useState({
     objectives: true,
     vitals: true,
-    actions: false,
-    notes: false
+    actions: false
   });
-  const [notes, setNotes] = useState('');
   
   // Refs
   const messagesEndRef = useRef(null);
   const messageInputRef = useRef(null);
 
-  // Initialize simulation
-  useEffect(() => {
-    if (id) {
-      fetchSimulation();
-    }
-  }, [id]);
-
-  // Auto-scroll chat
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversationHistory]);
-
-  const fetchSimulation = async () => {
+  const fetchSimulation = useCallback(async () => {
     try {
       const response = await simulationAPI.getSimulation(id);
       if (response.success) {
         setSimulation(response.simulation);
         setConversationHistory(response.simulation.conversationHistory || []);
-        setClinicalActions(response.simulation.clinicalActions || []);
       } else {
         toast.error('Simulation not found');
         navigate('/dashboard');
@@ -90,7 +73,19 @@ const SimulationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  // Initialize simulation
+  useEffect(() => {
+    if (id) {
+      fetchSimulation();
+    }
+  }, [id, fetchSimulation]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversationHistory]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -157,7 +152,6 @@ const SimulationPage = () => {
     try {
       const response = await simulationAPI.performAction(id, action, actionDetails);
       if (response.success) {
-        setClinicalActions(prev => [...prev, response.action]);
         setConversationHistory(prev => [
           ...prev,
           {
