@@ -7,6 +7,8 @@ const PatientCase = require('../models/PatientCase');
 const OpenRouterService = require('../services/openRouterService');
 const { PATIENT_PERSONAS, PROGRAM_AREAS } = require('../data/patientPersonas');
 const { authMiddleware, authorize } = require('../middleware/auth');
+const DialogueEnhancer = require('../services/dialogue/dialogueEnhancer');
+
 
 const router = express.Router();
 const openRouterService = new OpenRouterService();
@@ -670,7 +672,7 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`💬 Message from ${userId} in simulation ${id}: ${message.substring(0, 50)}...`);
+    console.log(`💬 Enhanced message from ${userId} in simulation ${id}: ${message.substring(0, 50)}...`);
 
     // Add student message to conversation
     simulation.conversationHistory.push({
@@ -680,12 +682,12 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
       timestamp: new Date(),
     });
 
-    // Generate AI response
+    // Generate AI response with dialogue enhancement
     const aiResponse = await openRouterService.generatePatientResponse(simulation, message);
 
     let responseCount = 0;
 
-    // Add patient response
+    // Add patient response with enhanced metadata
     if (aiResponse.patientResponse) {
       simulation.conversationHistory.push({
         sender: 'patient',
@@ -693,17 +695,30 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
         clinicalInfo: aiResponse.clinicalInfo,
         messageType: 'chat',
         timestamp: new Date(),
+        // ADD ENHANCED METADATA
+        dialogueMetadata: {
+          emotionalState: aiResponse.dialogueMetadata?.patientEmotionalState,
+          physicalCues: aiResponse.dialogueMetadata?.physicalCues || [],
+          culturalElements: aiResponse.dialogueMetadata?.culturalElements || [],
+          responseDelay: aiResponse.dialogueMetadata?.responseDelays?.patient || 1000
+        }
       });
       responseCount++;
     }
 
-    // Add guardian response if present
+    // Add guardian response if present with enhanced metadata
     if (aiResponse.guardianResponse) {
       simulation.conversationHistory.push({
         sender: 'guardian',
         message: aiResponse.guardianResponse,
         messageType: 'chat',
         timestamp: new Date(),
+        // ADD ENHANCED METADATA
+        dialogueMetadata: {
+          emotionalState: aiResponse.dialogueMetadata?.guardianEmotionalState,
+          culturalElements: aiResponse.dialogueMetadata?.culturalElements || [],
+          responseDelay: aiResponse.dialogueMetadata?.responseDelays?.guardian || 1000
+        }
       });
       responseCount++;
     }
@@ -712,10 +727,12 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
     simulation.sessionMetrics.messageCount = simulation.conversationHistory.length;
     simulation.updatedAt = new Date();
 
-    // Update learning progress based on clinical info revealed
+    // Enhanced progress tracking with dialogue quality
     if (aiResponse.clinicalInfo && Object.keys(aiResponse.clinicalInfo).length > 0) {
-      // Track communication effectiveness
-      const communicationScore = calculateCommunicationScore(simulation.conversationHistory);
+      const communicationScore = calculateEnhancedCommunicationScore(
+        simulation.conversationHistory, 
+        aiResponse.dialogueMetadata
+      );
       simulation.learningProgress.communicationScore = communicationScore;
     }
 
@@ -727,15 +744,23 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
         patient: aiResponse.patientResponse,
         guardian: aiResponse.guardianResponse,
         clinicalInfo: aiResponse.clinicalInfo,
+        // ADD ENHANCED RESPONSE METADATA
+        dialogueEnhancements: {
+          patientEmotionalState: aiResponse.dialogueMetadata?.patientEmotionalState,
+          guardianEmotionalState: aiResponse.dialogueMetadata?.guardianEmotionalState,
+          physicalCues: aiResponse.dialogueMetadata?.physicalCues || [],
+          culturalElements: aiResponse.dialogueMetadata?.culturalElements || [],
+          responseTimings: aiResponse.dialogueMetadata?.responseDelays || {}
+        }
       },
-      conversationHistory: simulation.conversationHistory.slice(-20), // Return last 20 messages
+      conversationHistory: simulation.conversationHistory.slice(-20),
       sessionMetrics: {
         messageCount: simulation.sessionMetrics.messageCount,
-        duration: Math.round((new Date() - simulation.sessionMetrics.startTime) / (1000 * 60)), // minutes
+        duration: Math.round((new Date() - simulation.sessionMetrics.startTime) / (1000 * 60)),
       },
     });
   } catch (error) {
-    console.error('❌ Error sending message:', error);
+    console.error('❌ Error sending enhanced message:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to send message',
