@@ -1,15 +1,11 @@
-// simulation-service/src/services/openRouterService.js - ENHANCED VERSION
+// simulation-service/src/services/openRouterService.js - FIXED VERSION
 const axios = require('axios');
-const DialogueEnhancer = require('./dialogue/dialogueEnhancer');
 
 class OpenRouterService {
   constructor() {
     this.apiKey = process.env.OPENROUTER_API_KEY;
     this.baseURL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
     this.defaultModel = process.env.DEFAULT_MODEL || 'anthropic/claude-3.5-sonnet';
-    
-    // Initialize dialogue enhancer
-    this.dialogueEnhancer = new DialogueEnhancer();
     
     if (!this.apiKey) {
       console.warn('⚠️ OpenRouter API key not configured');
@@ -19,23 +15,15 @@ class OpenRouterService {
   async generatePatientResponse(simulation, studentMessage) {
     try {
       const { patientPersona, conversationHistory } = simulation;
-      
-      // Build enhanced system prompt with dialogue context
-      const baseSystemPrompt = this.buildSystemPrompt(patientPersona, simulation.difficulty);
-      const enhancedSystemPrompt = this.dialogueEnhancer.enhanceSystemPrompt(
-        baseSystemPrompt,
-        patientPersona,
-        { conversationHistory, currentMessage: studentMessage }
-      );
-      
+      const systemPrompt = this.buildSystemPrompt(patientPersona, simulation.difficulty);
       const messages = this.buildMessageHistory(conversationHistory, studentMessage);
 
-      console.log(`🤖 Generating enhanced response for ${patientPersona.patient?.name || 'Patient'}`);
+      console.log(`🤖 Generating response for ${patientPersona.patient?.name || 'Patient'}`);
 
       const response = await axios.post(`${this.baseURL}/chat/completions`, {
         model: this.defaultModel,
         messages: [
-          { role: 'system', content: enhancedSystemPrompt },
+          { role: 'system', content: systemPrompt },
           ...messages
         ],
         temperature: 0.7,
@@ -53,66 +41,16 @@ class OpenRouterService {
 
       const aiResponse = response.data.choices[0].message.content;
       
-      // Parse response to separate patient and guardian voices
+      // Parse response to separate patient and guardian voices if needed
       const parsedResponse = this.parsePatientGuardianResponse(aiResponse, patientPersona);
       
-      // Enhance patient response with dialogue systems
-      let enhancedPatientResponse = null;
-      let enhancedGuardianResponse = null;
-      
-      if (parsedResponse.patient) {
-        const patientEnhancement = this.dialogueEnhancer.enhancePatientResponse(
-          parsedResponse.patient,
-          patientPersona,
-          conversationHistory,
-          studentMessage
-        );
-        
-        enhancedPatientResponse = {
-          text: patientEnhancement.enhancedText,
-          emotionalState: patientEnhancement.emotionalState,
-          physicalCues: patientEnhancement.physicalCues,
-          responseDelay: patientEnhancement.responseDelay,
-          culturalElements: patientEnhancement.culturalElements
-        };
-      }
-      
-      if (parsedResponse.guardian && patientPersona.guardian) {
-        const guardianEnhancement = this.dialogueEnhancer.enhanceGuardianResponse(
-          parsedResponse.guardian,
-          patientPersona.guardian,
-          patientPersona,
-          this.determineGuardianSituation(studentMessage, conversationHistory)
-        );
-        
-        enhancedGuardianResponse = {
-          text: guardianEnhancement.enhancedText,
-          emotionalState: guardianEnhancement.emotionalState,
-          culturalElements: guardianEnhancement.culturalElements,
-          responseDelay: guardianEnhancement.responseDelay
-        };
-      }
-      
-      // Extract clinical information revealed (enhanced)
+      // Extract clinical information revealed
       const clinicalInfo = this.extractClinicalInfo(aiResponse, patientPersona);
       
       return {
-        patientResponse: enhancedPatientResponse?.text || null,
-        guardianResponse: enhancedGuardianResponse?.text || null,
+        patientResponse: parsedResponse.patient,
+        guardianResponse: parsedResponse.guardian,
         clinicalInfo,
-        dialogueMetadata: {
-          patientEmotionalState: enhancedPatientResponse?.emoticalState,
-          guardianEmotionalState: enhancedGuardianResponse?.emotionalState,
-          physicalCues: enhancedPatientResponse?.physicalCues || [],
-          culturalElements: [
-            ...(enhancedPatientResponse?.culturalElements || []),
-            ...(enhancedGuardianResponse?.culturalElements || [])
-          ],
-          responseDelays: {
-            patient: enhancedPatientResponse?.responseDelay || 1000,
-            guardian: enhancedGuardianResponse?.responseDelay || 1000
-          }
-        },
         usage: response.data.usage,
         model: this.defaultModel
       };
@@ -120,54 +58,56 @@ class OpenRouterService {
     } catch (error) {
       console.error('❌ OpenRouter API Error:', error.response?.data || error.message);
       
-      // Fallback response with basic enhancement
-      const fallbackResponse = "I'm sorry, I'm not feeling well right now. Could you repeat that?";
-      const fallbackEnhancement = this.dialogueEnhancer.enhancePatientResponse(
-        fallbackResponse,
-        simulation.patientPersona,
-        simulation.conversationHistory,
-        studentMessage
-      );
-      
+      // Fallback response for errors
       return {
-        patientResponse: fallbackEnhancement.enhancedText,
+        patientResponse: "I'm sorry, I'm not feeling well right now. Could you repeat that?",
         guardianResponse: null,
         clinicalInfo: {},
-        dialogueMetadata: {
-          patientEmotionalState: fallbackEnhancement.emotionalState,
-          physicalCues: fallbackEnhancement.physicalCues,
-          culturalElements: fallbackEnhancement.culturalElements,
-          responseDelays: { patient: fallbackEnhancement.responseDelay }
-        },
         error: error.message
       };
     }
   }
 
   buildSystemPrompt(patientPersona, difficulty) {
-    const { patient, guardian, demographics, medicalHistory, currentCondition, personality, culturalFactors } = patientPersona;
+    const { patient = {}, guardian = {}, demographics = {}, medicalHistory = [], currentCondition, personality, culturalFactors } = patientPersona;
     
     let basePrompt = '';
     
-    // Pediatric cases with guardian
-    if (patient.age && (patient.age.includes('months') || patient.age.includes('years') || parseInt(patient.age) < 18)) {
+    // Safe access to properties with fallbacks
+    const patientAge = patient.age || demographics.age || 'unknown';
+    const patientName = patient.name || 'Patient';
+    const patientGender = patient.gender || 'patient';
+    const guardianName = guardian.name || 'Guardian';
+    const guardianRelation = guardian.relationship || 'family member';
+    const primaryLanguage = demographics.primaryLanguage || 'English';
+    const culturalBackground = culturalFactors || demographics.ethnicity || 'general';
+    
+    // Check if pediatric case (safe string checking)
+    const isPediatric = (typeof patientAge === 'string' && (patientAge.includes('months') || patientAge.includes('years'))) || 
+                       (typeof patientAge === 'number' && patientAge < 18) ||
+                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 18);
+    
+    if (isPediatric) {
       basePrompt = `You are playing TWO roles in a medical simulation:
 
-PRIMARY ROLE - PATIENT: ${patient.name}, ${patient.age} old ${patient.gender}
-- Current condition: ${currentCondition}
-- Medical history: ${medicalHistory?.join(', ') || 'None significant'}
-- Personality: ${personality?.patient || 'age-appropriate behavior'}
+PRIMARY ROLE - PATIENT: ${patientName}, ${patientAge} old ${patientGender}
+- Current condition: ${currentCondition || 'seeking medical care'}
+- Medical history: ${Array.isArray(medicalHistory) ? medicalHistory.join(', ') : 'None significant'}
+- Personality: ${typeof personality === 'object' ? personality.patient : personality || 'age-appropriate behavior'}
 
-SECONDARY ROLE - GUARDIAN: ${guardian?.name} (${guardian?.relationship})
-- Anxiety level: ${guardian?.anxietyLevel || 'concerned'}
-- Primary concerns: ${guardian?.concerns?.join(', ') || 'child\'s wellbeing'}
-- Cultural background: ${culturalFactors || demographics?.ethnicity || 'Kenyan'}
-- Language: ${demographics?.primaryLanguage || 'English'}
-- Education: ${guardian?.education || 'secondary'}`;
+SECONDARY ROLE - GUARDIAN: ${guardianName} (${guardianRelation})
+- Anxiety level: ${guardian.anxietyLevel || guardian.anxiety_level || 'concerned'}
+- Primary concerns: ${Array.isArray(guardian.concerns) ? guardian.concerns.join(', ') : 'child\'s wellbeing'}
+- Cultural background: ${culturalBackground}
+- Language: ${primaryLanguage}
+- Education: ${guardian.education || demographics.education || 'secondary'}`;
 
-      if (demographics?.primaryLanguage === 'spanish' || culturalFactors?.includes('spanish')) {
+      // Safe cultural language checking
+      if (primaryLanguage.toLowerCase().includes('spanish') || culturalBackground.toLowerCase().includes('spanish')) {
         basePrompt += `\n- IMPORTANT: Guardian speaks limited English, occasionally uses Spanish phrases`;
-      } else if (culturalFactors?.includes('kenyan') || demographics?.ethnicity?.includes('kenyan')) {
+      } else if (culturalBackground.toLowerCase().includes('kenyan') || 
+                 culturalBackground.toLowerCase().includes('african') ||
+                 culturalBackground.toLowerCase().includes('kiswahili')) {
         basePrompt += `\n- IMPORTANT: Guardian may mix English with Kiswahili naturally`;
       }
 
@@ -190,24 +130,24 @@ CULTURAL AUTHENTICITY:
 - Use respectful, storytelling communication style
 
 MEDICAL ACCURACY:
-- Stay consistent with the diagnosis: ${currentCondition}
+- Stay consistent with the diagnosis: ${currentCondition || 'presenting symptoms'}
 - Don't provide medical advice or diagnoses
 - Show appropriate symptoms for age and condition
 - Guardian should have realistic medical knowledge based on education level`;
 
     } else {
       // Adult patient
-      basePrompt = `You are a ${demographics?.age || patient.age}-year-old ${patient.gender} patient seeking medical care.
+      basePrompt = `You are a ${patientAge}-year-old ${patientGender} patient seeking medical care.
 
 PATIENT PROFILE:
-- Name: ${patient.name}
-- Chief complaint: ${patientPersona.chiefComplaint}
-- Current condition: ${currentCondition}
-- Medical history: ${medicalHistory?.join(', ') || 'None'}
-- Personality: ${personality}
-- Cultural background: ${culturalFactors || demographics?.ethnicity || 'Kenyan'}
-- Education: ${demographics?.education || 'secondary'}
-- Socioeconomic: ${demographics?.socioeconomic || 'urban_informal'}
+- Name: ${patientName}
+- Chief complaint: ${patientPersona.chiefComplaint || 'seeking medical help'}
+- Current condition: ${currentCondition || 'presenting symptoms'}
+- Medical history: ${Array.isArray(medicalHistory) ? medicalHistory.join(', ') : 'None'}
+- Personality: ${personality || 'cooperative patient'}
+- Cultural background: ${culturalBackground}
+- Education: ${demographics.education || 'secondary'}
+- Socioeconomic: ${demographics.socioeconomic || 'urban_informal'}
 
 INSTRUCTIONS:
 1. Respond as this patient would - use first person ("I feel...", "My pain is...")
@@ -217,7 +157,7 @@ INSTRUCTIONS:
 5. Stay in character - you're seeking help, not providing medical advice
 
 CULTURAL SPEECH PATTERNS:
-- Mix English with Kiswahili phrases naturally if Kenyan background
+- Mix English with local language phrases naturally if appropriate
 - Reference family, community, or traditional medicine when relevant
 - Show respect for medical authority while expressing concerns
 - Use storytelling approach rather than just direct answers`;
@@ -246,32 +186,40 @@ CULTURAL SPEECH PATTERNS:
     const messages = [];
     
     // Add conversation history (last 10 messages to stay within token limits)
-    const recentHistory = conversationHistory.slice(-10);
+    const recentHistory = Array.isArray(conversationHistory) ? conversationHistory.slice(-10) : [];
     
     recentHistory.forEach(msg => {
-      if (msg.sender === 'student') {
-        messages.push({
-          role: 'user',
-          content: msg.message
-        });
-      } else if (msg.sender === 'patient' || msg.sender === 'guardian') {
-        messages.push({
-          role: 'assistant',
-          content: msg.message
-        });
+      if (msg && msg.sender && msg.message) {
+        if (msg.sender === 'student') {
+          messages.push({
+            role: 'user',
+            content: msg.message
+          });
+        } else if (msg.sender === 'patient' || msg.sender === 'guardian') {
+          messages.push({
+            role: 'assistant',
+            content: msg.message
+          });
+        }
       }
     });
     
     // Add new student message
-    messages.push({
-      role: 'user',
-      content: newMessage
-    });
+    if (newMessage && typeof newMessage === 'string') {
+      messages.push({
+        role: 'user',
+        content: newMessage
+      });
+    }
     
     return messages;
   }
 
   parsePatientGuardianResponse(response, patientPersona) {
+    if (!response || typeof response !== 'string') {
+      return { patient: response || '', guardian: null };
+    }
+
     // Check if response contains both patient and guardian voices
     if (response.includes('[PATIENT]:') && response.includes('[GUARDIAN]:')) {
       const patientMatch = response.match(/\[PATIENT\]:\s*(.*?)(?=\[GUARDIAN\]:|$)/s);
@@ -283,63 +231,54 @@ CULTURAL SPEECH PATTERNS:
       };
     }
     
-    // If it's a pediatric case but no format markers, assume it's mostly guardian speaking
-    if (patientPersona.patient?.age && (patientPersona.patient.age.includes('months') || parseInt(patientPersona.patient.age) < 7)) {
+    // Check if it's a pediatric case
+    const patientAge = patientPersona.patient?.age || patientPersona.demographics?.age;
+    const isPediatric = (typeof patientAge === 'string' && patientAge.includes('months')) || 
+                       (parseInt(patientAge) > 0 && parseInt(patientAge) < 7);
+    
+    if (isPediatric) {
       return {
         patient: null, // Very young children don't speak much
         guardian: response
       };
     }
     
-    // Default: assume it's the primary speaker (patient for adults, guardian for very young children)
+    // Default: assume it's the primary speaker
     return {
       patient: response,
       guardian: null
     };
   }
 
-  determineGuardianSituation(studentMessage, conversationHistory) {
-    const message = studentMessage.toLowerCase();
-    
-    if (message.includes('diagnosis') || message.includes('what') && message.includes('wrong')) {
-      return 'diagnosis_news';
-    }
-    if (message.includes('treatment') || message.includes('medicine') || message.includes('surgery')) {
-      return 'treatment_discussion';
-    }
-    if (message.includes('cost') || message.includes('insurance') || message.includes('pay')) {
-      return 'financial_concern';
-    }
-    if (conversationHistory.length < 3) {
-      return 'initial_concern';
-    }
-    
-    return 'general_inquiry';
-  }
-
   extractClinicalInfo(response, patientPersona) {
+    if (!response || typeof response !== 'string') {
+      return {};
+    }
+
     const clinicalKeywords = {
-      symptoms: ['pain', 'ache', 'fever', 'nausea', 'vomiting', 'dizzy', 'tired', 'sob', 'cough', 'maumivu', 'homa'],
+      symptoms: ['pain', 'ache', 'fever', 'nausea', 'vomiting', 'dizzy', 'tired', 'sob', 'cough'],
       severity: ['mild', 'moderate', 'severe', 'worst', 'better', 'worse', '1-10', 'scale'],
       timing: ['minutes', 'hours', 'days', 'weeks', 'started', 'began', 'since', 'ago'],
       quality: ['sharp', 'dull', 'crushing', 'burning', 'stabbing', 'throbbing', 'cramping'],
-      location: ['chest', 'back', 'arm', 'jaw', 'stomach', 'head', 'abdomen', 'right', 'left', 'tumbo', 'kichwa'],
-      associated: ['sweating', 'nausea', 'shortness', 'dizzy', 'weak', 'tired'],
-      cultural: ['traditional', 'family', 'grandmother', 'village', 'herbs', 'prayer']
+      location: ['chest', 'back', 'arm', 'jaw', 'stomach', 'head', 'abdomen', 'right', 'left'],
+      associated: ['sweating', 'nausea', 'shortness', 'dizzy', 'weak', 'tired']
     };
 
     const revealed = {};
     const lowerResponse = response.toLowerCase();
 
     Object.keys(clinicalKeywords).forEach(category => {
-      clinicalKeywords[category].forEach(keyword => {
-        if (lowerResponse.includes(keyword)) {
-          if (!revealed[category]) revealed[category] = [];
-          if (!revealed[category].includes(keyword)) {
-            revealed[category].push(keyword);
+      const keywords = clinicalKeywords[category];
+      if (Array.isArray(keywords)) {
+        keywords.forEach(keyword => {
+          if (lowerResponse.includes(keyword)) {
+            if (!revealed[category]) revealed[category] = [];
+            if (!revealed[category].includes(keyword)) {
+              revealed[category].push(keyword);
+            }
           }
-        }
-      });
+        });
+      }
     });
 
     return revealed;
@@ -374,43 +313,38 @@ CULTURAL SPEECH PATTERNS:
   }
 
   buildFeedbackPrompt(simulation, studentActions) {
+    if (!simulation || !simulation.patientPersona) {
+      return 'Unable to generate feedback due to missing simulation data.';
+    }
+
     const { patientPersona, learningProgress } = simulation;
-    const conversationInsights = this.dialogueEnhancer.getConversationInsights();
+    const patientName = patientPersona.patient?.name || 'Patient';
+    const patientAge = patientPersona.patient?.age || patientPersona.demographics?.age || 'unknown';
+    const currentCondition = patientPersona.currentCondition || 'unknown condition';
+    const programArea = simulation.programArea || 'general medicine';
+    const learningObjectives = patientPersona.learningObjectives || ['General clinical skills'];
     
-    return `You are a medical education AI providing constructive feedback to a ${simulation.difficulty} on their patient simulation performance.
+    return `You are a medical education AI providing constructive feedback to a ${simulation.difficulty || 'student'} on their patient simulation performance.
 
 CASE DETAILS:
-- Patient: ${patientPersona.patient?.name}, ${patientPersona.patient?.age}
-- Condition: ${patientPersona.currentCondition}
-- Program: ${simulation.programArea}
-- Cultural context: ${patientPersona.culturalFactors || 'General'}
+- Patient: ${patientName}, ${patientAge}
+- Condition: ${currentCondition}
+- Program: ${programArea}
 
 STUDENT ACTIONS TAKEN:
-${studentActions.map(action => `- ${action.action}: ${action.details}`).join('\n')}
-
-COMMUNICATION ANALYSIS:
-- Emotional journey: ${conversationInsights.emotionalJourney?.map(e => e.state).join(' → ') || 'stable'}
-- Cultural elements engaged: ${conversationInsights.culturalElements?.length || 0}
-- Conversation duration: ${Math.round(conversationInsights.totalDuration / 60000)} minutes
-- Total interactions: ${conversationInsights.totalInteractions}
+${Array.isArray(studentActions) ? studentActions.map(action => `- ${action.action}: ${action.details}`).join('\n') : 'No specific actions recorded'}
 
 LEARNING OBJECTIVES:
-${patientPersona.learningObjectives?.join('\n- ') || 'General clinical skills'}
+${Array.isArray(learningObjectives) ? learningObjectives.join('\n- ') : learningObjectives}
 
 PROVIDE FEEDBACK ON:
 1. Clinical reasoning and diagnostic approach
-2. Communication skills and cultural sensitivity
-3. Patient-centered care approach
-4. What was done well
-5. Areas for improvement with specific examples
-6. Next steps for learning
+2. Communication skills (especially with guardians if pediatric case)
+3. What was done well
+4. Areas for improvement
+5. Next steps for learning
 
-Keep feedback constructive, specific, and educational. Highlight cultural competency aspects.`;
-  }
-
-  // Reset dialogue enhancer for new simulation
-  resetDialogueContext() {
-    this.dialogueEnhancer.resetContext();
+Keep feedback constructive, specific, and educational. Focus on learning, not judgment.`;
   }
 }
 
