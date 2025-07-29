@@ -34,6 +34,35 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Debug endpoint to test authentication
+router.get('/debug-auth', (req, res) => {
+  const token = req.header('Authorization');
+  const bearerToken = token?.replace('Bearer ', '');
+  
+  res.json({
+    message: 'Auth debug endpoint',
+    timestamp: new Date().toISOString(),
+    hasAuthHeader: !!token,
+    authHeaderLength: token?.length || 0,
+    authHeaderPrefix: token?.substring(0, 20) + '...',
+    hasBearerToken: !!bearerToken,
+    bearerTokenLength: bearerToken?.length || 0,
+    jwtSecret: process.env.JWT_SECRET ? 'SET' : 'NOT_SET',
+    jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+    environment: process.env.NODE_ENV
+  });
+});
+
+// Debug endpoint with auth middleware
+router.get('/debug-auth-protected', authMiddleware, (req, res) => {
+  res.json({
+    message: 'Protected auth debug endpoint',
+    timestamp: new Date().toISOString(),
+    user: req.user,
+    environment: process.env.NODE_ENV
+  });
+});
+
 // Get available cases - temporarily remove auth for debugging
 router.get('/cases', async (req, res) => {
   try {
