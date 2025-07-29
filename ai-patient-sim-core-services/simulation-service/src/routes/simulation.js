@@ -1223,6 +1223,33 @@ function formatActionMessage(action, details, result) {
   return message;
 }
 
+function calculateEnhancedCommunicationScore(conversationHistory, dialogueMetadata) {
+  // Simple scoring based on interaction quality
+  const studentMessages = conversationHistory.filter((msg) => msg.sender === 'student');
+  const totalMessages = studentMessages.length;
+
+  if (totalMessages === 0) return 0;
+
+  // Basic scoring criteria
+  let score = 0;
+  studentMessages.forEach((msg) => {
+    const message = msg.message.toLowerCase();
+
+    // Positive indicators
+    if (message.includes('how are you feeling') || message.includes('tell me about')) score += 5;
+    if (message.includes('when did') || message.includes('how long')) score += 3;
+    if (message.includes('can you describe') || message.includes('what does it feel like'))
+      score += 4;
+    if (message.includes('thank you') || message.includes('i understand')) score += 2;
+
+    // Length and thoughtfulness
+    if (message.length > 50) score += 2;
+    if (message.split(' ').length > 10) score += 1;
+  });
+
+  return Math.min(100, Math.round((score / totalMessages) * 10));
+}
+
 function calculateCommunicationScore(conversationHistory) {
   // Simple scoring based on interaction quality
   const studentMessages = conversationHistory.filter((msg) => msg.sender === 'student');
