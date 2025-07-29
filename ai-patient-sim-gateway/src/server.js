@@ -34,7 +34,7 @@ const USER_SERVICE_URL = process.env.USER_SERVICE_URL || (process.env.NODE_ENV =
 );
 
 const SIMULATION_SERVICE_URL = process.env.SIMULATION_SERVICE_URL || (process.env.NODE_ENV === 'production'
-    ? 'https://ai-patient-sim-simulation.onrender.com' // Update with actual URL when deployed
+    ? 'https://ai-patient-sim-simulation-service.onrender.com' // Fixed URL to match render.yaml service name
     : 'http://localhost:3002'
 );
 

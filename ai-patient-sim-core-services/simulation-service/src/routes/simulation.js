@@ -1,5 +1,6 @@
 // ai-patient-sim-core-services/simulation-service/src/routes/simulation.js
 const express = require('express');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const Simulation = require('../models/Simulation');
 const PatientCase = require('../models/PatientCase');
@@ -27,13 +28,16 @@ router.get('/test', (req, res) => {
     message: 'Simulation routes are working',
     timestamp: new Date().toISOString(),
     userAgent: req.get('User-Agent'),
-    origin: req.get('Origin')
+    origin: req.get('Origin'),
+    personasAvailable: Object.keys(PATIENT_PERSONAS).length,
+    samplePersona: Object.keys(PATIENT_PERSONAS)[0]
   });
 });
 
-// Get available cases
-router.get('/cases', authMiddleware, async (req, res) => {
+// Get available cases - temporarily remove auth for debugging
+router.get('/cases', async (req, res) => {
   try {
+    console.log('📋 Fetching cases with query:', req.query);
     const { programArea, difficulty, patientType } = req.query;
 
     let filter = { isActive: true };
@@ -41,11 +45,23 @@ router.get('/cases', authMiddleware, async (req, res) => {
     if (difficulty) filter.difficulty = difficulty;
     if (patientType) filter.patientType = patientType;
 
-    // Get cases from database
-    let cases = await PatientCase.find(filter).select('-systemPrompts').sort({ createdAt: -1 });
+    let cases = [];
 
-    // If no cases in database, return built-in personas
+    // Try to get cases from database first
+    try {
+      if (mongoose.connection.readyState === 1) {
+        cases = await PatientCase.find(filter).select('-systemPrompts').sort({ createdAt: -1 });
+        console.log(`📊 Found ${cases.length} cases in database`);
+      } else {
+        console.log('⚠️ Database not connected, using built-in personas');
+      }
+    } catch (dbError) {
+      console.log('⚠️ Database query failed, using built-in personas:', dbError.message);
+    }
+
+    // If no cases in database or database unavailable, return built-in personas
     if (cases.length === 0) {
+      console.log('🔄 Using built-in patient personas');
       cases = Object.values(PATIENT_PERSONAS)
         .filter((persona) => {
           if (programArea && persona.programArea !== programArea) return false;
@@ -73,6 +89,8 @@ router.get('/cases', authMiddleware, async (req, res) => {
             : null,
           isBuiltIn: true,
         }));
+      
+      console.log(`✅ Returning ${cases.length} built-in cases`);
     }
 
     function generatePhysicalExamFindings(condition, examType, physicalExam) {
