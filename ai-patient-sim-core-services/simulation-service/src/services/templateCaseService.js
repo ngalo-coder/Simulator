@@ -146,8 +146,10 @@ class TemplateCaseService {
       );
     }
 
-    // Transform to frontend-friendly format
-    return filteredCases.map(this.transformCaseForFrontend);
+    // Transform to frontend-friendly format and filter out invalid cases
+    return filteredCases
+      .map(this.transformCaseForFrontend)
+      .filter(caseItem => caseItem !== null);
   }
 
   /**

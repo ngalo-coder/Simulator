@@ -1,4 +1,4 @@
-// simulation-service/src/services/openRouterService.js - FINAL SAFE VERSION
+// ai-patient-sim-core-services/simulation-service/src/services/openRouterService.js - OPTIMIZED FOR SPEED
 const axios = require('axios');
 
 class OpenRouterService {
@@ -6,224 +6,136 @@ class OpenRouterService {
     this.apiKey = process.env.OPENROUTER_API_KEY;
     this.baseURL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
     this.defaultModel = process.env.DEFAULT_MODEL || 'anthropic/claude-3.5-sonnet';
+    
+    // Create axios instance with optimized defaults
+    this.axiosInstance = axios.create({
+      baseURL: this.baseURL,
+      timeout: 12000, // 12 second timeout
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.FRONTEND_URL || 'https://simuatech.netlify.app',
+        'X-Title': 'AI Patient Simulation Platform'
+      }
+    });
 
     if (!this.apiKey) {
       console.warn('⚠️ OpenRouter API key not configured');
     }
+
+    console.log('🤖 OpenRouter service initialized with optimizations');
   }
 
   async generatePatientResponse(simulation, studentMessage) {
     try {
-      const { patientPersona, conversationHistory } = simulation;
-      const systemPrompt = this.buildNaturalSystemPrompt(patientPersona, simulation.difficulty);
-      const messages = this.buildMessageHistory(conversationHistory, studentMessage);
+      const startTime = Date.now();
+      
+      // Build optimized system prompt (much shorter)
+      const systemPrompt = this.buildOptimizedSystemPrompt(simulation);
+      
+      // Build minimal message history (only last 4 messages)
+      const messages = this.buildMinimalMessageHistory(simulation.conversationHistory, studentMessage);
 
-      console.log(
-        `🤖 Generating natural response for ${patientPersona.patient?.name || 'Patient'}`
-      );
+      console.log(`🤖 Generating AI response (${messages.length} messages in context)`);
 
-      const response = await axios.post(
-        `${this.baseURL}/chat/completions`,
-        {
-          model: this.defaultModel,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-          temperature: 0.8, // Higher for more natural variation
-          max_tokens: 200, // Shorter responses
-          top_p: 0.9,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
-            'X-Title': 'AI Patient Simulation Platform',
-          },
-          timeout: 30000,
-        }
-      );
+      const requestData = {
+        model: this.defaultModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ],
+        temperature: 0.8,
+        max_tokens: 150, // Reduced for faster response
+        top_p: 0.9,
+        stream: false
+      };
 
-      const aiResponse = response.data.choices[0].message.content;
+      const response = await this.axiosInstance.post('/chat/completions', requestData);
 
-      // Parse response to separate patient and guardian voices if needed
-      const parsedResponse = this.parsePatientGuardianResponse(aiResponse, patientPersona);
+      const responseTime = Date.now() - startTime;
+      console.log(`✅ AI response generated in ${responseTime}ms`);
 
-      // Extract clinical information revealed
-      const clinicalInfo = this.extractClinicalInfo(aiResponse, patientPersona);
+      const aiResponse = response.data.choices[0]?.message?.content;
+      
+      if (!aiResponse) {
+        throw new Error('Empty AI response received');
+      }
+
+      // Parse response quickly
+      const parsedResponse = this.parsePatientResponseFast(aiResponse, simulation.patientPersona);
 
       return {
         patientResponse: parsedResponse.patient,
         guardianResponse: parsedResponse.guardian,
-        clinicalInfo,
+        clinicalInfo: this.extractClinicalInfoFast(studentMessage, aiResponse),
         usage: response.data.usage,
         model: this.defaultModel,
+        responseTime
       };
+
     } catch (error) {
       console.error('❌ OpenRouter API Error:', error.response?.data || error.message);
 
-      // Natural fallback responses
-      const fallbackResponses = [
-        "Sorry, I didn't catch that. Can you ask again?",
-        "I'm not feeling great right now. What did you say?",
-        'Could you repeat that, please?',
-        "I'm having trouble understanding. Can you say that again?",
-      ];
-
-      return {
-        patientResponse: fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)],
-        guardianResponse: null,
-        clinicalInfo: {},
-        error: error.message,
-      };
+      // Fast fallback responses
+      return this.getFastFallbackResponse(simulation, error);
     }
   }
 
-  buildNaturalSystemPrompt(patientPersona, difficulty) {
-    // SAFE: Extract with defaults to prevent undefined errors
+  /**
+   * Build much shorter, focused system prompt
+   */
+  buildOptimizedSystemPrompt(simulation) {
+    const { patientPersona } = simulation;
     const patient = patientPersona.patient || {};
-    const guardian = patientPersona.guardian || {};
-    const demographics = patientPersona.demographics || {};
-    const medicalHistory = Array.isArray(patientPersona.medicalHistory)
-      ? patientPersona.medicalHistory
-      : [];
-    const currentCondition = patientPersona.currentCondition || 'seeking medical help';
-    const personality = patientPersona.personality || 'cooperative patient';
-    const culturalFactors =
-      patientPersona.culturalFactors ||
-      patientPersona.culturalBackground ||
-      demographics.ethnicity ||
-      '';
+    const currentCondition = patientPersona.currentCondition || 'medical concern';
+    const emotionalTone = patientPersona.personality?.emotionalTone || 'concerned';
     const chiefComplaint = patientPersona.chiefComplaint || 'not feeling well';
 
-    // Safe access to properties with fallbacks
-    const patientAge = patient.age || demographics.age || 'unknown';
-    const patientName = patient.name || 'Patient';
-    const patientGender = patient.gender || 'patient';
-    const guardianName = guardian.name || 'Guardian';
-    const guardianRelation = guardian.relationship || 'family member';
-    const primaryLanguage = demographics.primaryLanguage || 'English';
+    // Check if pediatric case
+    const ageString = String(patient.age || '').toLowerCase();
+    const isPediatric = ageString.includes('months') || 
+                       ageString.includes('year') || 
+                       (!isNaN(patient.age) && parseInt(patient.age) < 18);
 
-    // Safe check for pediatric case
-    const ageString = String(patientAge).toLowerCase();
-    const isPediatric =
-      ageString.includes('months') ||
-      ageString.includes('year') ||
-      ageString.includes('old') ||
-      (!isNaN(patientAge) && parseInt(patientAge) < 18);
+    if (isPediatric && patientPersona.guardian) {
+      return `You are a ${patient.age} child named ${patient.name} with ${chiefComplaint}. Your ${patientPersona.guardian.relationship || 'parent'} speaks for you mostly. You might cry, use simple words, or be quiet. Parent is ${emotionalTone}.
 
-    let basePrompt = '';
-
-    if (isPediatric) {
-      basePrompt = `You are ${patientName}, a ${patientAge} child, and ${guardianName} (your ${guardianRelation}).
-
-SITUATION: You came to see the doctor because ${chiefComplaint}.
-
-WHAT'S WRONG: ${currentCondition}
-
-HOW TO RESPOND:
-- Keep it SIMPLE and NATURAL - like real people talking
-- Child responses: Short, simple words. "It hurts", "I feel sick", crying is okay
-- Guardian responses: Worried parent/caregiver language. "I'm concerned about...", "They've been..."
-- Mix between child and guardian talking
-- Don't use medical jargon - use everyday words
-- Be emotional - worried, scared, tired, etc.
-
-EXAMPLES OF GOOD RESPONSES:
-Child: "My tummy hurts really bad" or "I don't want to talk" or *starts crying*
-Guardian: "She's been like this since yesterday" or "I'm really worried, doctor"
-
-KEEP RESPONSES SHORT: 1-2 sentences maximum. Talk like real people, not textbooks.`;
-
-      // Add cultural context if present - SAFE checking
-      const culturalBackground = String(culturalFactors).toLowerCase();
-      if (
-        culturalBackground.includes('kenyan') ||
-        culturalBackground.includes('african') ||
-        culturalBackground.includes('kiswahili')
-      ) {
-        basePrompt += `\n\nCULTURAL NOTES:
-- Guardian might mix a little Kiswahili: "daktari" (doctor), "pole sana" (sorry), "asante" (thank you)
-- Mention family: "my mother says...", "the family is worried"
-- Sometimes mention traditional remedies tried first`;
-      }
+KEEP RESPONSES VERY SHORT (1-2 sentences). Show you're ${emotionalTone}. Only answer what's asked directly.`;
     } else {
-      // Adult patient
-      basePrompt = `You are ${patientName}, a ${patientAge}-year-old person who came to see the doctor.
+      return `You are ${patient.name || 'a patient'}, age ${patient.age || 'adult'}. You have ${currentCondition}. You came because: ${chiefComplaint}.
 
-SITUATION: You're here because ${chiefComplaint}.
+You're feeling ${emotionalTone}. 
 
-WHAT'S WRONG: ${currentCondition}
-
-HOW TO RESPOND:
-- Talk like a REAL PERSON, not a medical textbook
-- Use everyday language: "I feel awful", "It really hurts", "I'm worried"
-- Keep responses SHORT: 1-2 sentences maximum
-- Show your emotions - scared, tired, frustrated, relieved
-- Don't give long medical descriptions
-- Answer what you're asked, don't volunteer everything at once
-
-EXAMPLES OF GOOD RESPONSES:
-"My chest really hurts"
-"It started this morning"
-"Yeah, it's getting worse"
-"I'm scared it might be something serious"
-"No, I've never had this before"
-
-BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
-
-      // Add cultural context for adults too - SAFE checking
-      const culturalBackground = String(culturalFactors).toLowerCase();
-      if (
-        culturalBackground.includes('kenyan') ||
-        culturalBackground.includes('african') ||
-        culturalBackground.includes('kiswahili')
-      ) {
-        basePrompt += `\n\nCULTURAL NOTES:
-- You might use some Kiswahili words naturally: "daktari" (doctor), "pole" (sorry)
-- Mention family or community: "my family is worried", "my neighbor had this"
-- Sometimes reference trying traditional medicine first`;
-      }
+RESPOND RULES:
+- Keep answers SHORT (1-2 sentences max)
+- Only answer what's directly asked
+- Show you're ${emotionalTone}
+- Use simple, natural language
+- Don't volunteer extra information`;
     }
-
-    // Adjust for difficulty but keep it natural
-    if (difficulty === 'resident' || difficulty === 'fellow') {
-      basePrompt += `\n\nADDITIONAL COMPLEXITY:
-- You might be a bit more anxious or have complications
-- Could have some social/financial worries about treatment
-- Still keep responses SHORT and NATURAL`;
-    } else {
-      basePrompt += `\n\nKEEP IT SIMPLE:
-- Straightforward symptoms
-- Cooperative but still human and emotional
-- Don't make it too complicated`;
-    }
-
-    basePrompt += `\n\nIMPORTANT RULES:
-1. Maximum 1-2 sentences per response
-2. Use simple, everyday words
-3. Show real human emotions
-4. Don't sound like a medical textbook
-5. Be conversational and natural`;
-
-    return basePrompt;
   }
 
-  buildMessageHistory(conversationHistory, newMessage) {
+  /**
+   * Build minimal message history for speed
+   */
+  buildMinimalMessageHistory(conversationHistory, newMessage) {
     const messages = [];
 
-    // Add conversation history (last 8 messages for more focused context)
-    const recentHistory = Array.isArray(conversationHistory) ? conversationHistory.slice(-8) : [];
+    // Only include last 4 messages for context
+    const recentHistory = Array.isArray(conversationHistory) ? 
+      conversationHistory.slice(-4) : [];
 
     recentHistory.forEach((msg) => {
       if (msg && msg.sender && msg.message) {
         if (msg.sender === 'student') {
           messages.push({
             role: 'user',
-            content: msg.message,
+            content: msg.message
           });
         } else if (msg.sender === 'patient' || msg.sender === 'guardian') {
           messages.push({
             role: 'assistant',
-            content: msg.message,
+            content: msg.message
           });
         }
       }
@@ -233,169 +145,362 @@ BE HUMAN: Use "um", "well", "I think", show hesitation, worry, etc.`;
     if (newMessage && typeof newMessage === 'string') {
       messages.push({
         role: 'user',
-        content: newMessage,
+        content: newMessage
       });
     }
 
     return messages;
   }
 
-  parsePatientGuardianResponse(response, patientPersona) {
+  /**
+   * Fast response parsing
+   */
+  parsePatientResponseFast(response, patientPersona) {
     if (!response || typeof response !== 'string') {
       return { patient: response || '', guardian: null };
     }
 
-    // Clean up the response - remove any formatting artifacts
-    let cleanResponse = response.trim();
+    // Clean response quickly
+    let cleanResponse = response.trim()
+      .replace(/^(Patient says?:|Guardian says?:|Response:|Answer:)\s*/i, '')
+      .replace(/^(As (a|the) patient,?|As (a|the) guardian,?)\s*/i, '');
 
-    // Remove any unwanted prefixes that might make it sound robotic
-    cleanResponse = cleanResponse.replace(
-      /^(Patient says?:|Guardian says?:|Response:|Answer:)\s*/i,
-      ''
-    );
-    cleanResponse = cleanResponse.replace(/^(As (a|the) patient,?|As (a|the) guardian,?)\s*/i, '');
-
-    // Check if response contains both patient and guardian voices
+    // Quick check for structured response
     if (cleanResponse.includes('[PATIENT]:') && cleanResponse.includes('[GUARDIAN]:')) {
       const patientMatch = cleanResponse.match(/\[PATIENT\]:\s*(.*?)(?=\[GUARDIAN\]:|$)/s);
       const guardianMatch = cleanResponse.match(/\[GUARDIAN\]:\s*(.*?)$/s);
 
       return {
         patient: patientMatch ? patientMatch[1].trim() : cleanResponse,
-        guardian: guardianMatch ? guardianMatch[1].trim() : null,
+        guardian: guardianMatch ? guardianMatch[1].trim() : null
       };
     }
 
-    // SAFE: Check if it's a very young child
-    const patientAge = String(
-      patientPersona.patient?.age || patientPersona.demographics?.age || ''
-    ).toLowerCase();
-    const isVeryYoung =
-      patientAge.includes('months') || (patientAge.includes('year') && parseInt(patientAge) < 5);
+    // Quick age check for pediatric cases
+    const patientAge = String(patientPersona.patient?.age || '').toLowerCase();
+    const isVeryYoung = patientAge.includes('months') || 
+                       (patientAge.includes('year') && parseInt(patientAge) < 5);
 
     if (isVeryYoung && patientPersona.guardian) {
       return {
         patient: null,
-        guardian: cleanResponse,
+        guardian: cleanResponse
       };
     }
 
-    // Default: assume it's the patient speaking
+    // Default: assume patient speaking
     return {
       patient: cleanResponse,
-      guardian: null,
+      guardian: null
     };
   }
 
-  extractClinicalInfo(response, patientPersona) {
+  /**
+   * Fast clinical info extraction
+   */
+  extractClinicalInfoFast(studentMessage, response) {
     if (!response || typeof response !== 'string') {
       return {};
     }
 
-    // Simplified clinical info extraction for natural conversation
-    const clinicalKeywords = {
-      symptoms: [
-        'pain',
-        'hurt',
-        'ache',
-        'fever',
-        'hot',
-        'sick',
-        'nausea',
-        'vomit',
-        'dizzy',
-        'tired',
-        'cough',
-        'sob',
-      ],
-      severity: ['bad', 'really', 'very', 'little', 'worse', 'better', 'awful', 'terrible'],
-      timing: ['today', 'yesterday', 'morning', 'night', 'hours', 'days', 'started', 'began'],
-      location: ['chest', 'tummy', 'stomach', 'head', 'back', 'arm', 'here', 'there'],
-      emotions: ['scared', 'worried', 'afraid', 'tired', 'upset', 'fine', 'okay'],
+    const messageLower = studentMessage.toLowerCase();
+    const responseLower = response.toLowerCase();
+    const clinicalInfo = {};
+
+    // Quick keyword-based extraction
+    const extractionRules = {
+      'pain|hurt|symptom': () => {
+        if (responseLower.includes('pain') || responseLower.includes('hurt')) {
+          clinicalInfo.symptoms = ['pain mentioned'];
+        }
+      },
+      'when|start|began|long': () => {
+        if (responseLower.includes('hour') || responseLower.includes('day') || responseLower.includes('week')) {
+          clinicalInfo.timing = ['timeline provided'];
+        }
+      },
+      'where|location': () => {
+        if (responseLower.includes('chest') || responseLower.includes('head') || responseLower.includes('stomach')) {
+          clinicalInfo.location = ['anatomical location mentioned'];
+        }
+      },
+      'severe|bad|scale': () => {
+        if (responseLower.match(/\d+\/10|\d+ out of 10|severe|mild|moderate/)) {
+          clinicalInfo.severity = ['severity described'];
+        }
+      }
     };
 
-    const revealed = {};
-    const lowerResponse = response.toLowerCase();
-
-    Object.keys(clinicalKeywords).forEach((category) => {
-      const keywords = clinicalKeywords[category];
-      if (Array.isArray(keywords)) {
-        keywords.forEach((keyword) => {
-          if (lowerResponse.includes(keyword)) {
-            if (!revealed[category]) revealed[category] = [];
-            if (!revealed[category].includes(keyword)) {
-              revealed[category].push(keyword);
-            }
-          }
-        });
+    // Apply extraction rules quickly
+    Object.entries(extractionRules).forEach(([keywords, extractor]) => {
+      if (new RegExp(keywords, 'i').test(messageLower)) {
+        extractor();
       }
     });
 
-    return revealed;
+    return Object.keys(clinicalInfo).length > 0 ? clinicalInfo : {};
   }
 
+  /**
+   * Fast fallback response generation
+   */
+  getFastFallbackResponse(simulation, error) {
+    const patientPersona = simulation.patientPersona || {};
+    const patient = patientPersona.patient || {};
+    const emotionalTone = patientPersona.personality?.emotionalTone || 'concerned';
+    
+    // Quick fallback responses based on emotional tone
+    const fallbackResponses = {
+      'anxious': [
+        "I'm sorry, I'm quite anxious right now. Could you repeat that?",
+        "I'm worried and didn't catch what you said. Can you ask again?",
+        "I'm feeling very nervous. What did you want to know?"
+      ],
+      'scared': [
+        "I'm scared. Could you please repeat your question?",
+        "I'm frightened and missed what you said.",
+        "I'm really scared. What did you ask?"
+      ],
+      'tired': [
+        "I'm so tired. Could you ask me that again?",
+        "I'm exhausted and didn't hear you clearly.",
+        "I'm feeling weak. What did you say?"
+      ],
+      'calm': [
+        "Could you repeat that question please?",
+        "I didn't quite catch what you said.",
+        "Can you ask me that again?"
+      ],
+      'frustrated': [
+        "I'm getting frustrated. What did you ask?",
+        "Could you please repeat that? I'm having trouble concentrating.",
+        "I didn't understand. Can you say that again?"
+      ]
+    };
+
+    const tone = emotionalTone.toLowerCase();
+    const responses = fallbackResponses[tone] || fallbackResponses['calm'];
+    const selectedResponse = responses[Math.floor(Math.random() * responses.length)];
+
+    console.log(`🔄 Using fallback response for ${tone} patient`);
+
+    return {
+      patientResponse: selectedResponse,
+      guardianResponse: null,
+      clinicalInfo: {},
+      error: error.message,
+      fallback: true
+    };
+  }
+
+  /**
+   * Generate clinical feedback - optimized version
+   */
   async generateClinicalFeedback(simulation, studentActions) {
     try {
-      const feedbackPrompt = this.buildNaturalFeedbackPrompt(simulation, studentActions);
+      // Build very short feedback prompt
+      const patientName = simulation.patientPersona?.patient?.name || 'Patient';
+      const condition = simulation.patientPersona?.currentCondition || 'the medical case';
+      const actionsString = Array.isArray(studentActions) ? 
+        studentActions.map(a => a.action).join(', ') : 'conversation';
 
-      const response = await axios.post(
-        `${this.baseURL}/chat/completions`,
-        {
-          model: this.defaultModel,
-          messages: [
-            { role: 'system', content: feedbackPrompt },
-            {
-              role: 'user',
-              content: 'Please provide brief, practical feedback on this simulation.',
-            },
-          ],
-          temperature: 0.3,
-          max_tokens: 300, // Shorter feedback too
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.FRONTEND_URL || 'https://simulatech.netlify.app',
-            'X-Title': 'AI Patient Simulation Platform',
+      const feedbackPrompt = `Give brief feedback to a medical student who completed a simulation with ${patientName}.
+
+Case: ${condition}
+Student did: ${actionsString}
+
+Give 2-3 sentences of encouraging feedback with one tip for improvement.`;
+
+      const response = await this.axiosInstance.post('/chat/completions', {
+        model: this.defaultModel,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a medical educator giving brief, encouraging feedback to students.' 
           },
-        }
-      );
+          { 
+            role: 'user', 
+            content: feedbackPrompt 
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 200,
+        timeout: 8000 // Shorter timeout for feedback
+      });
 
-      return response.data.choices[0].message.content;
+      return response.data.choices[0]?.message?.content || 
+             'Good work on the simulation! Keep practicing your clinical skills.';
+
     } catch (error) {
       console.error('❌ Feedback generation error:', error.message);
-      return 'Great job on the simulation! Keep practicing your communication skills and clinical reasoning.';
+      return 'Great job completing the simulation! Continue practicing to improve your clinical reasoning and communication skills.';
     }
   }
 
-  buildNaturalFeedbackPrompt(simulation, studentActions) {
-    if (!simulation || !simulation.patientPersona) {
-      return 'Provide encouraging feedback for the medical student.';
+  /**
+   * Health check for OpenRouter service
+   */
+  async healthCheck() {
+    try {
+      if (!this.apiKey) {
+        return {
+          status: 'warning',
+          message: 'API key not configured',
+          configured: false
+        };
+      }
+
+      // Quick test call with minimal data
+      const testResponse = await this.axiosInstance.post('/chat/completions', {
+        model: this.defaultModel,
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 5
+      });
+
+      return {
+        status: 'healthy',
+        message: 'OpenRouter API accessible',
+        configured: true,
+        model: this.defaultModel,
+        responseTime: 'OK'
+      };
+
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message,
+        configured: !!this.apiKey,
+        error: error.response?.status || 'Network error'
+      };
+    }
+  }
+
+  /**
+   * Get optimized models list (cache results)
+   */
+  async getAvailableModels() {
+    try {
+      // Cache models list to avoid repeated API calls
+      if (this._cachedModels && this._cacheTime && (Date.now() - this._cacheTime < 300000)) {
+        return this._cachedModels;
+      }
+
+      const response = await this.axiosInstance.get('/models', { timeout: 5000 });
+      
+      this._cachedModels = response.data.data || [];
+      this._cacheTime = Date.now();
+      
+      return this._cachedModels;
+
+    } catch (error) {
+      console.error('❌ Error fetching models:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Switch to faster model for simple responses
+   */
+  async generateSimpleResponse(prompt, maxTokens = 50) {
+    try {
+      const fastModel = 'openai/gpt-3.5-turbo'; // Faster, cheaper model
+      
+      const response = await this.axiosInstance.post('/chat/completions', {
+        model: fastModel,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: maxTokens,
+        timeout: 5000
+      });
+
+      return response.data.choices[0]?.message?.content || '';
+
+    } catch (error) {
+      console.error('❌ Simple response generation failed:', error.message);
+      return '';
+    }
+  }
+
+  /**
+   * Batch process multiple messages (for efficiency)
+   */
+  async batchGenerateResponses(requests) {
+    const results = [];
+    
+    // Process in batches of 3 to avoid overwhelming the API
+    for (let i = 0; i < requests.length; i += 3) {
+      const batch = requests.slice(i, i + 3);
+      
+      const batchPromises = batch.map(async (request) => {
+        try {
+          return await this.generatePatientResponse(request.simulation, request.message);
+        } catch (error) {
+          return this.getFastFallbackResponse(request.simulation, error);
+        }
+      });
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      results.push(...batchResults.map(result => 
+        result.status === 'fulfilled' ? result.value : { error: result.reason }
+      ));
+
+      // Small delay between batches to be API-friendly
+      if (i + 3 < requests.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
 
-    const { patientPersona } = simulation;
-    const patientName = patientPersona.patient?.name || 'Patient';
-    const currentCondition = patientPersona.currentCondition || 'the medical case';
+    return results;
+  }
 
-    return `Give brief, encouraging feedback to a medical student who just completed a simulation with ${patientName}.
-
-The case involved: ${currentCondition}
-
-Student actions: ${
-      Array.isArray(studentActions)
-        ? studentActions.map((action) => action.action).join(', ')
-        : 'conversational interaction'
+  /**
+   * Cache frequently used responses
+   */
+  getCachedResponse(key) {
+    if (!this._responseCache) this._responseCache = new Map();
+    
+    const cached = this._responseCache.get(key);
+    if (cached && (Date.now() - cached.timestamp < 60000)) { // 1 minute cache
+      return cached.response;
     }
+    
+    return null;
+  }
 
-FEEDBACK STYLE:
-- Keep it SHORT and encouraging
-- Focus on what they did well
-- Give 1-2 practical tips for improvement
-- Use simple, supportive language
-- Maximum 3-4 sentences
+  setCachedResponse(key, response) {
+    if (!this._responseCache) this._responseCache = new Map();
+    
+    // Limit cache size
+    if (this._responseCache.size > 100) {
+      const firstKey = this._responseCache.keys().next().value;
+      this._responseCache.delete(firstKey);
+    }
+    
+    this._responseCache.set(key, {
+      response,
+      timestamp: Date.now()
+    });
+  }
 
-BE POSITIVE and HELPFUL - they're learning!`;
+  /**
+   * Get service statistics
+   */
+  getStats() {
+    return {
+      service: 'OpenRouter',
+      configured: !!this.apiKey,
+      model: this.defaultModel,
+      cacheSize: this._responseCache?.size || 0,
+      timeout: 12000,
+      optimizations: [
+        'Reduced token limits',
+        'Shorter system prompts',
+        'Minimal conversation history',
+        'Fast fallback responses',
+        'Response caching',
+        'Batch processing support'
+      ]
+    };
   }
 }
 

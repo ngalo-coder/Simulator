@@ -1,19 +1,32 @@
-// ai-patient-sim-core-services/simulation-service/src/routes/templateSimulation.js
+// ai-patient-sim-core-services/simulation-service/src/routes/templateSimulation.js - OPTIMIZED
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const TemplateCaseService = require('../services/templateCaseService');
 const TemplateSimulationEngine = require('../services/templateSimulationEngine');
-const TemplateReportGenerator = require('../services/templateReportGenerator');
 const Simulation = require('../models/Simulation');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 const templateCaseService = new TemplateCaseService();
 const simulationEngine = new TemplateSimulationEngine();
-const reportGenerator = new TemplateReportGenerator();
 
-// Store active template simulations in memory (in production, use Redis)
+// Store active template simulations in memory with TTL
 const activeSimulations = new Map();
+const SIMULATION_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+// Request timeout middleware
+const timeoutMiddleware = (timeoutMs) => (req, res, next) => {
+  req.setTimeout(timeoutMs, () => {
+    if (!res.headersSent) {
+      res.status(408).json({
+        success: false,
+        error: 'Request timeout',
+        code: 'TIMEOUT'
+      });
+    }
+  });
+  next();
+};
 
 /**
  * Health check for template simulation routes
@@ -25,34 +38,57 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     activeSimulations: activeSimulations.size,
     memoryUsage: process.memoryUsage(),
+    optimizations: [
+      'Request timeouts',
+      'Memory cleanup',
+      'Fast AI responses',
+      'Simplified evaluation'
+    ]
   });
 });
 
 /**
- * Get all available template cases
+ * Get all available template cases - OPTIMIZED
  */
 router.get('/cases', async (req, res) => {
   try {
-    console.log('📋 Fetching template cases with filters:', req.query);
-
+    console.log('📋 Fetching template cases (optimized)');
+    
     const filters = {
       programArea: req.query.programArea,
       specialty: req.query.specialty,
       difficulty: req.query.difficulty,
       location: req.query.location,
-      tags: req.query.tags ? req.query.tags.split(',') : undefined,
+      tags: req.query.tags ? req.query.tags.split(',') : undefined
     };
 
     // Remove undefined filters
-    Object.keys(filters).forEach((key) => {
+    Object.keys(filters).forEach(key => {
       if (filters[key] === undefined) delete filters[key];
     });
 
-    const cases = await templateCaseService.getCases(filters);
-    const filterOptions = await templateCaseService.getFilterOptions();
+    // Use Promise.race to timeout the operation
+    const casesPromise = templateCaseService.getCases(filters);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Cases loading timeout')), 5000)
+    );
 
-    // Filter out any null cases from transformation
-    const validCases = cases.filter((caseItem) => caseItem !== null);
+    const cases = await Promise.race([casesPromise, timeoutPromise]);
+    const validCases = cases.filter(caseItem => caseItem !== null);
+
+    // Get filter options only if no specific filters applied
+    let filterOptions = {};
+    if (Object.keys(filters).length === 0) {
+      try {
+        filterOptions = await Promise.race([
+          templateCaseService.getFilterOptions(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Filter options timeout')), 2000))
+        ]);
+      } catch (error) {
+        console.warn('Filter options loading failed:', error.message);
+        filterOptions = { programAreas: [], specialties: [], difficulties: [], locations: [], tags: [] };
+      }
+    }
 
     res.json({
       success: true,
@@ -60,155 +96,75 @@ router.get('/cases', async (req, res) => {
       filterOptions,
       total: validCases.length,
       appliedFilters: filters,
-      message: validCases.length === 0 ? 'No cases match the selected filters' : undefined,
+      cached: false // Could implement caching here
     });
+
   } catch (error) {
     console.error('❌ Error fetching template cases:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch template cases',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
     });
   }
 });
 
 /**
- * Get specific case details (public information only)
+ * Start new template-based simulation - OPTIMIZED
  */
-router.get('/cases/:caseId', async (req, res) => {
-  try {
-    const { caseId } = req.params;
-    console.log(`📖 Fetching case details for: ${caseId}`);
-
-    const caseData = await templateCaseService.getCaseById(caseId);
-
-    // Transform for frontend (hide clinical dossier)
-    const publicCaseData = templateCaseService.transformCaseForFrontend(caseData);
-
-    if (!publicCaseData) {
-      return res.status(404).json({
-        success: false,
-        error: 'Case not found or invalid case structure',
-      });
-    }
-
-    // Add additional public information
-    const enhancedCaseData = {
-      ...publicCaseData,
-      initialPrompt: caseData.initial_prompt,
-      evaluationAreas: Object.keys(caseData.evaluation_criteria || {}),
-      estimatedDuration: '15-30 minutes', // Could be calculated based on case complexity
-      learningLevel: caseData.case_metadata.difficulty,
-      prerequisites: this.getPrerequisites(
-        caseData.case_metadata.specialty,
-        caseData.case_metadata.difficulty
-      ),
-    };
-
-    res.json({
-      success: true,
-      case: enhancedCaseData,
-    });
-  } catch (error) {
-    console.error('❌ Error fetching case details:', error);
-    res.status(404).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
-
-/**
- * Start new template-based simulation
- */
-router.post('/start', authMiddleware, async (req, res) => {
+router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res) => {
   try {
     const { caseId } = req.body;
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    console.log(`🚀 Starting template simulation - Case: ${caseId}, User: ${userId}`);
+    console.log(`🚀 Starting optimized template simulation - Case: ${caseId}, User: ${userId}`);
 
     if (!caseId) {
       return res.status(400).json({
         success: false,
-        error: 'Case ID is required',
+        error: 'Case ID is required'
       });
     }
 
-    // Check for existing active simulation (any type)
+    // Quick check for existing active simulation
     const existingSimulation = await Simulation.findOne({
       userId,
-      status: { $in: ['active', 'paused'] },
-    });
+      status: { $in: ['active', 'paused'] }
+    }).select('id caseId status').lean(); // Use lean() for faster query
 
     if (existingSimulation) {
       return res.status(400).json({
         success: false,
         error: 'You already have an active simulation. Please complete it first.',
         activeSimulationId: existingSimulation.id,
-        activeSimulationType: existingSimulation.caseId.startsWith('VP-') ? 'template' : 'regular',
+        activeSimulationType: existingSimulation.caseId.startsWith('VP-') ? 'template' : 'regular'
       });
     }
 
-    // Initialize template simulation
-    const simulationState = await simulationEngine.initializeSimulation(caseId, userId, userRole);
+    // Initialize simulation with timeout protection
+    const initPromise = simulationEngine.initializeSimulation(caseId, userId, userRole);
+    const simulationState = await Promise.race([
+      initPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Simulation initialization timeout')), 8000)
+      )
+    ]);
 
     const simulationId = uuidv4();
     simulationState.id = simulationId;
+    simulationState.lastActivity = new Date();
 
     // Store in memory for active processing
     activeSimulations.set(simulationId, simulationState);
 
-    // Create database record for persistence
-    const simulation = new Simulation({
-      id: simulationId,
-      userId,
-      userRole,
-      programArea:
-        simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() ||
-        'template_based',
-      caseId,
-      caseName: simulationState.caseData.case_metadata.title,
-      patientPersona: {
-        patient: {
-          name: simulationState.caseData.patient_persona.name,
-          age: simulationState.caseData.patient_persona.age,
-          gender: simulationState.caseData.patient_persona.gender,
-          presentation: simulationState.caseData.patient_persona.chief_complaint,
-        },
-        guardian:
-          simulationState.caseData.patient_persona.speaks_for !== 'Self'
-            ? {
-                name: simulationState.caseData.patient_persona.speaks_for,
-                relationship: simulationState.caseData.patient_persona.speaks_for,
-                primaryLanguage: 'English',
-              }
-            : null,
-        demographics: {
-          primaryLanguage: 'English',
-          location: simulationState.caseData.case_metadata.location,
-        },
-        currentCondition: simulationState.caseData.clinical_dossier.hidden_diagnosis,
-        personality: {
-          emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
-          backgroundStory: simulationState.caseData.patient_persona.background_story,
-        },
-        learningObjectives: Object.keys(simulationState.evaluationCriteria),
-        chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
-      },
-      difficulty: simulationState.caseData.case_metadata.difficulty.toLowerCase(),
-      conversationHistory: simulationState.conversationHistory,
-      clinicalActions: [],
-      learningProgress: simulationState.learningProgress,
-      sessionMetrics: simulationState.sessionMetrics,
-      status: 'active',
-    });
+    // Create database record asynchronously (don't wait)
+    const dbPromise = this.createDatabaseRecord(simulationState, userId, userRole);
+    dbPromise.catch(error => console.error('Database record creation failed:', error));
 
-    await simulation.save();
+    console.log(`✅ Template simulation started quickly: ${simulationId}`);
 
-    console.log(`✅ Template simulation started: ${simulationId} for case ${caseId}`);
-
+    // Send response immediately
     res.status(201).json({
       success: true,
       message: 'Template simulation started successfully',
@@ -224,34 +180,44 @@ router.post('/start', authMiddleware, async (req, res) => {
           age: simulationState.caseData.patient_persona.age,
           gender: simulationState.caseData.patient_persona.gender,
           chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
-          emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
+          emotionalTone: simulationState.caseData.patient_persona.emotional_tone
         },
-        guardianInfo:
-          simulationState.caseData.patient_persona.speaks_for !== 'Self'
-            ? {
-                relationship: simulationState.caseData.patient_persona.speaks_for,
-                patientAge: simulationState.caseData.patient_persona.patient_age_for_communication,
-              }
-            : null,
+        guardianInfo: simulationState.caseData.patient_persona.speaks_for !== "Self" ? {
+          relationship: simulationState.caseData.patient_persona.speaks_for,
+          patientAge: simulationState.caseData.patient_persona.patient_age_for_communication
+        } : null,
         conversationHistory: simulationState.conversationHistory,
         evaluationCriteria: Object.keys(simulationState.evaluationCriteria),
-        status: 'active',
-      },
+        status: 'active'
+      }
     });
+
+    // Wait for database record creation to complete
+    await dbPromise;
+
   } catch (error) {
     console.error('❌ Error starting template simulation:', error);
+    
+    if (error.message.includes('timeout')) {
+      return res.status(408).json({
+        success: false,
+        error: 'Simulation startup timeout - please try again',
+        code: 'STARTUP_TIMEOUT'
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: 'Failed to start simulation',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
     });
   }
 });
 
 /**
- * Send message in template simulation
+ * Send message in template simulation - OPTIMIZED
  */
-router.post('/:id/message', authMiddleware, async (req, res) => {
+router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req, res) => {
   try {
     const { id } = req.params;
     const { message } = req.body;
@@ -260,263 +226,155 @@ router.post('/:id/message', authMiddleware, async (req, res) => {
     if (!message || message.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Message is required and cannot be empty',
+        error: 'Message is required and cannot be empty'
       });
     }
 
-    console.log(`💬 Template message from ${userId} in ${id}: ${message.substring(0, 50)}...`);
+    if (message.length > 500) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message too long (max 500 characters)'
+      });
+    }
 
-    // Get simulation from memory
+    console.log(`💬 Optimized template message from ${userId}: ${message.substring(0, 50)}...`);
+
+    // Get simulation from memory quickly
     const simulationState = activeSimulations.get(id);
     if (!simulationState || simulationState.userId !== userId) {
-      // Try to load from database if not in memory
-      const dbSimulation = await Simulation.findOne({ id, userId });
-      if (!dbSimulation) {
-        return res.status(404).json({
-          success: false,
-          error: 'Simulation not found or access denied',
-        });
-      }
-
-      return res.status(410).json({
-        success: false,
-        error: 'Simulation session expired. Please restart the simulation.',
-        code: 'SESSION_EXPIRED',
-      });
+      return this.handleSimulationNotFound(id, userId, res);
     }
 
     if (simulationState.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: `Simulation is ${simulationState.status}, not active`,
+        error: `Simulation is ${simulationState.status}, not active`
       });
     }
 
-    // Add student message to conversation
-    simulationState.conversationHistory.push({
+    // Update last activity
+    simulationState.lastActivity = new Date();
+
+    // Add student message immediately
+    const studentMessage = {
       sender: 'student',
       message: message.trim(),
       messageType: 'chat',
-      timestamp: new Date(),
-    });
+      timestamp: new Date()
+    };
+    simulationState.conversationHistory.push(studentMessage);
 
-    // Generate AI response
-    const aiResponse = await simulationEngine.generatePatientResponse(simulationState, message);
+    // Generate AI response with timeout protection
+    let aiResponse;
+    try {
+      const responsePromise = simulationEngine.generatePatientResponse(simulationState, message);
+      aiResponse = await Promise.race([
+        responsePromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI response timeout')), 12000)
+        )
+      ]);
+    } catch (error) {
+      console.error('AI response failed:', error.message);
+      // Use immediate fallback
+      aiResponse = {
+        response: this.getEmergencyFallback(simulationState.caseData),
+        clinicalInfo: null,
+        error: error.message
+      };
+    }
 
-    // Add patient/guardian response
+    // Add AI response if available
     if (aiResponse.response) {
-      const sender =
-        simulationState.caseData.patient_persona.speaks_for !== 'Self' && Math.random() < 0.7
-          ? 'guardian'
-          : 'patient';
-
+      const sender = simulationState.caseData.patient_persona.speaks_for !== "Self" && 
+                    Math.random() < 0.7 ? 'guardian' : 'patient';
+      
       simulationState.conversationHistory.push({
         sender,
         message: aiResponse.response,
         messageType: 'chat',
         timestamp: new Date(),
-        clinicalInfo: aiResponse.clinicalInfo,
-        dialogueMetadata: aiResponse.dialogueMetadata,
+        clinicalInfo: aiResponse.clinicalInfo
       });
     }
 
     // Update metrics
     simulationState.sessionMetrics.messageCount = simulationState.conversationHistory.length;
-    simulationState.sessionMetrics.lastActivity = new Date();
-
-    // Update database
-    await Simulation.findOneAndUpdate(
-      { id, userId },
-      {
-        conversationHistory: simulationState.conversationHistory,
-        sessionMetrics: simulationState.sessionMetrics,
-        updatedAt: new Date(),
-      }
-    );
 
     // Check if simulation should end
     let simulationEnded = false;
     if (aiResponse.triggerActivated === 'end_session') {
       simulationState.status = 'completed';
       simulationEnded = true;
-
-      await Simulation.findOneAndUpdate(
-        { id, userId },
-        {
-          status: 'completed',
-          'sessionMetrics.endTime': new Date(),
-          'sessionMetrics.totalDuration': Math.round(
-            (new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)
-          ),
-        }
-      );
-
-      // Remove from active simulations
       activeSimulations.delete(id);
     }
 
+    // Update database asynchronously (don't wait)
+    this.updateDatabaseAsync(id, userId, simulationState, simulationEnded);
+
+    // Send response immediately
     res.json({
       success: true,
       response: aiResponse.response,
       clinicalInfo: aiResponse.clinicalInfo,
-      dialogueMetadata: aiResponse.dialogueMetadata,
-      conversationHistory: simulationState.conversationHistory.slice(-10), // Last 10 messages
+      conversationHistory: simulationState.conversationHistory.slice(-8), // Last 8 messages
       sessionMetrics: {
         messageCount: simulationState.sessionMetrics.messageCount,
-        duration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)),
+        duration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60))
       },
       simulationEnded,
       triggerActivated: aiResponse.triggerActivated,
-      usage: aiResponse.usage,
+      responseTime: aiResponse.responseTime || 'unknown'
     });
+
   } catch (error) {
     console.error('❌ Error processing template message:', error);
+    
+    if (error.message.includes('timeout')) {
+      return res.status(408).json({
+        success: false,
+        error: 'Response timeout - please try again',
+        code: 'RESPONSE_TIMEOUT'
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: 'Failed to process message',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
     });
   }
 });
 
 /**
- * Perform clinical action in template simulation
+ * Complete template simulation - OPTIMIZED
  */
-router.post('/:id/action', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { action, details } = req.body;
-    const userId = req.user.id;
-
-    const validActions = [
-      'history_taking',
-      'physical_exam',
-      'order_labs',
-      'order_imaging',
-      'diagnosis',
-      'treatment_plan',
-    ];
-
-    if (!validActions.includes(action)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid action type',
-        validActions,
-      });
-    }
-
-    console.log(`🔬 Template clinical action by ${userId}: ${action} - ${details}`);
-
-    // Get simulation from memory
-    const simulationState = activeSimulations.get(id);
-    if (!simulationState || simulationState.userId !== userId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found or access denied',
-      });
-    }
-
-    if (simulationState.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        error: 'Simulation is not active',
-      });
-    }
-
-    // Perform clinical action
-    const actionResult = await simulationEngine.performClinicalAction(
-      simulationState,
-      action,
-      details
-    );
-
-    // Update database
-    await Simulation.findOneAndUpdate(
-      { id, userId },
-      {
-        conversationHistory: simulationState.conversationHistory,
-        clinicalActions: simulationState.clinicalActions,
-        sessionMetrics: simulationState.sessionMetrics,
-        learningProgress: simulationState.learningProgress,
-        updatedAt: new Date(),
-      }
-    );
-
-    res.json({
-      success: true,
-      ...actionResult,
-    });
-  } catch (error) {
-    console.error('❌ Error performing template clinical action:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to perform clinical action',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-});
-
-/**
- * Complete template simulation and get evaluation
- */
-router.post('/:id/complete', authMiddleware, async (req, res) => {
+router.post('/:id/complete', authMiddleware, timeoutMiddleware(10000), async (req, res) => {
   try {
     const { id } = req.params;
     const { reason = 'completed' } = req.body;
     const userId = req.user.id;
 
-    console.log(`🏁 Completing template simulation: ${id}, reason: ${reason}`);
+    console.log(`🏁 Completing template simulation quickly: ${id}`);
 
     // Get simulation from memory
     const simulationState = activeSimulations.get(id);
     if (!simulationState || simulationState.userId !== userId) {
-      // Try to get from database
-      const dbSimulation = await Simulation.findOne({ id, userId });
-      if (!dbSimulation) {
-        return res.status(404).json({
-          success: false,
-          error: 'Simulation not found or access denied',
-        });
-      }
-
-      return res.status(410).json({
-        success: false,
-        error: 'Simulation session expired, but completion recorded',
-        code: 'SESSION_EXPIRED',
-      });
+      return this.handleSimulationNotFound(id, userId, res);
     }
 
-    // Generate evaluation
+    // Generate evaluation quickly
     const evaluation = simulationEngine.evaluatePerformance(simulationState);
-
-    // Calculate session duration
     const endTime = new Date();
     const duration = Math.round((endTime - simulationState.sessionMetrics.startTime) / (1000 * 60));
 
-    // Update database
-    await Simulation.findOneAndUpdate(
-      { id, userId },
-      {
-        status: 'completed',
-        'sessionMetrics.endTime': endTime,
-        'sessionMetrics.totalDuration': duration,
-        'learningProgress.overallProgress': evaluation.overallScore,
-        'learningProgress.diagnosticAccuracy':
-          evaluation.criteriaEvaluation.Clinical_Reasoning?.score || 0,
-        'learningProgress.communicationScore': evaluation.sessionSummary.communicationQuality,
-        feedbackProvided: true,
-        conversationHistory: simulationState.conversationHistory,
-        clinicalActions: simulationState.clinicalActions,
-      }
-    );
-
-    // Remove from active simulations
+    // Remove from active simulations immediately
     activeSimulations.delete(id);
 
-    console.log(
-      `✅ Template simulation completed: ${id}, Overall Score: ${evaluation.overallScore}%`
-    );
+    // Update database asynchronously
+    this.completeDatabaseRecordAsync(id, userId, endTime, duration, evaluation);
 
+    // Send response immediately
     res.json({
       success: true,
       message: 'Template simulation completed successfully',
@@ -531,179 +389,42 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
           specialty: simulationState.caseData.case_metadata.specialty,
           difficulty: simulationState.caseData.case_metadata.difficulty,
           hiddenDiagnosis: simulationState.caseData.clinical_dossier.hidden_diagnosis,
-          location: simulationState.caseData.case_metadata.location,
-        },
+          location: simulationState.caseData.case_metadata.location
+        }
       },
       sessionSummary: {
         duration: `${duration} minutes`,
         messageCount: simulationState.sessionMetrics.messageCount,
         clinicalActionsCount: simulationState.sessionMetrics.clinicalActionsCount,
-        communicationQuality: evaluation.sessionSummary.communicationQuality,
-        appropriateActionsPercentage:
-          simulationState.clinicalActions.length > 0
-            ? Math.round(
-                (evaluation.sessionSummary.appropriateActions /
-                  simulationState.clinicalActions.length) *
-                  100
-              )
-            : 0,
-      },
+        communicationQuality: evaluation.sessionSummary?.communicationQuality || 0,
+        appropriateActionsPercentage: simulationState.clinicalActions.length > 0 ? 
+          Math.round((evaluation.sessionSummary.appropriateActions / simulationState.clinicalActions.length) * 100) : 0
+      }
     });
+
   } catch (error) {
     console.error('❌ Error completing template simulation:', error);
+    
+    // Remove from memory even if there's an error
+    activeSimulations.delete(id);
+    
     res.status(500).json({
       success: false,
       error: 'Failed to complete simulation',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
     });
   }
 });
 
 /**
- * Pause template simulation
- */
-router.post('/:id/pause', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const simulationState = activeSimulations.get(id);
-    if (!simulationState || simulationState.userId !== userId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found or access denied',
-      });
-    }
-
-    if (simulationState.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        error: 'Can only pause active simulations',
-      });
-    }
-
-    simulationState.status = 'paused';
-    simulationState.sessionMetrics.pausedAt = new Date();
-
-    // Update database
-    await Simulation.findOneAndUpdate(
-      { id, userId },
-      {
-        status: 'paused',
-        'sessionMetrics.pausedAt': new Date(),
-        conversationHistory: [
-          ...simulationState.conversationHistory,
-          {
-            sender: 'system',
-            message: 'Simulation paused',
-            messageType: 'system_feedback',
-            timestamp: new Date(),
-          },
-        ],
-      }
-    );
-
-    res.json({
-      success: true,
-      message: 'Template simulation paused successfully',
-    });
-  } catch (error) {
-    console.error('❌ Error pausing template simulation:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to pause simulation',
-    });
-  }
-});
-
-/**
- * Resume template simulation
- */
-router.post('/:id/resume', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    // Check if simulation exists in memory
-    let simulationState = activeSimulations.get(id);
-
-    if (!simulationState || simulationState.userId !== userId) {
-      // Try to restore from database
-      const dbSimulation = await Simulation.findOne({ id, userId });
-      if (!dbSimulation) {
-        return res.status(404).json({
-          success: false,
-          error: 'Simulation not found',
-        });
-      }
-
-      if (dbSimulation.status !== 'paused') {
-        return res.status(400).json({
-          success: false,
-          error: 'Can only resume paused simulations',
-        });
-      }
-
-      // Attempt to restore simulation state (this is a limitation of memory storage)
-      return res.status(410).json({
-        success: false,
-        error: 'Simulation session expired. Please start a new simulation.',
-        code: 'SESSION_EXPIRED',
-      });
-    }
-
-    if (simulationState.status !== 'paused') {
-      return res.status(400).json({
-        success: false,
-        error: 'Can only resume paused simulations',
-      });
-    }
-
-    simulationState.status = 'active';
-    simulationState.sessionMetrics.resumedAt = new Date();
-
-    // Update database
-    await Simulation.findOneAndUpdate(
-      { id, userId },
-      {
-        status: 'active',
-        'sessionMetrics.resumedAt': new Date(),
-        conversationHistory: [
-          ...simulationState.conversationHistory,
-          {
-            sender: 'system',
-            message: 'Simulation resumed',
-            messageType: 'system_feedback',
-            timestamp: new Date(),
-          },
-        ],
-      }
-    );
-
-    res.json({
-      success: true,
-      message: 'Template simulation resumed successfully',
-    });
-  } catch (error) {
-    console.error('❌ Error resuming template simulation:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to resume simulation',
-    });
-  }
-});
-
-/**
- * Get template simulation status and details
+ * Get simulation status - OPTIMIZED
  */
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    console.log(`📖 Fetching template simulation: ${id} for user ${userId}`);
-
-    // Check memory first
+    // Check memory first (fastest)
     const simulationState = activeSimulations.get(id);
     if (simulationState && simulationState.userId === userId) {
       return res.json({
@@ -720,36 +441,27 @@ router.get('/:id', authMiddleware, async (req, res) => {
             age: simulationState.caseData.patient_persona.age,
             gender: simulationState.caseData.patient_persona.gender,
             chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
-            emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
+            emotionalTone: simulationState.caseData.patient_persona.emotional_tone
           },
-          guardianInfo:
-            simulationState.caseData.patient_persona.speaks_for !== 'Self'
-              ? {
-                  relationship: simulationState.caseData.patient_persona.speaks_for,
-                  patientAge:
-                    simulationState.caseData.patient_persona.patient_age_for_communication,
-                }
-              : null,
           conversationHistory: simulationState.conversationHistory,
-          clinicalActions: simulationState.clinicalActions,
           sessionMetrics: {
             ...simulationState.sessionMetrics,
-            currentDuration: Math.round(
-              (new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)
-            ),
+            currentDuration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60))
           },
-          learningProgress: simulationState.learningProgress,
-          evaluationCriteria: Object.keys(simulationState.evaluationCriteria),
-        },
+          isMemoryActive: true
+        }
       });
     }
 
-    // Check database
-    const simulation = await Simulation.findOne({ id, userId });
+    // Check database (slower)
+    const simulation = await Simulation.findOne({ id, userId })
+      .select('id status caseId caseName patientPersona conversationHistory sessionMetrics learningProgress')
+      .lean();
+
     if (!simulation) {
       return res.status(404).json({
         success: false,
-        error: 'Simulation not found',
+        error: 'Simulation not found'
       });
     }
 
@@ -764,234 +476,263 @@ router.get('/:id', authMiddleware, async (req, res) => {
           name: simulation.patientPersona.patient?.name,
           age: simulation.patientPersona.patient?.age,
           gender: simulation.patientPersona.patient?.gender,
-          chiefComplaint:
-            simulation.patientPersona.patient?.presentation ||
-            simulation.patientPersona.chiefComplaint,
+          chiefComplaint: simulation.patientPersona.patient?.presentation || simulation.patientPersona.chiefComplaint
         },
-        guardianInfo: simulation.patientPersona.guardian,
         conversationHistory: simulation.conversationHistory,
-        clinicalActions: simulation.clinicalActions,
-        sessionMetrics: {
-          ...simulation.sessionMetrics,
-          currentDuration:
-            simulation.sessionMetrics.totalDuration ||
-            Math.round((new Date() - simulation.sessionMetrics.startTime) / (1000 * 60)),
-        },
-        learningProgress: simulation.learningProgress,
-        isMemoryExpired: !simulationState && simulation.status === 'active',
-      },
+        sessionMetrics: simulation.sessionMetrics,
+        isMemoryActive: false,
+        needsRestart: simulation.status === 'active' // Suggests user should restart if memory expired
+      }
     });
+
   } catch (error) {
     console.error('❌ Error fetching template simulation:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch simulation',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: 'Failed to fetch simulation'
     });
   }
 });
 
-/**
- * Get detailed simulation results (for completed simulations)
- */
-router.get('/:id/results', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
+// Helper methods
+function handleSimulationNotFound(id, userId, res) {
+  return res.status(404).json({
+    success: false,
+    error: 'Simulation not found or session expired',
+    code: 'SIMULATION_NOT_FOUND',
+    suggestion: 'Please start a new simulation'
+  });
+}
 
-    const simulation = await Simulation.findOne({ id, userId });
-    if (!simulation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found',
-      });
-    }
-
-    if (simulation.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: 'Results only available for completed simulations',
-        currentStatus: simulation.status,
-      });
-    }
-
-    // Get case data for additional context
-    let caseData = null;
-    try {
-      caseData = await templateCaseService.getCaseById(simulation.caseId);
-    } catch (error) {
-      console.warn('Could not load case data for results:', error.message);
-    }
-
-    // Calculate additional metrics
-    const sessionDuration = simulation.sessionMetrics.totalDuration || 0;
-    const messageCount = simulation.sessionMetrics.messageCount || 0;
-    const clinicalActionsCount = simulation.clinicalActions?.length || 0;
-    const averageResponseTime =
-      messageCount > 0 ? Math.round((sessionDuration / messageCount) * 60) : 0; // seconds
-
-    res.json({
-      success: true,
-      results: {
-        simulationInfo: {
-          id: simulation.id,
-          caseId: simulation.caseId,
-          caseName: simulation.caseName,
-          completedAt: simulation.sessionMetrics.endTime,
-          duration: sessionDuration,
-        },
-        performance: {
-          overallScore: simulation.learningProgress.overallProgress || 0,
-          diagnosticAccuracy: simulation.learningProgress.diagnosticAccuracy || 0,
-          communicationScore: simulation.learningProgress.communicationScore || 0,
-          clinicalReasoningScore: simulation.learningProgress.clinicalReasoningScore || 0,
-        },
-        sessionMetrics: {
-          totalMessages: messageCount,
-          clinicalActionsPerformed: clinicalActionsCount,
-          averageResponseTime: `${averageResponseTime} seconds`,
-          sessionDuration: `${sessionDuration} minutes`,
-        },
-        caseInfo: caseData
-          ? {
-              title: caseData.case_metadata.title,
-              specialty: caseData.case_metadata.specialty,
-              difficulty: caseData.case_metadata.difficulty,
-              location: caseData.case_metadata.location,
-              hiddenDiagnosis: caseData.clinical_dossier.hidden_diagnosis,
-            }
-          : null,
-        conversationSummary: {
-          totalInteractions: simulation.conversationHistory?.length || 0,
-          patientResponses:
-            simulation.conversationHistory?.filter((msg) => msg.sender === 'patient').length || 0,
-          guardianResponses:
-            simulation.conversationHistory?.filter((msg) => msg.sender === 'guardian').length || 0,
-          studentQuestions:
-            simulation.conversationHistory?.filter((msg) => msg.sender === 'student').length || 0,
-        },
-      },
-    });
-  } catch (error) {
-    console.error('❌ Error fetching simulation results:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch simulation results',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-});
-
-/**
- * Helper function to get prerequisites based on specialty and difficulty
- */
-function getPrerequisites(specialty, difficulty) {
-  const prerequisites = {
-    'Internal Medicine': {
-      Easy: ['Basic pathophysiology', 'Physical examination skills'],
-      Intermediate: ['Clinical reasoning', 'Diagnostic workup'],
-      Hard: ['Advanced clinical decision making', 'Complex case management'],
-    },
-    Pediatrics: {
-      Easy: ['Child development', 'Pediatric vital signs'],
-      Intermediate: ['Pediatric pathophysiology', 'Family communication'],
-      Hard: ['Complex pediatric conditions', 'Adolescent medicine'],
-    },
-    'Emergency Medicine': {
-      Easy: ['Triage principles', 'Basic life support'],
-      Intermediate: ['Emergency protocols', 'Rapid assessment'],
-      Hard: ['Critical care', 'Multi-trauma management'],
-    },
+function getEmergencyFallback(caseData) {
+  const tone = caseData.patient_persona?.emotional_tone?.toLowerCase() || 'concerned';
+  const fallbacks = {
+    'anxious': "I'm sorry, I'm feeling quite anxious right now. Could you repeat that?",
+    'scared': "I'm scared and didn't catch what you said. Can you ask again?",
+    'tired': "I'm so tired. What did you want to know?",
+    'frustrated': "I'm getting frustrated. Could you repeat that?",
+    'calm': "Could you please repeat your question?",
+    'worried': "I'm worried and missed what you said. Can you ask again?"
   };
+  
+  return fallbacks[tone] || fallbacks['concerned'];
+}
 
-  return prerequisites[specialty]?.[difficulty] || ['Basic medical knowledge'];
+async function createDatabaseRecord(simulationState, userId, userRole) {
+  try {
+    const simulation = new Simulation({
+      id: simulationState.id,
+      userId,
+      userRole,
+      programArea: simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() || 'template_based',
+      caseId: simulationState.caseId,
+      caseName: simulationState.caseData.case_metadata.title,
+      patientPersona: {
+        patient: {
+          name: simulationState.caseData.patient_persona.name,
+          age: simulationState.caseData.patient_persona.age,
+          gender: simulationState.caseData.patient_persona.gender,
+          presentation: simulationState.caseData.patient_persona.chief_complaint
+        },
+        currentCondition: simulationState.caseData.clinical_dossier.hidden_diagnosis,
+        personality: {
+          emotionalTone: simulationState.caseData.patient_persona.emotional_tone
+        },
+        chiefComplaint: simulationState.caseData.patient_persona.chief_complaint
+      },
+      difficulty: simulationState.caseData.case_metadata.difficulty.toLowerCase(),
+      conversationHistory: simulationState.conversationHistory,
+      clinicalActions: [],
+      learningProgress: simulationState.learningProgress,
+      sessionMetrics: simulationState.sessionMetrics,
+      status: 'active'
+    });
+
+    await simulation.save();
+    console.log(`💾 Database record created for simulation ${simulationState.id}`);
+  } catch (error) {
+    console.error('❌ Database record creation failed:', error);
+    throw error;
+  }
+}
+
+async function updateDatabaseAsync(id, userId, simulationState, simulationEnded) {
+  try {
+    const updateData = {
+      conversationHistory: simulationState.conversationHistory,
+      sessionMetrics: simulationState.sessionMetrics,
+      updatedAt: new Date()
+    };
+
+    if (simulationEnded) {
+      updateData.status = 'completed';
+      updateData['sessionMetrics.endTime'] = new Date();
+      updateData['sessionMetrics.totalDuration'] = Math.round(
+        (new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)
+      );
+    }
+
+    await Simulation.findOneAndUpdate({ id, userId }, updateData);
+    console.log(`💾 Database updated for simulation ${id}`);
+  } catch (error) {
+    console.error(`❌ Database update failed for simulation ${id}:`, error);
+  }
+}
+
+async function completeDatabaseRecordAsync(id, userId, endTime, duration, evaluation) {
+  try {
+    await Simulation.findOneAndUpdate(
+      { id, userId },
+      {
+        status: 'completed',
+        'sessionMetrics.endTime': endTime,
+        'sessionMetrics.totalDuration': duration,
+        'learningProgress.overallProgress': evaluation.overallScore,
+        'learningProgress.communicationScore': evaluation.sessionSummary?.communicationQuality || 0,
+        feedbackProvided: true,
+        updatedAt: endTime
+      }
+    );
+    console.log(`💾 Simulation completion recorded in database: ${id}`);
+  } catch (error) {
+    console.error(`❌ Database completion update failed for simulation ${id}:`, error);
+  }
 }
 
 /**
- * Cleanup expired simulations (run periodically)
+ * Cleanup expired simulations - OPTIMIZED
  */
 function cleanupExpiredSimulations() {
   const now = new Date();
-  const expirationTime = 2 * 60 * 60 * 1000; // 2 hours
+  let cleanedCount = 0;
 
   for (const [id, simulation] of activeSimulations.entries()) {
-    const lastActivity =
-      simulation.sessionMetrics.lastActivity || simulation.sessionMetrics.startTime;
-    if (now - lastActivity > expirationTime) {
+    const lastActivity = simulation.lastActivity || simulation.sessionMetrics.startTime;
+    if (now - lastActivity > SIMULATION_TTL) {
       console.log(`🧹 Cleaning up expired simulation: ${id}`);
       activeSimulations.delete(id);
+      cleanedCount++;
     }
   }
+
+  if (cleanedCount > 0) {
+    console.log(`🧹 Cleaned up ${cleanedCount} expired simulations. Active: ${activeSimulations.size}`);
+  }
 }
+
+/**
+ * Get simulation statistics
+ */
+router.get('/stats/memory', authMiddleware, (req, res) => {
+  const stats = {
+    activeSimulations: activeSimulations.size,
+    memoryUsage: process.memoryUsage(),
+    simulationList: Array.from(activeSimulations.entries()).map(([id, sim]) => ({
+      id,
+      userId: sim.userId,
+      caseId: sim.caseId,
+      status: sim.status,
+      startTime: sim.sessionMetrics.startTime,
+      lastActivity: sim.lastActivity,
+      messageCount: sim.sessionMetrics.messageCount
+    }))
+  };
+
+  res.json({
+    success: true,
+    stats,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * Force cleanup endpoint (admin only)
+ */
+router.post('/admin/cleanup', authMiddleware, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin access required'
+    });
+  }
+
+  const beforeCount = activeSimulations.size;
+  cleanupExpiredSimulations();
+  const afterCount = activeSimulations.size;
+
+  res.json({
+    success: true,
+    message: `Cleanup completed. Removed ${beforeCount - afterCount} expired simulations.`,
+    before: beforeCount,
+    after: afterCount
+  });
+});
+
+/**
+ * Emergency fallback endpoint for when AI is completely down
+ */
+router.post('/:id/fallback-message', authMiddleware, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
+    const userId = req.user.id;
+
+    const simulationState = activeSimulations.get(id);
+    if (!simulationState || simulationState.userId !== userId) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found'
+      });
+    }
+
+    // Add student message
+    simulationState.conversationHistory.push({
+      sender: 'student',
+      message: message.trim(),
+      messageType: 'chat',
+      timestamp: new Date()
+    });
+
+    // Add simple fallback response
+    const fallbackResponse = getEmergencyFallback(simulationState.caseData);
+    simulationState.conversationHistory.push({
+      sender: 'patient',
+      message: fallbackResponse,
+      messageType: 'chat',
+      timestamp: new Date(),
+      fallback: true
+    });
+
+    simulationState.sessionMetrics.messageCount = simulationState.conversationHistory.length;
+
+    res.json({
+      success: true,
+      response: fallbackResponse,
+      fallback: true,
+      message: 'Using fallback response due to AI service issues',
+      conversationHistory: simulationState.conversationHistory.slice(-5)
+    });
+
+  } catch (error) {
+    console.error('❌ Fallback message error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Fallback failed'
+    });
+  }
+});
+
+// Attach helper methods to router for access in route handlers
+router.handleSimulationNotFound = handleSimulationNotFound;
+router.getEmergencyFallback = getEmergencyFallback;
+router.createDatabaseRecord = createDatabaseRecord;
+router.updateDatabaseAsync = updateDatabaseAsync;
+router.completeDatabaseRecordAsync = completeDatabaseRecordAsync;
 
 // Run cleanup every 30 minutes
 setInterval(cleanupExpiredSimulations, 30 * 60 * 1000);
 
-/**
- * Get comprehensive evaluation report
- */
-router.get('/:id/report', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    console.log(`📊 Generating comprehensive report for template simulation: ${id}`);
-
-    // Get simulation from database
-    const simulation = await Simulation.findOne({ id, userId });
-    if (!simulation) {
-      return res.status(404).json({
-        success: false,
-        error: 'Simulation not found or access denied',
-      });
-    }
-
-    if (simulation.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: 'Simulation must be completed to generate report',
-      });
-    }
-
-    // Get case data
-    const caseData = await templateCaseService.getCaseById(simulation.caseId);
-
-    // Reconstruct simulation state for evaluation
-    const simulationState = {
-      caseData,
-      conversationHistory: simulation.conversationHistory,
-      clinicalActions: simulation.clinicalActions || [],
-      sessionMetrics: {
-        startTime: simulation.sessionMetrics.startTime,
-        endTime: simulation.sessionMetrics.endTime || new Date(),
-        messageCount: simulation.sessionMetrics.messageCount,
-      },
-    };
-
-    // Generate evaluation
-    const evaluation = simulationEngine.evaluatePerformance(simulationState);
-
-    // Generate comprehensive report
-    const comprehensiveReport = reportGenerator.generateComprehensiveReport(
-      simulationState,
-      evaluation
-    );
-
-    console.log(`✅ Report generated successfully for simulation: ${id}`);
-
-    res.json({
-      success: true,
-      report: comprehensiveReport,
-      generatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('❌ Error generating template simulation report:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate simulation report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-});
+// Run initial cleanup after 5 minutes
+setTimeout(cleanupExpiredSimulations, 5 * 60 * 1000);
 
 module.exports = router;
