@@ -13,6 +13,10 @@ import CaseSelection from './components/simulation/CaseSelection';
 import SimulationPage from './pages/SimulationPage';
 import SimulationHistory from './pages/SimulationHistory';
 import SimulationReport from './components/SimulationReport';
+import ProgressionPage from './pages/ProgressionPage';
+import TemplateCaseBrowser from './components/simulation/TemplateCaseBrowser';
+import TemplateSimulationPage from './pages/TemplateSimulationPage';
+import TemplateSimulationResults from './pages/TemplateSimulationResults';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -112,6 +116,44 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SimulationReport />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Progression Page */}
+              <Route
+                path="/progression"
+                element={
+                  <ProtectedRoute>
+                    <ProgressionPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Template Simulation Routes */}
+              <Route
+                path="/template-cases"
+                element={
+                  <ProtectedRoute>
+                    <TemplateCaseBrowser />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/template-simulation/:id"
+                element={
+                  <ProtectedRoute>
+                    <TemplateSimulationPage />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/template-simulation/:id/results"
+                element={
+                  <ProtectedRoute>
+                    <TemplateSimulationResults />
                   </ProtectedRoute>
                 }
               />

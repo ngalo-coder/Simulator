@@ -422,10 +422,119 @@ export const simulationAPI = {
       throw error;
     }
   },
+
+  // ====================
+  // TEMPLATE SIMULATION METHODS
+  // ====================
+
+  // Get template cases
+  getTemplateCases: async (filters = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== '') {
+          if (Array.isArray(value)) {
+            queryParams.append(key, value.join(','));
+          } else {
+            queryParams.append(key, value);
+          }
+        }
+      });
+
+      console.log('📋 Fetching template cases with filters:', filters);
+      const response = await api.get(`/api/template-simulations/cases?${queryParams}`);
+      console.log('✅ Template cases fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching template cases:', error);
+      throw error;
+    }
+  },
+
+  // Get specific template case
+  getTemplateCaseById: async (caseId) => {
+    try {
+      console.log('📋 Fetching template case:', caseId);
+      const response = await api.get(`/api/template-simulations/cases/${caseId}`);
+      console.log('✅ Template case fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching template case:', error);
+      throw error;
+    }
+  },
+
+  // Start template simulation
+  startTemplateSimulation: async (caseId) => {
+    try {
+      console.log('🚀 Starting template simulation:', caseId);
+      const response = await api.post('/api/template-simulations/start', { caseId });
+      console.log('✅ Template simulation started:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error starting template simulation:', error);
+      throw error;
+    }
+  },
+
+  // Send message in template simulation
+  sendTemplateMessage: async (simulationId, message) => {
+    try {
+      console.log('💬 Sending template message:', { simulationId, message });
+      const response = await api.post(`/api/template-simulations/${simulationId}/message`, {
+        message,
+      });
+      console.log('✅ Template message sent:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error sending template message:', error);
+      throw error;
+    }
+  },
+
+  // Get template simulation
+  getTemplateSimulation: async (simulationId) => {
+    try {
+      console.log('📋 Fetching template simulation:', simulationId);
+      const response = await api.get(`/api/template-simulations/${simulationId}`);
+      console.log('✅ Template simulation fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching template simulation:', error);
+      throw error;
+    }
+  },
+
+  // Complete template simulation
+  completeTemplateSimulation: async (simulationId) => {
+    try {
+      console.log('🏁 Completing template simulation:', simulationId);
+      const response = await api.post(`/api/template-simulations/${simulationId}/complete`);
+      console.log('✅ Template simulation completed:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error completing template simulation:', error);
+      throw error;
+    }
+  },
+
+  // Template simulation health check
+  templateHealthCheck: async () => {
+    try {
+      const response = await api.get('/api/template-simulations/health');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Template simulation health check failed:', error);
+      return { status: 'unhealthy', error: error.message };
+    }
+  },
 };
 
 // Export default for backward compatibility
 export default simulationAPI;
+
+// Named export for consistency
+export const simulationApi = simulationAPI;
 
 /**
  * Handle API errors with user-friendly messages

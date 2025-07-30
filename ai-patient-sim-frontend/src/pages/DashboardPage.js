@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
+import { userManagementAPI } from '../utils/userManagementApi';
 import { 
   LogOut, 
   BookOpen,
@@ -30,6 +31,9 @@ const DashboardPage = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentSimulations, setRecentSimulations] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+  const [permissions, setPermissions] = useState(null);
+  const [progressionReqs, setProgressionReqs] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
@@ -65,9 +69,28 @@ const DashboardPage = () => {
         return { success: false, simulations: [] };
       });
 
-      const [statsResponse, historyResponse] = await Promise.all([
+      // NEW: Enhanced user management data
+      const profilePromise = userManagementAPI.getExtendedProfile().catch(error => {
+        console.warn('👤 Profile API failed:', error);
+        return { success: false, user: null };
+      });
+
+      const permissionsPromise = userManagementAPI.getUserPermissions().catch(error => {
+        console.warn('🔐 Permissions API failed:', error);
+        return { success: false, permissions: null };
+      });
+
+      const progressionPromise = userManagementAPI.getProgressionRequirements().catch(error => {
+        console.warn('📈 Progression API failed:', error);
+        return { success: false };
+      });
+
+      const [statsResponse, historyResponse, profileResponse, permissionsResponse, progressionResponse] = await Promise.all([
         statsPromise,
-        historyPromise
+        historyPromise,
+        profilePromise,
+        permissionsPromise,
+        progressionPromise
       ]);
 
       if (statsResponse.success) {
@@ -84,6 +107,22 @@ const DashboardPage = () => {
       } else {
         console.log('📚 History not available, showing empty state');
         setRecentSimulations([]);
+      }
+
+      // NEW: Set enhanced user data
+      if (profileResponse.success) {
+        console.log('✅ Enhanced profile loaded successfully');
+        setUserProfile(profileResponse.user);
+      }
+
+      if (permissionsResponse.success) {
+        console.log('✅ Permissions loaded successfully');
+        setPermissions(permissionsResponse.permissions);
+      }
+
+      if (progressionResponse.success) {
+        console.log('✅ Progression requirements loaded successfully');
+        setProgressionReqs(progressionResponse);
       }
     } catch (error) {
       console.error('❌ Error fetching dashboard data:', error);
@@ -118,23 +157,37 @@ const DashboardPage = () => {
     navigate(`/simulation/${simulationId}`);
   };
 
-  const QuickActionCard = ({ icon: Icon, title, description, onClick, color = 'blue' }) => (
-    <div 
-      onClick={onClick}
-      className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-${color}-500`}
-    >
-      <div className="flex items-center">
-        <div className={`flex-shrink-0 p-3 rounded-lg bg-${color}-100`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
+  const QuickActionCard = ({ icon: Icon, title, description, onClick, color = 'blue' }) => {
+    const colorClasses = {
+      blue: 'border-blue-500 bg-blue-100 text-blue-600',
+      green: 'border-green-500 bg-green-100 text-green-600',
+      purple: 'border-purple-500 bg-purple-100 text-purple-600',
+      indigo: 'border-indigo-500 bg-indigo-100 text-indigo-600',
+      red: 'border-red-500 bg-red-100 text-red-600',
+      yellow: 'border-yellow-500 bg-yellow-100 text-yellow-600'
+    };
+
+    const colors = colorClasses[color] || colorClasses.blue;
+    const [borderColor, bgColor, textColor] = colors.split(' ');
+
+    return (
+      <div 
+        onClick={onClick}
+        className={`bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow border-l-4 ${borderColor}`}
+      >
+        <div className="flex items-center">
+          <div className={`flex-shrink-0 p-3 rounded-lg ${bgColor}`}>
+            <Icon className={`h-6 w-6 ${textColor}`} />
+          </div>
+          <div className="ml-4 flex-1">
+            <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+            <p className="text-sm text-gray-500 mt-1">{description}</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-gray-400" />
         </div>
-        <div className="ml-4 flex-1">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500 mt-1">{description}</p>
-        </div>
-        <ArrowRight className="h-5 w-5 text-gray-400" />
       </div>
-    </div>
-  );
+    );
+  };
 
   const StatCard = ({ title, value, icon: Icon, subtitle, color = 'blue' }) => (
     <div className="bg-white rounded-lg shadow p-6">
@@ -243,13 +296,20 @@ const DashboardPage = () => {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <QuickActionCard
                 icon={Plus}
                 title="Start New Simulation"
                 description="Begin a new patient case simulation"
                 onClick={handleStartNewSimulation}
                 color="blue"
+              />
+              <QuickActionCard
+                icon={BookOpen}
+                title="Template Cases"
+                description="Browse structured clinical scenarios"
+                onClick={() => navigate('/template-cases')}
+                color="indigo"
               />
               <QuickActionCard
                 icon={History}
@@ -300,6 +360,103 @@ const DashboardPage = () => {
                   subtitle="Total time spent"
                   color="purple"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* NEW: User Progression Status */}
+          {!loading && userProfile && (
+            <div className="mb-8">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Academic Progress</h2>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {userProfile.profile?.firstName} {userProfile.profile?.lastName}
+                      </h3>
+                      <p className="text-gray-600">
+                        {userProfile.extendedProfile?.enhancedRole?.roleType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Medical Student'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Level {userProfile.extendedProfile?.enhancedRole?.level || 1} • 
+                        Year {userProfile.extendedProfile?.academicProfile?.currentYear || 1}
+                      </p>
+                    </div>
+                  </div>
+                  {progressionReqs && progressionReqs.nextRole && (
+                    <button
+                      onClick={() => navigate('/progression')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                    >
+                      View Progression
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Progression Requirements */}
+                {progressionReqs && progressionReqs.nextRole && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3">
+                      Progress to {progressionReqs.nextRole.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-600">Simulations</p>
+                        <p className="text-lg font-semibold">
+                          {progressionReqs.currentProgress?.simulationsCompleted || 0} / {progressionReqs.requirements?.simulationsRequired || 0}
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full" 
+                            style={{ 
+                              width: `${Math.min(100, ((progressionReqs.currentProgress?.simulationsCompleted || 0) / (progressionReqs.requirements?.simulationsRequired || 1)) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-600">Average Score</p>
+                        <p className="text-lg font-semibold">
+                          {progressionReqs.currentProgress?.currentAverageScore || 0}%
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Target: {progressionReqs.requirements?.averageScoreRequired || 0}%
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm text-gray-600">Competencies</p>
+                        <p className="text-lg font-semibold">
+                          {progressionReqs.currentProgress?.competenciesAchieved?.length || 0} / {progressionReqs.requirements?.competenciesRequired?.length || 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Skills mastered</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Permissions Summary */}
+                {permissions && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-3">Current Access</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {permissions.simulationAccess?.slice(0, 4).map((access, index) => (
+                        <span key={index} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                          {access.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      ))}
+                      {permissions.simulationAccess?.length > 4 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                          +{permissions.simulationAccess.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

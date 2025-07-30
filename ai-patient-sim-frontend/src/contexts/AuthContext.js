@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../utils/api';
+import { userManagementAPI } from '../utils/userManagementApi';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -14,6 +15,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [extendedProfile, setExtendedProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('authToken'));
 
@@ -63,6 +65,18 @@ export const AuthProvider = ({ children }) => {
       // Update state
       setToken(token);
       setUser(user);
+
+      // Load extended profile data (non-blocking)
+      try {
+        const profileResponse = await userManagementAPI.getExtendedProfile();
+        if (profileResponse.success) {
+          setExtendedProfile(profileResponse.user);
+          console.log('✅ Extended profile loaded');
+        }
+      } catch (profileError) {
+        console.warn('⚠️ Could not load extended profile:', profileError);
+        // Don't fail login if extended profile fails
+      }
 
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -124,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('user');
       setToken(null);
       setUser(null);
+      setExtendedProfile(null); // Clear extended profile too
       toast.success('Logged out successfully');
     }
   };
@@ -151,6 +166,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    extendedProfile, // NEW: Extended user profile data
     token,
     loading,
     login,

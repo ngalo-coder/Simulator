@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const simulationRoutes = require('./routes/simulation');
+const templateSimulationRoutes = require('./routes/templateSimulation');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -97,12 +98,19 @@ app.get('/', (req, res) => {
       'POST /api/simulations/:id/complete',
       'GET /api/simulations/user/history',
       'GET /api/simulations/stats/overview',
+      'GET /api/template-simulations/cases',
+      'GET /api/template-simulations/cases/:caseId',
+      'POST /api/template-simulations/start',
+      'POST /api/template-simulations/:id/message',
+      'POST /api/template-simulations/:id/complete',
+      'GET /api/template-simulations/:id',
     ],
   });
 });
 
 // API routes
 app.use('/api/simulations', simulationRoutes);
+app.use('/api/template-simulations', templateSimulationRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
