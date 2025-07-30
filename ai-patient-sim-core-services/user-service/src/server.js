@@ -5,12 +5,41 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth');
-const profileRoutes = require('./routes/profile');
-const transitionRoutes = require('./routes/transitions');
+// Load routes with error handling
+let authRoutes, profileRoutes, transitionRoutes;
+
+try {
+  authRoutes = require('./routes/auth');
+  console.log('✅ Auth routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading auth routes:', error.message);
+  process.exit(1);
+}
+
+try {
+  profileRoutes = require('./routes/profile');
+  console.log('✅ Profile routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading profile routes:', error.message);
+  process.exit(1);
+}
+
+try {
+  transitionRoutes = require('./routes/transitions');
+  console.log('✅ Transition routes loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading transition routes:', error.message);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+console.log('🏥 Starting Enhanced User Service with Progression Management...');
+console.log(`📍 Port: ${PORT}`);
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? 'Configured' : 'NOT CONFIGURED'}`);
+console.log(`📊 MongoDB URI: ${process.env.MONGODB_URI ? 'Configured' : 'NOT CONFIGURED'}`);
 
 // Security middleware
 app.use(helmet());
@@ -61,15 +90,26 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 console.log('Attempting to connect to MongoDB...');
 mongoose
   .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // 30 second timeout
-    socketTimeoutMS: 45000, // 45 second timeout
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
+    connectTimeoutMS: 30000,
+    // Removed deprecated options for newer MongoDB driver compatibility
   })
-  .then(() => console.log('✅ Connected to MongoDB'))
+  .then(() => {
+    console.log('✅ Connected to MongoDB');
+    console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
+  })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', err.message);
+    console.error('🔍 Connection string (sanitized):', process.env.MONGODB_URI?.replace(/\/\/.*@/, '//***:***@'));
+    
+    // Don't exit in production, allow service to start for health checks
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    } else {
+      console.log('⚠️ Service starting without database connection (production mode)');
+    }
   });
 
 const db = mongoose.connection;
@@ -92,10 +132,27 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/profile', profileRoutes);
-app.use('/transitions', transitionRoutes);
+// Routes with error handling
+try {
+  app.use('/auth', authRoutes);
+  console.log('✅ Auth routes registered');
+} catch (error) {
+  console.error('❌ Error registering auth routes:', error.message);
+}
+
+try {
+  app.use('/profile', profileRoutes);
+  console.log('✅ Profile routes registered');
+} catch (error) {
+  console.error('❌ Error registering profile routes:', error.message);
+}
+
+try {
+  app.use('/transitions', transitionRoutes);
+  console.log('✅ Transition routes registered');
+} catch (error) {
+  console.error('❌ Error registering transition routes:', error.message);
+}
 
 // Root endpoint
 app.get('/', (req, res) => {
