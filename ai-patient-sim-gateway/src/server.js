@@ -75,7 +75,7 @@ app.get('/', (req, res) => {
     message: 'AI Patient Simulation Gateway',
     status: 'running',
     version: '1.0.0',
-    routes: ['/health', '/api/users/*', '/api/simulations/*'],
+    routes: ['/health', '/api/users/*', '/api/simulations/*', '/api/template-simulations/*'],
     services: {
       userService: USER_SERVICE_URL,
       simulationService: SIMULATION_SERVICE_URL
@@ -175,6 +175,37 @@ const simulationProxy = createProxyMiddleware({
 
 // Apply simulation proxy
 app.use('/api/simulations', simulationProxy);
+
+// Template simulation proxy (new template-based system)
+app.use('/api/template-simulations', createProxyMiddleware({
+  target: SIMULATION_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/template-simulations': '/api/template-simulations'
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    if (req.headers.authorization) {
+      proxyReq.setHeader('Authorization', req.headers.authorization);
+    }
+    console.log(`🔄 [TEMPLATE] Proxying ${req.method} ${req.originalUrl} to ${SIMULATION_SERVICE_URL}${proxyReq.path}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`✅ [TEMPLATE] Response: ${proxyRes.statusCode} for ${req.originalUrl}`);
+  },
+  onError: (err, req, res) => {
+    console.error(`❌ [TEMPLATE] Proxy error for ${req.originalUrl}:`, err.message);
+    
+    if (!res.headersSent) {
+      res.status(503).json({
+        success: false,
+        error: 'Template simulation service unavailable',
+        message: 'Cannot process template simulation request. Please try again later.',
+        service: 'template-simulation-service',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+}));
 
 // Health check endpoints for individual services
 app.get('/health/users', createProxyMiddleware({

@@ -102,32 +102,35 @@ class TemplateSimulationEngine {
         };
       }
 
-      // Generate AI response
-      const aiResponse = await this.openRouterService.generateResponse({
-        system: systemPrompt,
-        messages: conversationContext,
-        temperature: 0.7,
-        maxTokens: 500
-      });
-
-      // Enhance response with dialogue improvements
-      const enhancedResponse = await this.dialogueEnhancer.enhanceResponse(
-        aiResponse,
-        caseData,
-        conversationHistory
+      // Generate AI response using the correct method
+      const mockSimulation = {
+        patientPersona: {
+          patient: caseData.patient_persona,
+          demographics: { location: caseData.case_metadata.location }
+        },
+        conversationHistory: conversationHistory,
+        difficulty: caseData.case_metadata.difficulty
+      };
+      
+      const aiResponse = await this.openRouterService.generatePatientResponse(
+        mockSimulation,
+        userMessage
       );
+
+      // Extract the patient response from the OpenRouter service response
+      const patientResponse = aiResponse.patientResponse || aiResponse.response || aiResponse;
 
       // Extract clinical information revealed
       const clinicalInfo = this.extractClinicalInformation(
         userMessage,
-        enhancedResponse.response,
+        patientResponse,
         caseData
       );
 
       return {
-        response: enhancedResponse.response,
+        response: patientResponse,
         clinicalInfo,
-        dialogueMetadata: enhancedResponse.metadata
+        dialogueMetadata: aiResponse.dialogueMetadata || {}
       };
     } catch (error) {
       console.error('❌ Error generating template patient response:', error);
