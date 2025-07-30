@@ -3,12 +3,14 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const TemplateCaseService = require('../services/templateCaseService');
 const TemplateSimulationEngine = require('../services/templateSimulationEngine');
+const TemplateReportGenerator = require('../services/templateReportGenerator');
 const Simulation = require('../models/Simulation');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 const templateCaseService = new TemplateCaseService();
 const simulationEngine = new TemplateSimulationEngine();
+const reportGenerator = new TemplateReportGenerator();
 
 // Store active template simulations in memory (in production, use Redis)
 const activeSimulations = new Map();
@@ -924,5 +926,73 @@ function cleanupExpiredSimulations() {
 
 // Run cleanup every 30 minutes
 setInterval(cleanupExpiredSimulations, 30 * 60 * 1000);
+
+/**
+ * Get comprehensive evaluation report
+ */
+router.get('/:id/report', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log(`📊 Generating comprehensive report for template simulation: ${id}`);
+
+    // Get simulation from database
+    const simulation = await Simulation.findOne({ id, userId });
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found or access denied'
+      });
+    }
+
+    if (simulation.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Simulation must be completed to generate report'
+      });
+    }
+
+    // Get case data
+    const caseData = await templateCaseService.getCaseById(simulation.caseId);
+    
+    // Reconstruct simulation state for evaluation
+    const simulationState = {
+      caseData,
+      conversationHistory: simulation.conversationHistory,
+      clinicalActions: simulation.clinicalActions || [],
+      sessionMetrics: {
+        startTime: simulation.sessionMetrics.startTime,
+        endTime: simulation.sessionMetrics.endTime || new Date(),
+        messageCount: simulation.sessionMetrics.messageCount
+      }
+    };
+
+    // Generate evaluation
+    const evaluation = simulationEngine.evaluatePerformance(simulationState);
+    
+    // Generate comprehensive report
+    const comprehensiveReport = reportGenerator.generateComprehensiveReport(
+      simulationState, 
+      evaluation
+    );
+
+    console.log(`✅ Report generated successfully for simulation: ${id}`);
+
+    res.json({
+      success: true,
+      report: comprehensiveReport,
+      generatedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating template simulation report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate simulation report',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 module.exports = router;

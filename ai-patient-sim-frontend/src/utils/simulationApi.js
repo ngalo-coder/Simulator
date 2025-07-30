@@ -574,6 +574,19 @@ export const simulationAPI = {
     }
   },
 
+  // Get comprehensive template simulation report
+  getTemplateSimulationReport: async (simulationId) => {
+    try {
+      console.log('📊 Fetching comprehensive template report:', simulationId);
+      const response = await api.get(`/api/template-simulations/${simulationId}/report`);
+      console.log('✅ Template report fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching template report:', error);
+      throw error;
+    }
+  },
+
   // Template simulation health check
   templateHealthCheck: async () => {
     try {
