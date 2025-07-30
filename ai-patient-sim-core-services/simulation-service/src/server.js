@@ -80,18 +80,25 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-pat
 mongoose
   .connect(MONGODB_URI, {
     maxPoolSize: 10,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
-    bufferCommands: false, // Disable mongoose buffering
-    bufferMaxEntries: 0, // Disable mongoose buffering
+    connectTimeoutMS: 30000,
+    // Removed bufferMaxEntries as it's not supported in newer MongoDB drivers
   })
   .then(() => {
     console.log('✅ Connected to MongoDB');
     console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
   })
   .catch((error) => {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', error.message);
+    console.error('🔍 Connection string (sanitized):', MONGODB_URI.replace(/\/\/.*@/, '//***:***@'));
+    
+    // Don't exit in production, allow service to start without DB for health checks
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    } else {
+      console.log('⚠️ Service starting without database connection (production mode)');
+    }
   });
 
 // Enhanced health check endpoint
@@ -178,9 +185,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/simulations', simulationRoutes);
-app.use('/api/template-simulations', templateSimulationRoutes);
+// API routes with error handling
+try {
+  app.use('/api/simulations', simulationRoutes);
+  console.log('✅ Regular simulation routes loaded');
+} catch (error) {
+  console.error('❌ Error loading simulation routes:', error.message);
+}
+
+try {
+  app.use('/api/template-simulations', templateSimulationRoutes);
+  console.log('✅ Template simulation routes loaded');
+} catch (error) {
+  console.error('❌ Error loading template simulation routes:', error.message);
+}
 
 // Serve static files for case templates (if any)
 app.use('/static', express.static(path.join(__dirname, 'public')));
