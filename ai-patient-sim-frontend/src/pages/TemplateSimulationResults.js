@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const TemplateSimulationResults = () => {
-  const { id } = useParams();
+  // const { id } = useParams(); // Commented out unused variable
   const location = useLocation();
   const navigate = useNavigate();
   

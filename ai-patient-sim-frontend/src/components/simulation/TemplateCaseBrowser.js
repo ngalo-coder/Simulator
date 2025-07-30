@@ -5,7 +5,6 @@ import {
   Search, 
   Filter, 
   Play, 
-  Clock, 
   MapPin, 
   User, 
   Stethoscope,
@@ -38,7 +37,7 @@ const TemplateCaseBrowser = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [cases, searchTerm, activeFilters]);
+  }, [cases, searchTerm, activeFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTemplateCases = async () => {
     try {

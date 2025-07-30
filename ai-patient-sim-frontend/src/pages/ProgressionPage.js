@@ -10,11 +10,7 @@ import {
   Award, 
   Clock, 
   CheckCircle, 
-  AlertCircle,
-  BookOpen,
-  Target,
-  Users,
-  Calendar
+  AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

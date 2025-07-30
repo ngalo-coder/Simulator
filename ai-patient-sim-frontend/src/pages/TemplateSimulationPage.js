@@ -29,7 +29,7 @@ const TemplateSimulationPage = () => {
 
   useEffect(() => {
     loadSimulation();
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     scrollToBottom();

@@ -12,7 +12,7 @@ import {
   BookOpen,
   ArrowLeft,
   Download,
-  Eye,
+
   CheckCircle,
   XCircle,
   AlertCircle
@@ -30,7 +30,7 @@ const SimulationReport = () => {
     if (simulationId) {
       fetchReport();
     }
-  }, [simulationId]);
+  }, [simulationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchReport = async () => {
     try {
