@@ -21,7 +21,7 @@ const timeoutMiddleware = (timeoutMs) => (req, res, next) => {
       res.status(408).json({
         success: false,
         error: 'Request timeout',
-        code: 'TIMEOUT'
+        code: 'TIMEOUT',
       });
     }
   });
@@ -42,8 +42,8 @@ router.get('/health', (req, res) => {
       'Request timeouts',
       'Memory cleanup',
       'Fast AI responses',
-      'Simplified evaluation'
-    ]
+      'Simplified evaluation',
+    ],
   });
 });
 
@@ -53,28 +53,28 @@ router.get('/health', (req, res) => {
 router.get('/cases', async (req, res) => {
   try {
     console.log('📋 Fetching template cases (optimized)');
-    
+
     const filters = {
       programArea: req.query.programArea,
       specialty: req.query.specialty,
       difficulty: req.query.difficulty,
       location: req.query.location,
-      tags: req.query.tags ? req.query.tags.split(',') : undefined
+      tags: req.query.tags ? req.query.tags.split(',') : undefined,
     };
 
     // Remove undefined filters
-    Object.keys(filters).forEach(key => {
+    Object.keys(filters).forEach((key) => {
       if (filters[key] === undefined) delete filters[key];
     });
 
     // Use Promise.race to timeout the operation
     const casesPromise = templateCaseService.getCases(filters);
-    const timeoutPromise = new Promise((_, reject) => 
+    const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Cases loading timeout')), 5000)
     );
 
     const cases = await Promise.race([casesPromise, timeoutPromise]);
-    const validCases = cases.filter(caseItem => caseItem !== null);
+    const validCases = cases.filter((caseItem) => caseItem !== null);
 
     // Get filter options only if no specific filters applied
     let filterOptions = {};
@@ -82,11 +82,19 @@ router.get('/cases', async (req, res) => {
       try {
         filterOptions = await Promise.race([
           templateCaseService.getFilterOptions(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Filter options timeout')), 2000))
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Filter options timeout')), 2000)
+          ),
         ]);
       } catch (error) {
         console.warn('Filter options loading failed:', error.message);
-        filterOptions = { programAreas: [], specialties: [], difficulties: [], locations: [], tags: [] };
+        filterOptions = {
+          programAreas: [],
+          specialties: [],
+          difficulties: [],
+          locations: [],
+          tags: [],
+        };
       }
     }
 
@@ -96,15 +104,15 @@ router.get('/cases', async (req, res) => {
       filterOptions,
       total: validCases.length,
       appliedFilters: filters,
-      cached: false // Could implement caching here
+      cached: false, // Could implement caching here
     });
-
   } catch (error) {
     console.error('❌ Error fetching template cases:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch template cases',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable',
     });
   }
 });
@@ -123,22 +131,24 @@ router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res)
     if (!caseId) {
       return res.status(400).json({
         success: false,
-        error: 'Case ID is required'
+        error: 'Case ID is required',
       });
     }
 
     // Quick check for existing active simulation
     const existingSimulation = await Simulation.findOne({
       userId,
-      status: { $in: ['active', 'paused'] }
-    }).select('id caseId status').lean(); // Use lean() for faster query
+      status: { $in: ['active', 'paused'] },
+    })
+      .select('id caseId status')
+      .lean(); // Use lean() for faster query
 
     if (existingSimulation) {
       return res.status(400).json({
         success: false,
         error: 'You already have an active simulation. Please complete it first.',
         activeSimulationId: existingSimulation.id,
-        activeSimulationType: existingSimulation.caseId.startsWith('VP-') ? 'template' : 'regular'
+        activeSimulationType: existingSimulation.caseId.startsWith('VP-') ? 'template' : 'regular',
       });
     }
 
@@ -146,9 +156,9 @@ router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res)
     const initPromise = simulationEngine.initializeSimulation(caseId, userId, userRole);
     const simulationState = await Promise.race([
       initPromise,
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Simulation initialization timeout')), 8000)
-      )
+      ),
     ]);
 
     const simulationId = uuidv4();
@@ -160,7 +170,7 @@ router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res)
 
     // Create database record asynchronously (don't wait)
     const dbPromise = this.createDatabaseRecord(simulationState, userId, userRole);
-    dbPromise.catch(error => console.error('Database record creation failed:', error));
+    dbPromise.catch((error) => console.error('Database record creation failed:', error));
 
     console.log(`✅ Template simulation started quickly: ${simulationId}`);
 
@@ -180,36 +190,39 @@ router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res)
           age: simulationState.caseData.patient_persona.age,
           gender: simulationState.caseData.patient_persona.gender,
           chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
-          emotionalTone: simulationState.caseData.patient_persona.emotional_tone
+          emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
         },
-        guardianInfo: simulationState.caseData.patient_persona.speaks_for !== "Self" ? {
-          relationship: simulationState.caseData.patient_persona.speaks_for,
-          patientAge: simulationState.caseData.patient_persona.patient_age_for_communication
-        } : null,
+        guardianInfo:
+          simulationState.caseData.patient_persona.speaks_for !== 'Self'
+            ? {
+                relationship: simulationState.caseData.patient_persona.speaks_for,
+                patientAge: simulationState.caseData.patient_persona.patient_age_for_communication,
+              }
+            : null,
         conversationHistory: simulationState.conversationHistory,
         evaluationCriteria: Object.keys(simulationState.evaluationCriteria),
-        status: 'active'
-      }
+        status: 'active',
+      },
     });
 
     // Wait for database record creation to complete
     await dbPromise;
-
   } catch (error) {
     console.error('❌ Error starting template simulation:', error);
-    
+
     if (error.message.includes('timeout')) {
       return res.status(408).json({
         success: false,
         error: 'Simulation startup timeout - please try again',
-        code: 'STARTUP_TIMEOUT'
+        code: 'STARTUP_TIMEOUT',
       });
     }
 
     res.status(500).json({
       success: false,
       error: 'Failed to start simulation',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable',
     });
   }
 });
@@ -226,14 +239,14 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
     if (!message || message.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Message is required and cannot be empty'
+        error: 'Message is required and cannot be empty',
       });
     }
 
     if (message.length > 500) {
       return res.status(400).json({
         success: false,
-        error: 'Message too long (max 500 characters)'
+        error: 'Message too long (max 500 characters)',
       });
     }
 
@@ -248,7 +261,7 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
     if (simulationState.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: `Simulation is ${simulationState.status}, not active`
+        error: `Simulation is ${simulationState.status}, not active`,
       });
     }
 
@@ -260,7 +273,7 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
       sender: 'student',
       message: message.trim(),
       messageType: 'chat',
-      timestamp: new Date()
+      timestamp: new Date(),
     };
     simulationState.conversationHistory.push(studentMessage);
 
@@ -270,9 +283,9 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
       const responsePromise = simulationEngine.generatePatientResponse(simulationState, message);
       aiResponse = await Promise.race([
         responsePromise,
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('AI response timeout')), 12000)
-        )
+        ),
       ]);
     } catch (error) {
       console.error('AI response failed:', error.message);
@@ -280,21 +293,23 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
       aiResponse = {
         response: this.getEmergencyFallback(simulationState.caseData),
         clinicalInfo: null,
-        error: error.message
+        error: error.message,
       };
     }
 
     // Add AI response if available
     if (aiResponse.response) {
-      const sender = simulationState.caseData.patient_persona.speaks_for !== "Self" && 
-                    Math.random() < 0.7 ? 'guardian' : 'patient';
-      
+      const sender =
+        simulationState.caseData.patient_persona.speaks_for !== 'Self' && Math.random() < 0.7
+          ? 'guardian'
+          : 'patient';
+
       simulationState.conversationHistory.push({
         sender,
         message: aiResponse.response,
         messageType: 'chat',
         timestamp: new Date(),
-        clinicalInfo: aiResponse.clinicalInfo
+        clinicalInfo: aiResponse.clinicalInfo,
       });
     }
 
@@ -320,28 +335,28 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
       conversationHistory: simulationState.conversationHistory.slice(-8), // Last 8 messages
       sessionMetrics: {
         messageCount: simulationState.sessionMetrics.messageCount,
-        duration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60))
+        duration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)),
       },
       simulationEnded,
       triggerActivated: aiResponse.triggerActivated,
-      responseTime: aiResponse.responseTime || 'unknown'
+      responseTime: aiResponse.responseTime || 'unknown',
     });
-
   } catch (error) {
     console.error('❌ Error processing template message:', error);
-    
+
     if (error.message.includes('timeout')) {
       return res.status(408).json({
         success: false,
         error: 'Response timeout - please try again',
-        code: 'RESPONSE_TIMEOUT'
+        code: 'RESPONSE_TIMEOUT',
       });
     }
 
     res.status(500).json({
       success: false,
       error: 'Failed to process message',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable',
     });
   }
 });
@@ -389,29 +404,35 @@ router.post('/:id/complete', authMiddleware, timeoutMiddleware(10000), async (re
           specialty: simulationState.caseData.case_metadata.specialty,
           difficulty: simulationState.caseData.case_metadata.difficulty,
           hiddenDiagnosis: simulationState.caseData.clinical_dossier.hidden_diagnosis,
-          location: simulationState.caseData.case_metadata.location
-        }
+          location: simulationState.caseData.case_metadata.location,
+        },
       },
       sessionSummary: {
         duration: `${duration} minutes`,
         messageCount: simulationState.sessionMetrics.messageCount,
         clinicalActionsCount: simulationState.sessionMetrics.clinicalActionsCount,
         communicationQuality: evaluation.sessionSummary?.communicationQuality || 0,
-        appropriateActionsPercentage: simulationState.clinicalActions.length > 0 ? 
-          Math.round((evaluation.sessionSummary.appropriateActions / simulationState.clinicalActions.length) * 100) : 0
-      }
+        appropriateActionsPercentage:
+          simulationState.clinicalActions.length > 0
+            ? Math.round(
+                (evaluation.sessionSummary.appropriateActions /
+                  simulationState.clinicalActions.length) *
+                  100
+              )
+            : 0,
+      },
     });
-
   } catch (error) {
     console.error('❌ Error completing template simulation:', error);
-    
+
     // Remove from memory even if there's an error
     activeSimulations.delete(id);
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to complete simulation',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable'
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : 'Service temporarily unavailable',
     });
   }
 });
@@ -441,27 +462,31 @@ router.get('/:id', authMiddleware, async (req, res) => {
             age: simulationState.caseData.patient_persona.age,
             gender: simulationState.caseData.patient_persona.gender,
             chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
-            emotionalTone: simulationState.caseData.patient_persona.emotional_tone
+            emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
           },
           conversationHistory: simulationState.conversationHistory,
           sessionMetrics: {
             ...simulationState.sessionMetrics,
-            currentDuration: Math.round((new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60))
+            currentDuration: Math.round(
+              (new Date() - simulationState.sessionMetrics.startTime) / (1000 * 60)
+            ),
           },
-          isMemoryActive: true
-        }
+          isMemoryActive: true,
+        },
       });
     }
 
     // Check database (slower)
     const simulation = await Simulation.findOne({ id, userId })
-      .select('id status caseId caseName patientPersona conversationHistory sessionMetrics learningProgress')
+      .select(
+        'id status caseId caseName patientPersona conversationHistory sessionMetrics learningProgress'
+      )
       .lean();
 
     if (!simulation) {
       return res.status(404).json({
         success: false,
-        error: 'Simulation not found'
+        error: 'Simulation not found',
       });
     }
 
@@ -476,20 +501,21 @@ router.get('/:id', authMiddleware, async (req, res) => {
           name: simulation.patientPersona.patient?.name,
           age: simulation.patientPersona.patient?.age,
           gender: simulation.patientPersona.patient?.gender,
-          chiefComplaint: simulation.patientPersona.patient?.presentation || simulation.patientPersona.chiefComplaint
+          chiefComplaint:
+            simulation.patientPersona.patient?.presentation ||
+            simulation.patientPersona.chiefComplaint,
         },
         conversationHistory: simulation.conversationHistory,
         sessionMetrics: simulation.sessionMetrics,
         isMemoryActive: false,
-        needsRestart: simulation.status === 'active' // Suggests user should restart if memory expired
-      }
+        needsRestart: simulation.status === 'active', // Suggests user should restart if memory expired
+      },
     });
-
   } catch (error) {
     console.error('❌ Error fetching template simulation:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch simulation'
+      error: 'Failed to fetch simulation',
     });
   }
 });
@@ -500,21 +526,21 @@ function handleSimulationNotFound(id, userId, res) {
     success: false,
     error: 'Simulation not found or session expired',
     code: 'SIMULATION_NOT_FOUND',
-    suggestion: 'Please start a new simulation'
+    suggestion: 'Please start a new simulation',
   });
 }
 
 function getEmergencyFallback(caseData) {
   const tone = caseData.patient_persona?.emotional_tone?.toLowerCase() || 'concerned';
   const fallbacks = {
-    'anxious': "I'm sorry, I'm feeling quite anxious right now. Could you repeat that?",
-    'scared': "I'm scared and didn't catch what you said. Can you ask again?",
-    'tired': "I'm so tired. What did you want to know?",
-    'frustrated': "I'm getting frustrated. Could you repeat that?",
-    'calm': "Could you please repeat your question?",
-    'worried': "I'm worried and missed what you said. Can you ask again?"
+    anxious: "I'm sorry, I'm feeling quite anxious right now. Could you repeat that?",
+    scared: "I'm scared and didn't catch what you said. Can you ask again?",
+    tired: "I'm so tired. What did you want to know?",
+    frustrated: "I'm getting frustrated. Could you repeat that?",
+    calm: 'Could you please repeat your question?',
+    worried: "I'm worried and missed what you said. Can you ask again?",
   };
-  
+
   return fallbacks[tone] || fallbacks['concerned'];
 }
 
@@ -524,7 +550,9 @@ async function createDatabaseRecord(simulationState, userId, userRole) {
       id: simulationState.id,
       userId,
       userRole,
-      programArea: simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() || 'template_based',
+      programArea:
+        simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() ||
+        'template_based',
       caseId: simulationState.caseId,
       caseName: simulationState.caseData.case_metadata.title,
       patientPersona: {
@@ -532,20 +560,20 @@ async function createDatabaseRecord(simulationState, userId, userRole) {
           name: simulationState.caseData.patient_persona.name,
           age: simulationState.caseData.patient_persona.age,
           gender: simulationState.caseData.patient_persona.gender,
-          presentation: simulationState.caseData.patient_persona.chief_complaint
+          presentation: simulationState.caseData.patient_persona.chief_complaint,
         },
         currentCondition: simulationState.caseData.clinical_dossier.hidden_diagnosis,
         personality: {
-          emotionalTone: simulationState.caseData.patient_persona.emotional_tone
+          emotionalTone: simulationState.caseData.patient_persona.emotional_tone,
         },
-        chiefComplaint: simulationState.caseData.patient_persona.chief_complaint
+        chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
       },
       difficulty: simulationState.caseData.case_metadata.difficulty.toLowerCase(),
       conversationHistory: simulationState.conversationHistory,
       clinicalActions: [],
       learningProgress: simulationState.learningProgress,
       sessionMetrics: simulationState.sessionMetrics,
-      status: 'active'
+      status: 'active',
     });
 
     await simulation.save();
@@ -561,7 +589,7 @@ async function updateDatabaseAsync(id, userId, simulationState, simulationEnded)
     const updateData = {
       conversationHistory: simulationState.conversationHistory,
       sessionMetrics: simulationState.sessionMetrics,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     if (simulationEnded) {
@@ -590,7 +618,7 @@ async function completeDatabaseRecordAsync(id, userId, endTime, duration, evalua
         'learningProgress.overallProgress': evaluation.overallScore,
         'learningProgress.communicationScore': evaluation.sessionSummary?.communicationQuality || 0,
         feedbackProvided: true,
-        updatedAt: endTime
+        updatedAt: endTime,
       }
     );
     console.log(`💾 Simulation completion recorded in database: ${id}`);
@@ -616,7 +644,9 @@ function cleanupExpiredSimulations() {
   }
 
   if (cleanedCount > 0) {
-    console.log(`🧹 Cleaned up ${cleanedCount} expired simulations. Active: ${activeSimulations.size}`);
+    console.log(
+      `🧹 Cleaned up ${cleanedCount} expired simulations. Active: ${activeSimulations.size}`
+    );
   }
 }
 
@@ -634,14 +664,14 @@ router.get('/stats/memory', authMiddleware, (req, res) => {
       status: sim.status,
       startTime: sim.sessionMetrics.startTime,
       lastActivity: sim.lastActivity,
-      messageCount: sim.sessionMetrics.messageCount
-    }))
+      messageCount: sim.sessionMetrics.messageCount,
+    })),
   };
 
   res.json({
     success: true,
     stats,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -652,7 +682,7 @@ router.post('/admin/cleanup', authMiddleware, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      error: 'Admin access required'
+      error: 'Admin access required',
     });
   }
 
@@ -664,7 +694,7 @@ router.post('/admin/cleanup', authMiddleware, (req, res) => {
     success: true,
     message: `Cleanup completed. Removed ${beforeCount - afterCount} expired simulations.`,
     before: beforeCount,
-    after: afterCount
+    after: afterCount,
   });
 });
 
@@ -681,7 +711,7 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
     if (!simulationState || simulationState.userId !== userId) {
       return res.status(404).json({
         success: false,
-        error: 'Simulation not found'
+        error: 'Simulation not found',
       });
     }
 
@@ -690,7 +720,7 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
       sender: 'student',
       message: message.trim(),
       messageType: 'chat',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     // Add simple fallback response
@@ -700,7 +730,7 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
       message: fallbackResponse,
       messageType: 'chat',
       timestamp: new Date(),
-      fallback: true
+      fallback: true,
     });
 
     simulationState.sessionMetrics.messageCount = simulationState.conversationHistory.length;
@@ -710,14 +740,13 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
       response: fallbackResponse,
       fallback: true,
       message: 'Using fallback response due to AI service issues',
-      conversationHistory: simulationState.conversationHistory.slice(-5)
+      conversationHistory: simulationState.conversationHistory.slice(-5),
     });
-
   } catch (error) {
     console.error('❌ Fallback message error:', error);
     res.status(500).json({
       success: false,
-      error: 'Fallback failed'
+      error: 'Fallback failed',
     });
   }
 });
