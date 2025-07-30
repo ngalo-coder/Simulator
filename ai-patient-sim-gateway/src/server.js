@@ -75,7 +75,14 @@ app.get('/', (req, res) => {
     message: 'AI Patient Simulation Gateway',
     status: 'running',
     version: '1.0.0',
-    routes: ['/health', '/api/users/*', '/api/simulations/*', '/api/template-simulations/*'],
+    routes: [
+      '/health', 
+      '/api/users/*', 
+      '/api/simulations/*', 
+      '/api/template-simulations/*',
+      '/api/v1/simulations/*',
+      '/api/v1/template-simulations/*'
+    ],
     services: {
       userService: USER_SERVICE_URL,
       simulationService: SIMULATION_SERVICE_URL
@@ -173,11 +180,12 @@ const simulationProxy = createProxyMiddleware({
   }
 });
 
-// Apply simulation proxy
+// Apply simulation proxy for current and versioned APIs
 app.use('/api/simulations', simulationProxy);
+app.use('/api/v1/simulations', simulationProxy);
 
 // Template simulation proxy (new template-based system)
-app.use('/api/template-simulations', createProxyMiddleware({
+const templateSimulationProxy = createProxyMiddleware({
   target: SIMULATION_SERVICE_URL,
   changeOrigin: true,
   pathRewrite: {
@@ -205,7 +213,11 @@ app.use('/api/template-simulations', createProxyMiddleware({
       });
     }
   }
-}));
+});
+
+// Apply template simulation proxy for current and versioned APIs
+app.use('/api/template-simulations', templateSimulationProxy);
+app.use('/api/v1/template-simulations', templateSimulationProxy);
 
 // Health check endpoints for individual services
 app.get('/health/users', createProxyMiddleware({
@@ -226,6 +238,17 @@ app.get('/health/simulations', createProxyMiddleware({
   onError: (err, req, res) => {
     if (!res.headersSent) {
       res.status(503).json({ status: 'unhealthy', service: 'simulation-service', error: err.message });
+    }
+  }
+}));
+
+app.get('/health/template-simulations', createProxyMiddleware({
+  target: SIMULATION_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/health/template-simulations': '/api/template-simulations/health' },
+  onError: (err, req, res) => {
+    if (!res.headersSent) {
+      res.status(503).json({ status: 'unhealthy', service: 'template-simulation-service', error: err.message });
     }
   }
 }));

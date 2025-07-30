@@ -518,6 +518,62 @@ export const simulationAPI = {
     }
   },
 
+  // Perform clinical action in template simulation
+  performTemplateAction: async (simulationId, action, details, category = null) => {
+    try {
+      console.log('🔬 Performing template action:', { simulationId, action, details, category });
+      const response = await api.post(`/api/template-simulations/${simulationId}/action`, {
+        action,
+        details,
+        category,
+      });
+      console.log('✅ Template action performed:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error performing template action:', error);
+      throw error;
+    }
+  },
+
+  // Pause template simulation
+  pauseTemplateSimulation: async (simulationId) => {
+    try {
+      console.log('⏸️ Pausing template simulation:', simulationId);
+      const response = await api.post(`/api/template-simulations/${simulationId}/pause`);
+      console.log('✅ Template simulation paused:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error pausing template simulation:', error);
+      throw error;
+    }
+  },
+
+  // Resume template simulation
+  resumeTemplateSimulation: async (simulationId) => {
+    try {
+      console.log('▶️ Resuming template simulation:', simulationId);
+      const response = await api.post(`/api/template-simulations/${simulationId}/resume`);
+      console.log('✅ Template simulation resumed:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error resuming template simulation:', error);
+      throw error;
+    }
+  },
+
+  // Get detailed template simulation results
+  getTemplateSimulationResults: async (simulationId) => {
+    try {
+      console.log('📊 Fetching template simulation results:', simulationId);
+      const response = await api.get(`/api/template-simulations/${simulationId}/results`);
+      console.log('✅ Template results fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching template results:', error);
+      throw error;
+    }
+  },
+
   // Template simulation health check
   templateHealthCheck: async () => {
     try {
