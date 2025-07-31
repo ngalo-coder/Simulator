@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const simulationRoutes = require('./routes/simulation');
 const templateSimulationRoutes = require('./routes/templateSimulation');
+const templateCaseManagementRoutes = require('./routes/templateCaseManagement');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -170,6 +171,14 @@ app.get('/', (req, res) => {
         'GET /api/template-simulations/:id - Get simulation status',
         'GET /api/template-simulations/:id/results - Get detailed results'
       ],
+      template_case_management: [
+        'GET /api/template-cases/stats - Get case statistics (admin)',
+        'POST /api/template-cases/create - Create new case (admin)',
+        'PUT /api/template-cases/:caseId - Update case (admin)',
+        'DELETE /api/template-cases/:caseId - Delete case (admin)',
+        'GET /api/template-cases/:caseId/details - Get case details (admin)',
+        'POST /api/template-cases/bulk-import - Bulk import cases (admin)'
+      ],
       utility: [
         'GET /health - Service health check',
         'GET / - API documentation'
@@ -198,6 +207,13 @@ try {
   console.log('✅ Template simulation routes loaded');
 } catch (error) {
   console.error('❌ Error loading template simulation routes:', error.message);
+}
+
+try {
+  app.use('/api/template-cases', templateCaseManagementRoutes);
+  console.log('✅ Template case management routes loaded');
+} catch (error) {
+  console.error('❌ Error loading template case management routes:', error.message);
 }
 
 // Serve static files for case templates (if any)

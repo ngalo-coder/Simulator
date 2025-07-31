@@ -1,28 +1,24 @@
 // ai-patient-sim-core-services/simulation-service/src/services/templateCaseService.js
-const fs = require('fs').promises;
-const path = require('path');
+const TemplateCase = require('../models/TemplateCase');
 
 class TemplateCaseService {
   constructor() {
-    this.casesData = null;
-    this.casesPath = path.join(__dirname, '../data/case_templates.json');
+    // No longer need to cache data since we're using database
+    console.log('✅ TemplateCaseService initialized with database backend');
   }
 
   /**
-   * Load and parse case templates from JSON file
+   * Load cases from database
    */
-  async loadCases() {
+  async loadCases(filters = {}) {
     try {
-      if (!this.casesData) {
-        const rawData = await fs.readFile(this.casesPath, 'utf8');
-        this.casesData = JSON.parse(rawData);
-        console.log(`✅ Loaded ${Array.isArray(this.casesData) ? this.casesData.length : 'template'} cases`);
-      }
-      return this.casesData;
+      const cases = await TemplateCase.searchCases(filters);
+      console.log(`✅ Loaded ${cases.length} cases from database`);
+      return cases;
     } catch (error) {
-      console.error('❌ Error loading template cases:', error);
-      // Fallback to sample template if file doesn't exist
-      return this.getSampleTemplate();
+      console.error('❌ Error loading template cases from database:', error);
+      // Fallback to sample template if database fails
+      return [this.getSampleTemplate()];
     }
   }
 
@@ -110,61 +106,35 @@ class TemplateCaseService {
    * Get all available cases with optional filtering
    */
   async getCases(filters = {}) {
-    const cases = await this.loadCases();
-    let filteredCases = Array.isArray(cases) ? cases : [cases];
-
-    // Apply filters
-    if (filters.programArea) {
-      filteredCases = filteredCases.filter(
-        caseItem => caseItem.case_metadata?.program_area === filters.programArea
-      );
+    try {
+      const cases = await TemplateCase.searchCases(filters);
+      
+      // Transform to frontend-friendly format
+      return cases.map(case_ => case_.frontendFormat);
+    } catch (error) {
+      console.error('❌ Error getting cases from database:', error);
+      // Fallback to sample case
+      return [this.transformCaseForFrontend(this.getSampleTemplate())];
     }
-
-    if (filters.specialty) {
-      filteredCases = filteredCases.filter(
-        caseItem => caseItem.case_metadata?.specialty === filters.specialty
-      );
-    }
-
-    if (filters.difficulty) {
-      filteredCases = filteredCases.filter(
-        caseItem => caseItem.case_metadata?.difficulty === filters.difficulty
-      );
-    }
-
-    if (filters.location) {
-      filteredCases = filteredCases.filter(
-        caseItem => caseItem.case_metadata?.location === filters.location
-      );
-    }
-
-    if (filters.tags && filters.tags.length > 0) {
-      filteredCases = filteredCases.filter(
-        caseItem => filters.tags.some(tag => 
-          caseItem.case_metadata?.tags?.includes(tag)
-        )
-      );
-    }
-
-    // Transform to frontend-friendly format and filter out invalid cases
-    return filteredCases
-      .map(this.transformCaseForFrontend)
-      .filter(caseItem => caseItem !== null);
   }
 
   /**
    * Get a specific case by ID
    */
   async getCaseById(caseId) {
-    const cases = await this.loadCases();
-    const casesArray = Array.isArray(cases) ? cases : [cases];
-    const caseData = casesArray.find(caseItem => caseItem.case_metadata?.case_id === caseId);
-    
-    if (!caseData) {
-      throw new Error(`Case not found: ${caseId}`);
-    }
+    try {
+      const caseData = await TemplateCase.findOne({ caseId, isActive: true });
+      
+      if (!caseData) {
+        throw new Error(`Case not found: ${caseId}`);
+      }
 
-    return caseData;
+      // Transform to the format expected by the simulation engine
+      return this.transformDatabaseCaseToEngineFormat(caseData);
+    } catch (error) {
+      console.error(`❌ Error getting case ${caseId} from database:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -207,23 +177,18 @@ class TemplateCaseService {
    * Get unique values for filtering
    */
   async getFilterOptions() {
-    const cases = await this.loadCases();
-    const casesArray = Array.isArray(cases) ? cases : [cases];
-    
-    const programAreas = [...new Set(casesArray.map(c => c.case_metadata?.program_area).filter(Boolean))];
-    const specialties = [...new Set(casesArray.map(c => c.case_metadata?.specialty).filter(Boolean))];
-    const difficulties = [...new Set(casesArray.map(c => c.case_metadata?.difficulty).filter(Boolean))];
-    const locations = [...new Set(casesArray.map(c => c.case_metadata?.location).filter(Boolean))];
-    const allTags = casesArray.flatMap(c => c.case_metadata?.tags || []);
-    const tags = [...new Set(allTags)];
-
-    return {
-      programAreas,
-      specialties,
-      difficulties,
-      locations,
-      tags
-    };
+    try {
+      return await TemplateCase.getFilterOptions();
+    } catch (error) {
+      console.error('❌ Error getting filter options from database:', error);
+      return {
+        programAreas: ['Basic Program', 'Specialty Program'],
+        specialties: ['Internal Medicine', 'Pediatrics'],
+        difficulties: ['Easy', 'Intermediate', 'Hard'],
+        locations: ['East Africa'],
+        tags: []
+      };
+    }
   }
 
   /**
@@ -388,6 +353,77 @@ Respond like a real patient based on the 'Patient Persona' and 'Clinical Dossier
   }
 
   /**
+   * Transform database case to simulation engine format
+   */
+  transformDatabaseCaseToEngineFormat(dbCase) {
+    return {
+      version: dbCase.version,
+      description: dbCase.description,
+      system_instruction: dbCase.systemInstruction,
+      case_metadata: {
+        program_area: dbCase.programArea,
+        case_id: dbCase.caseId,
+        title: dbCase.title,
+        specialty: dbCase.specialty,
+        difficulty: dbCase.difficulty,
+        tags: dbCase.tags,
+        location: dbCase.location
+      },
+      patient_persona: {
+        name: dbCase.patientPersona.name,
+        age: dbCase.patientPersona.age,
+        gender: dbCase.patientPersona.gender,
+        occupation: dbCase.patientPersona.occupation,
+        chief_complaint: dbCase.patientPersona.chiefComplaint,
+        emotional_tone: dbCase.patientPersona.emotionalTone,
+        background_story: dbCase.patientPersona.backgroundStory,
+        speaks_for: dbCase.patientPersona.speaksFor,
+        patient_is_present: dbCase.patientPersona.patientIsPresent,
+        patient_age_for_communication: dbCase.patientPersona.patientAgeForCommunication
+      },
+      initial_prompt: dbCase.initialPrompt,
+      clinical_dossier: {
+        comment: "This is the AI's source of truth. Only reveal these details when directly asked.",
+        hidden_diagnosis: dbCase.clinicalDossier.hiddenDiagnosis,
+        history_of_presenting_illness: dbCase.clinicalDossier.historyOfPresentingIllness ? {
+          onset: dbCase.clinicalDossier.historyOfPresentingIllness.onset,
+          location: dbCase.clinicalDossier.historyOfPresentingIllness.location,
+          radiation: dbCase.clinicalDossier.historyOfPresentingIllness.radiation,
+          character: dbCase.clinicalDossier.historyOfPresentingIllness.character,
+          severity: dbCase.clinicalDossier.historyOfPresentingIllness.severity,
+          timing_and_duration: dbCase.clinicalDossier.historyOfPresentingIllness.timingAndDuration,
+          exacerbating_factors: dbCase.clinicalDossier.historyOfPresentingIllness.exacerbatingFactors,
+          relieving_factors: dbCase.clinicalDossier.historyOfPresentingIllness.relievingFactors,
+          associated_symptoms: dbCase.clinicalDossier.historyOfPresentingIllness.associatedSymptoms
+        } : {},
+        review_of_systems: dbCase.clinicalDossier.reviewOfSystems,
+        past_medical_history: dbCase.clinicalDossier.pastMedicalHistory,
+        medications: dbCase.clinicalDossier.medications,
+        allergies: dbCase.clinicalDossier.allergies,
+        surgical_history: dbCase.clinicalDossier.surgicalHistory,
+        family_history: dbCase.clinicalDossier.familyHistory,
+        social_history: dbCase.clinicalDossier.socialHistory ? {
+          smoking_status: dbCase.clinicalDossier.socialHistory.smokingStatus,
+          alcohol_use: dbCase.clinicalDossier.socialHistory.alcoholUse,
+          substance_use: dbCase.clinicalDossier.socialHistory.substanceUse,
+          diet_and_exercise: dbCase.clinicalDossier.socialHistory.dietAndExercise,
+          living_situation: dbCase.clinicalDossier.socialHistory.livingSituation
+        } : {}
+      },
+      simulation_triggers: {
+        end_session: dbCase.simulationTriggers.endSession ? {
+          condition_keyword: dbCase.simulationTriggers.endSession.conditionKeyword,
+          patient_response: dbCase.simulationTriggers.endSession.patientResponse
+        } : {},
+        invalid_input: dbCase.simulationTriggers.invalidInput ? {
+          response: dbCase.simulationTriggers.invalidInput.response
+        } : {}
+      },
+      evaluation_criteria: Object.fromEntries(dbCase.evaluationCriteria || new Map())
+    };
+  }
+
+  /**
    * Determine if this is a pediatric case based on patient age
    */
   isPediatricCase(patientPersona) {
@@ -400,6 +436,117 @@ Respond like a real patient based on the 'Patient Persona' and 'Clinical Dossier
       return !isNaN(ageNum) && ageNum < 18;
     }
     return false;
+  }
+
+  /**
+   * Create a new template case in the database
+   */
+  async createCase(caseData) {
+    try {
+      const templateCase = new TemplateCase(caseData);
+      await templateCase.save();
+      console.log(`✅ Created new template case: ${templateCase.caseId}`);
+      return templateCase.frontendFormat;
+    } catch (error) {
+      console.error('❌ Error creating template case:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing template case
+   */
+  async updateCase(caseId, updateData) {
+    try {
+      const updatedCase = await TemplateCase.findOneAndUpdate(
+        { caseId, isActive: true },
+        { ...updateData, updatedAt: new Date() },
+        { new: true }
+      );
+
+      if (!updatedCase) {
+        throw new Error(`Case not found: ${caseId}`);
+      }
+
+      console.log(`✅ Updated template case: ${caseId}`);
+      return updatedCase.frontendFormat;
+    } catch (error) {
+      console.error(`❌ Error updating case ${caseId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Soft delete a template case
+   */
+  async deleteCase(caseId) {
+    try {
+      const deletedCase = await TemplateCase.findOneAndUpdate(
+        { caseId, isActive: true },
+        { isActive: false, updatedAt: new Date() },
+        { new: true }
+      );
+
+      if (!deletedCase) {
+        throw new Error(`Case not found: ${caseId}`);
+      }
+
+      console.log(`✅ Deleted template case: ${caseId}`);
+      return { success: true, message: `Case ${caseId} deleted successfully` };
+    } catch (error) {
+      console.error(`❌ Error deleting case ${caseId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get case statistics
+   */
+  async getCaseStatistics() {
+    try {
+      const stats = await TemplateCase.aggregate([
+        { $match: { isActive: true } },
+        {
+          $group: {
+            _id: null,
+            totalCases: { $sum: 1 },
+            byProgramArea: {
+              $push: {
+                programArea: '$programArea',
+                count: 1
+              }
+            },
+            bySpecialty: {
+              $push: {
+                specialty: '$specialty',
+                count: 1
+              }
+            },
+            byDifficulty: {
+              $push: {
+                difficulty: '$difficulty',
+                count: 1
+              }
+            }
+          }
+        }
+      ]);
+
+      return stats[0] || {
+        totalCases: 0,
+        byProgramArea: [],
+        bySpecialty: [],
+        byDifficulty: []
+      };
+    } catch (error) {
+      console.error('❌ Error getting case statistics:', error);
+      return {
+        totalCases: 0,
+        byProgramArea: [],
+        bySpecialty: [],
+        byDifficulty: []
+      };
+    }
   }
 
   /**
