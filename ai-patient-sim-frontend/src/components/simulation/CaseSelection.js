@@ -174,29 +174,39 @@ const CaseSelection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Medical Case Simulations</h1>
-          <p className="mt-2 text-gray-600">
-            Practice with AI patients in realistic clinical scenarios
-          </p>
+    <div className="min-h-screen bg-gray-50 py-3 sm:py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        {/* Responsive Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Medical Case Simulations</h1>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+                Practice with AI patients in realistic clinical scenarios
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center justify-center sm:justify-start px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors text-sm sm:text-base whitespace-nowrap"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
+        {/* Responsive Filters */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
             <div className="flex items-center">
-              <Filter className="h-5 w-5 text-gray-500 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">Filter Cases</h3>
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">Filter Cases</h3>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs sm:text-sm text-gray-600">
               Showing {filteredCases.length} of {cases.length} cases
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -282,14 +292,14 @@ const CaseSelection = () => {
           )}
         </div>
 
-        {/* Cases Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Responsive Cases Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredCases.map((case_) => {
             const IconComponent = PROGRAM_ICONS[case_.programArea] || Stethoscope;
             
             return (
               <div key={case_.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
