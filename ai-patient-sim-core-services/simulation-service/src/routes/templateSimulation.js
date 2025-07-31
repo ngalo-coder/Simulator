@@ -64,6 +64,18 @@ router.get('/auth-test', authMiddleware, (req, res) => {
 });
 
 /**
+ * Simple test endpoint (no auth required)
+ */
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Template simulation routes are working',
+    timestamp: new Date().toISOString(),
+    service: 'template-simulation-service'
+  });
+});
+
+/**
  * Get all available template cases - OPTIMIZED (No auth required for browsing)
  */
 router.get('/cases', async (req, res) => {
@@ -138,10 +150,15 @@ router.get('/cases', async (req, res) => {
  */
 router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res) => {
   try {
+    console.log('🔍 Template simulation start request received');
+    console.log('Request body:', req.body);
+    console.log('User from auth:', req.user);
+    
     const { caseId } = req.body;
     
     // Check if user is authenticated
     if (!req.user || !req.user.id) {
+      console.log('❌ Authentication failed - no user or user ID');
       return res.status(401).json({
         success: false,
         error: 'Authentication required to start simulation',
@@ -572,13 +589,53 @@ function getEmergencyFallback(caseData) {
 
 async function createDatabaseRecord(simulationState, userId, userRole) {
   try {
+    // Map program area to valid enum values
+    const programAreaMapping = {
+      'basic_program': 'internal_medicine',
+      'specialty_program': 'internal_medicine',
+      'internal_medicine': 'internal_medicine',
+      'pediatrics': 'pediatrics',
+      'family_medicine': 'family_medicine',
+      'emergency_medicine': 'emergency_medicine',
+      'psychiatry': 'psychiatry',
+      'surgery': 'surgery',
+      'obstetrics_gynecology': 'obstetrics_gynecology',
+      'cardiology_fellowship': 'cardiology_fellowship'
+    };
+
+    // Map difficulty to valid enum values
+    const difficultyMapping = {
+      'easy': 'student',
+      'medium': 'resident', 
+      'hard': 'fellow',
+      'student': 'student',
+      'resident': 'resident',
+      'fellow': 'fellow'
+    };
+
+    // Map message types to valid enum values
+    const messageTypeMapping = {
+      'initial_presentation': 'system_feedback',
+      'chat': 'chat',
+      'action': 'action',
+      'assessment': 'assessment',
+      'system_feedback': 'system_feedback'
+    };
+
+    const rawProgramArea = simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() || 'basic_program';
+    const rawDifficulty = simulationState.caseData.case_metadata.difficulty?.toLowerCase() || 'medium';
+    
+    // Map conversation history message types
+    const mappedConversationHistory = simulationState.conversationHistory.map(msg => ({
+      ...msg,
+      messageType: messageTypeMapping[msg.messageType] || 'chat'
+    }));
+
     const simulation = new Simulation({
       id: simulationState.id,
       userId,
       userRole,
-      programArea:
-        simulationState.caseData.case_metadata.program_area?.replace(' ', '_').toLowerCase() ||
-        'template_based',
+      programArea: programAreaMapping[rawProgramArea] || 'internal_medicine',
       caseId: simulationState.caseId,
       caseName: simulationState.caseData.case_metadata.title,
       patientPersona: {
@@ -594,8 +651,8 @@ async function createDatabaseRecord(simulationState, userId, userRole) {
         },
         chiefComplaint: simulationState.caseData.patient_persona.chief_complaint,
       },
-      difficulty: simulationState.caseData.case_metadata.difficulty.toLowerCase(),
-      conversationHistory: simulationState.conversationHistory,
+      difficulty: difficultyMapping[rawDifficulty] || 'resident',
+      conversationHistory: mappedConversationHistory,
       clinicalActions: [],
       learningProgress: simulationState.learningProgress,
       sessionMetrics: simulationState.sessionMetrics,
@@ -612,8 +669,23 @@ async function createDatabaseRecord(simulationState, userId, userRole) {
 
 async function updateDatabaseAsync(id, userId, simulationState, simulationEnded) {
   try {
+    // Map message types to valid enum values
+    const messageTypeMapping = {
+      'initial_presentation': 'system_feedback',
+      'chat': 'chat',
+      'action': 'action',
+      'assessment': 'assessment',
+      'system_feedback': 'system_feedback'
+    };
+
+    // Map conversation history message types
+    const mappedConversationHistory = simulationState.conversationHistory.map(msg => ({
+      ...msg,
+      messageType: messageTypeMapping[msg.messageType] || 'chat'
+    }));
+
     const updateData = {
-      conversationHistory: simulationState.conversationHistory,
+      conversationHistory: mappedConversationHistory,
       sessionMetrics: simulationState.sessionMetrics,
       updatedAt: new Date(),
     };

@@ -133,7 +133,7 @@ const CaseSelection = () => {
       const response = await simulationAPI.startTemplateSimulation(caseId);
       if (response.success) {
         toast.success('Simulation started successfully!');
-        navigate(`/simulation/${response.simulation.id}`);
+        navigate(`/template-simulation/${response.simulation.id}`);
       } else {
         toast.error(response.error || 'Failed to start simulation');
       }
