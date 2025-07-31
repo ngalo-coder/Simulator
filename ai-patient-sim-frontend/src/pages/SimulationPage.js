@@ -27,6 +27,7 @@ const SimulationPage = () => {
   const [sending, setSending] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [sessionMetrics, setSessionMetrics] = useState({});
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   
   // Refs
   const messagesEndRef = useRef(null);
@@ -139,11 +140,17 @@ const SimulationPage = () => {
     }
   };
 
+  const handleCompleteClick = () => {
+    setShowCompleteModal(true);
+  };
+
   const completeSimulation = async () => {
     try {
+      setShowCompleteModal(false);
       const response = await simulationAPI.completeSimulation(id);
       
       if (response.success) {
+        toast.success('Simulation completed successfully!');
         // Navigate to results page with evaluation data
         navigate(`/simulation/${id}/report`);
       } else {
@@ -403,7 +410,7 @@ const SimulationPage = () => {
                 </button>
                 
                 <button
-                  onClick={completeSimulation}
+                  onClick={handleCompleteClick}
                   disabled={sending}
                   className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                 >
@@ -441,7 +448,7 @@ const SimulationPage = () => {
                 </button>
                 
                 <button
-                  onClick={completeSimulation}
+                  onClick={handleCompleteClick}
                   disabled={sending}
                   className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
                 >
@@ -458,6 +465,51 @@ const SimulationPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Completion Confirmation Modal */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Complete Simulation</h3>
+                  <p className="text-sm text-gray-600">Are you ready to finish this case?</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-3">
+                  You are about to complete this simulation. Once completed:
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                  <li>• Your performance will be evaluated</li>
+                  <li>• You'll receive a detailed report with feedback</li>
+                  <li>• The simulation cannot be resumed</li>
+                </ul>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={completeSimulation}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors font-medium"
+                >
+                  Complete Simulation
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
