@@ -37,8 +37,14 @@ const CaseSelection = () => {
   const [cases, setCases] = useState([]);
   const [filteredCases, setFilteredCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterOptions, setFilterOptions] = useState({
+    programAreas: [],
+    specialties: [],
+    difficulties: []
+  });
   const [filters, setFilters] = useState({
     programArea: '',
+    specialty: '',
     difficulty: '',
     patientType: '',
     search: ''
@@ -52,6 +58,10 @@ const CaseSelection = () => {
 
     if (filters.programArea) {
       filtered = filtered.filter(case_ => case_.programArea === filters.programArea);
+    }
+
+    if (filters.specialty) {
+      filtered = filtered.filter(case_ => case_.specialty === filters.specialty);
     }
 
     if (filters.difficulty) {
@@ -87,7 +97,20 @@ const CaseSelection = () => {
   const fetchCases = useCallback(async () => {
     try {
       const response = await simulationAPI.getTemplateCases();
-      setCases(response.cases || []);
+      const casesData = response.cases || [];
+      setCases(casesData);
+
+      // Extract unique filter options from the cases
+      const programAreas = [...new Set(casesData.map(case_ => case_.programArea))].filter(Boolean).sort();
+      const specialties = [...new Set(casesData.map(case_ => case_.specialty))].filter(Boolean).sort();
+      const difficulties = [...new Set(casesData.map(case_ => case_.difficulty))].filter(Boolean).sort();
+
+      setFilterOptions({
+        programAreas,
+        specialties,
+        difficulties
+      });
+
     } catch (error) {
       console.error('Error fetching cases:', error);
       toast.error('Failed to load cases');
@@ -104,7 +127,7 @@ const CaseSelection = () => {
     applyFilters();
   }, [applyFilters]);
 
-  const handleStartSimulation = async (caseId, difficulty) => {
+  const handleStartSimulation = async (caseId) => {
     setStartingSimulation(caseId);
     try {
       const response = await simulationAPI.startTemplateSimulation(caseId);
@@ -163,12 +186,17 @@ const CaseSelection = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <Filter className="h-5 w-5 text-gray-500 mr-2" />
-            <h3 className="text-lg font-medium text-gray-900">Filter Cases</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Filter className="h-5 w-5 text-gray-500 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900">Filter Cases</h3>
+            </div>
+            <div className="text-sm text-gray-600">
+              Showing {filteredCases.length} of {cases.length} cases
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -188,14 +216,25 @@ const CaseSelection = () => {
               onChange={(e) => setFilters({ ...filters, programArea: e.target.value })}
             >
               <option value="">All Programs</option>
-              <option value="Basic Program">Basic Program</option>
-              <option value="Specialty Program">Specialty Program</option>
-              <option value="internal_medicine">Internal Medicine</option>
-              <option value="pediatrics">Pediatrics</option>
-              <option value="psychiatry">Psychiatry</option>
-              <option value="emergency_medicine">Emergency Medicine</option>
-              <option value="family_medicine">Family Medicine</option>
-              <option value="surgery">Surgery</option>
+              {filterOptions.programAreas.map(programArea => (
+                <option key={programArea} value={programArea}>
+                  {getProgramAreaDisplay(programArea)}
+                </option>
+              ))}
+            </select>
+
+            {/* Specialty */}
+            <select
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filters.specialty}
+              onChange={(e) => setFilters({ ...filters, specialty: e.target.value })}
+            >
+              <option value="">All Specialties</option>
+              {filterOptions.specialties.map(specialty => (
+                <option key={specialty} value={specialty}>
+                  {specialty}
+                </option>
+              ))}
             </select>
 
             {/* Difficulty */}
@@ -205,12 +244,11 @@ const CaseSelection = () => {
               onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
             >
               <option value="">All Levels</option>
-              <option value="Easy">Easy</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Hard">Hard</option>
-              <option value="student">Medical Student</option>
-              <option value="resident">Resident</option>
-              <option value="fellow">Fellow</option>
+              {filterOptions.difficulties.map(difficulty => (
+                <option key={difficulty} value={difficulty}>
+                  {difficulty}
+                </option>
+              ))}
             </select>
 
             {/* Patient Type */}
@@ -222,10 +260,26 @@ const CaseSelection = () => {
               <option value="">All Patient Types</option>
               <option value="adult">Adult Patient</option>
               <option value="pediatric_with_guardian">Pediatric + Guardian</option>
-              <option value="adolescent_with_guardian">Adolescent + Guardian</option>
-              <option value="adolescent_confidential">Adolescent (Confidential)</option>
             </select>
           </div>
+
+          {/* Clear Filters Button */}
+          {(filters.programArea || filters.specialty || filters.difficulty || filters.patientType || filters.search) && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setFilters({
+                  programArea: '',
+                  specialty: '',
+                  difficulty: '',
+                  patientType: '',
+                  search: ''
+                })}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Cases Grid */}
@@ -338,7 +392,7 @@ const CaseSelection = () => {
                     </div>
                     
                     <button
-                      onClick={() => handleStartSimulation(case_.id, case_.difficulty)}
+                      onClick={() => handleStartSimulation(case_.id)}
                       disabled={startingSimulation === case_.id}
                       className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
