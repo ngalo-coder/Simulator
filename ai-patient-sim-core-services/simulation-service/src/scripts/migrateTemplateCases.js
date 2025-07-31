@@ -16,8 +16,8 @@ async function migrateTemplateCases() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Check if JSON file exists (it has been deleted after successful migration)
-    const jsonPath = path.join(__dirname, '../data/case_templates.json');
+    // Use the case_100.json file which contains the template cases
+    const jsonPath = path.join(__dirname, '../data/case_100.json');
     
     let casesData;
     try {
