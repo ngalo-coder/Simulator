@@ -850,6 +850,108 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
 });
 
 /**
+ * Perform clinical action in template simulation
+ */
+router.post('/:id/action', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, details, category } = req.body;
+    const userId = req.user.id;
+
+    console.log(`🔬 Template clinical action: ${action} - ${details}`);
+
+    const validActions = [
+      'history_taking',
+      'physical_exam', 
+      'order_labs',
+      'order_imaging',
+      'diagnosis',
+      'treatment_plan'
+    ];
+
+    if (!validActions.includes(action)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid action type',
+        validActions
+      });
+    }
+
+    // Check memory first
+    let simulationState = activeSimulations.get(id);
+    
+    if (!simulationState || simulationState.userId !== userId) {
+      return res.status(404).json({
+        success: false,
+        error: 'Simulation not found or access denied'
+      });
+    }
+
+    if (simulationState.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'Simulation is not active'
+      });
+    }
+
+    // Create clinical action record
+    const clinicalAction = {
+      action,
+      details: details || '',
+      category: category || getActionCategory(action),
+      timestamp: new Date()
+    };
+
+    // Generate realistic results based on case data
+    const actionResult = generateTemplateActionResult(action, details, simulationState.caseData);
+
+    // Add to clinical actions array
+    if (!simulationState.clinicalActions) {
+      simulationState.clinicalActions = [];
+    }
+    simulationState.clinicalActions.push(clinicalAction);
+
+    // Add system message to conversation
+    simulationState.conversationHistory.push({
+      sender: 'system',
+      message: actionResult.systemMessage,
+      messageType: 'action',
+      timestamp: new Date(),
+      clinicalInfo: actionResult.clinicalInfo
+    });
+
+    // Update metrics
+    simulationState.sessionMetrics.clinicalActionsCount = simulationState.clinicalActions.length;
+    simulationState.sessionMetrics.messageCount = simulationState.conversationHistory.length;
+    simulationState.lastActivity = new Date();
+
+    // Update database asynchronously
+    updateDatabaseAsync(id, userId, simulationState, false);
+
+    res.json({
+      success: true,
+      message: `${action.replace('_', ' ')} completed successfully`,
+      systemMessage: actionResult.systemMessage,
+      clinicalInfo: actionResult.clinicalInfo,
+      actionResult: actionResult.result,
+      conversationHistory: simulationState.conversationHistory.slice(-5),
+      sessionMetrics: {
+        clinicalActionsCount: simulationState.sessionMetrics.clinicalActionsCount,
+        messageCount: simulationState.sessionMetrics.messageCount
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error performing template clinical action:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform clinical action',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
  * Complete template simulation with evaluation
  */
 router.post('/:id/complete', authMiddleware, async (req, res) => {
@@ -951,28 +1053,215 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
 });
 
 /**
+ * Get action category for clinical actions
+ */
+function getActionCategory(action) {
+  const categories = {
+    'history_taking': 'assessment',
+    'physical_exam': 'assessment', 
+    'order_labs': 'diagnostic',
+    'order_imaging': 'diagnostic',
+    'diagnosis': 'clinical_reasoning',
+    'treatment_plan': 'management'
+  };
+  return categories[action] || 'general';
+}
+
+/**
+ * Generate realistic clinical action results for template simulations
+ */
+function generateTemplateActionResult(action, details, caseData) {
+  const patientName = caseData.patient_persona.name;
+  const condition = caseData.clinical_dossier.hidden_diagnosis;
+  const clinicalDossier = caseData.clinical_dossier;
+
+  switch (action) {
+    case 'history_taking':
+      return generateHistoryResult(details, patientName, clinicalDossier);
+    
+    case 'physical_exam':
+      return generatePhysicalExamResult(details, patientName, clinicalDossier);
+    
+    case 'order_labs':
+      return generateLabResult(details, patientName, clinicalDossier);
+    
+    case 'order_imaging':
+      return generateImagingResult(details, patientName, clinicalDossier);
+    
+    case 'diagnosis':
+      return generateDiagnosisResult(details, patientName, condition);
+    
+    case 'treatment_plan':
+      return generateTreatmentResult(details, patientName, condition);
+    
+    default:
+      return {
+        systemMessage: `Clinical action "${action}" completed.`,
+        clinicalInfo: null,
+        result: 'Action completed'
+      };
+  }
+}
+
+function generateHistoryResult(details, patientName, clinicalDossier) {
+  const historyElements = clinicalDossier.history_of_presenting_illness || {};
+  const pastHistory = clinicalDossier.past_medical_history || {};
+  
+  return {
+    systemMessage: `History taking completed for ${patientName}. Key information obtained about: ${details}`,
+    clinicalInfo: {
+      historyObtained: details,
+      relevantFindings: {
+        onset: historyElements.onset || 'Not specified',
+        character: historyElements.character || 'Not specified',
+        severity: historyElements.severity || 'Not specified',
+        pastMedicalHistory: pastHistory.significant_conditions || 'None reported'
+      }
+    },
+    result: 'comprehensive_history'
+  };
+}
+
+function generatePhysicalExamResult(details, patientName, clinicalDossier) {
+  const physicalFindings = clinicalDossier.physical_examination || {};
+  
+  return {
+    systemMessage: `Physical examination completed for ${patientName}. Examination of: ${details}`,
+    clinicalInfo: {
+      examinationPerformed: details,
+      findings: {
+        general: physicalFindings.general_appearance || 'Patient appears comfortable',
+        vitals: physicalFindings.vital_signs || 'Stable vital signs',
+        systemSpecific: physicalFindings[details.toLowerCase()] || `${details} examination completed`
+      }
+    },
+    result: 'physical_exam_completed'
+  };
+}
+
+function generateLabResult(details, patientName, clinicalDossier) {
+  const labResults = clinicalDossier.laboratory_results || {};
+  
+  return {
+    systemMessage: `Laboratory tests ordered for ${patientName}: ${details}`,
+    clinicalInfo: {
+      testsOrdered: details,
+      results: labResults[details.toLowerCase()] || {
+        status: 'Results pending',
+        expectedTime: '30-60 minutes',
+        clinicalSignificance: `${details} will help assess patient condition`
+      }
+    },
+    result: 'labs_ordered'
+  };
+}
+
+function generateImagingResult(details, patientName, clinicalDossier) {
+  const imagingResults = clinicalDossier.imaging_results || {};
+  
+  return {
+    systemMessage: `Imaging study ordered for ${patientName}: ${details}`,
+    clinicalInfo: {
+      imagingOrdered: details,
+      results: imagingResults[details.toLowerCase()] || {
+        status: 'Study scheduled',
+        expectedTime: '1-2 hours',
+        clinicalIndication: `${details} ordered based on clinical presentation`
+      }
+    },
+    result: 'imaging_ordered'
+  };
+}
+
+function generateDiagnosisResult(details, patientName, actualCondition) {
+  const diagnosisAccuracy = assessDiagnosticAccuracy(details, actualCondition);
+  
+  return {
+    systemMessage: `Diagnosis documented for ${patientName}: ${details}`,
+    clinicalInfo: {
+      proposedDiagnosis: details,
+      accuracy: diagnosisAccuracy.accuracy,
+      feedback: diagnosisAccuracy.feedback,
+      actualCondition: diagnosisAccuracy.accuracy === 'correct' ? actualCondition : 'Assessment pending'
+    },
+    result: diagnosisAccuracy.accuracy
+  };
+}
+
+function generateTreatmentResult(details, patientName, condition) {
+  const treatmentAppropriateness = assessTreatmentAppropriateness(details, condition);
+  
+  return {
+    systemMessage: `Treatment plan developed for ${patientName}: ${details}`,
+    clinicalInfo: {
+      treatmentPlan: details,
+      appropriateness: treatmentAppropriateness.appropriateness,
+      recommendations: treatmentAppropriateness.recommendations,
+      safetyConsiderations: treatmentAppropriateness.safety
+    },
+    result: treatmentAppropriateness.appropriateness
+  };
+}
+
+function assessDiagnosticAccuracy(diagnosis, actualCondition) {
+  const diagnosisLower = diagnosis.toLowerCase();
+  const conditionLower = actualCondition.toLowerCase();
+  
+  // Simple keyword matching - in production, this would be more sophisticated
+  const isAccurate = diagnosisLower.includes(conditionLower.split('_')[0]) || 
+                    conditionLower.includes(diagnosisLower.split(' ')[0]);
+  
+  return {
+    accuracy: isAccurate ? 'correct' : 'needs_review',
+    feedback: isAccurate ? 
+      'Diagnosis aligns well with clinical presentation' : 
+      'Consider reviewing clinical findings and differential diagnosis'
+  };
+}
+
+function assessTreatmentAppropriateness(treatment, condition) {
+  // Basic treatment assessment - would be more sophisticated in production
+  return {
+    appropriateness: 'appropriate',
+    recommendations: ['Monitor patient response', 'Follow evidence-based guidelines'],
+    safety: 'Standard precautions apply'
+  };
+}
+
+/**
  * Generate template simulation evaluation
  */
 async function generateTemplateEvaluation(simulationState, duration) {
   try {
     const studentMessages = simulationState.conversationHistory.filter(msg => msg.sender === 'student');
     const totalMessages = simulationState.conversationHistory.length;
+    const clinicalActions = simulationState.clinicalActions || [];
     
-    // Calculate base scores
+    // Calculate communication score
     const communicationScore = Math.min(100, Math.max(50, 70 + (studentMessages.length * 2)));
-    const clinicalReasoningScore = Math.min(100, Math.max(60, 75 + (studentMessages.length * 1.5)));
-    const professionalismScore = Math.min(100, Math.max(70, 85 - (duration > 20 ? 5 : 0)));
-    const efficiencyScore = Math.min(100, Math.max(50, 90 - Math.max(0, duration - 15) * 2));
     
-    // Overall score calculation
+    // Calculate clinical reasoning score (enhanced with actions)
+    const baseReasoningScore = Math.min(100, Math.max(60, 75 + (studentMessages.length * 1.5)));
+    const clinicalActionsScore = assessClinicalActions(clinicalActions, simulationState.caseData);
+    const clinicalReasoningScore = Math.round((baseReasoningScore * 0.6) + (clinicalActionsScore * 0.4));
+    
+    // Calculate professionalism score
+    const professionalismScore = Math.min(100, Math.max(70, 85 - (duration > 20 ? 5 : 0)));
+    
+    // Calculate efficiency score (considering both time and systematic approach)
+    const baseEfficiencyScore = Math.min(100, Math.max(50, 90 - Math.max(0, duration - 15) * 2));
+    const systematicApproachBonus = assessSystematicApproach(clinicalActions);
+    const efficiencyScore = Math.min(100, baseEfficiencyScore + systematicApproachBonus);
+    
+    // Overall score calculation (updated weights to include clinical actions)
     const overallScore = Math.round(
-      (communicationScore * 0.3) + 
-      (clinicalReasoningScore * 0.3) + 
-      (professionalismScore * 0.2) + 
-      (efficiencyScore * 0.2)
+      (communicationScore * 0.25) + 
+      (clinicalReasoningScore * 0.35) + 
+      (professionalismScore * 0.20) + 
+      (efficiencyScore * 0.20)
     );
 
-    // Generate criteria evaluation
+    // Generate criteria evaluation (enhanced with clinical actions)
     const criteriaEvaluation = {
       communication: {
         score: communicationScore,
@@ -985,12 +1274,10 @@ async function generateTemplateEvaluation(simulationState, duration) {
       },
       clinical_reasoning: {
         score: clinicalReasoningScore,
-        description: "Systematic approach to diagnosis and clinical thinking",
-        feedback: clinicalReasoningScore >= 80 ?
-          "Strong clinical reasoning with systematic approach to patient assessment" :
-          clinicalReasoningScore >= 70 ?
-          "Good clinical thinking with some areas for improvement" :
-          "Clinical reasoning needs strengthening - practice differential diagnosis"
+        description: "Systematic approach to diagnosis and clinical thinking including appropriate use of clinical actions",
+        feedback: generateClinicalReasoningFeedback(clinicalReasoningScore, clinicalActions),
+        clinicalActionsPerformed: clinicalActions.length,
+        systematicApproach: assessSystematicApproach(clinicalActions) > 0 ? 'demonstrated' : 'needs_improvement'
       },
       professionalism: {
         score: professionalismScore,
@@ -1001,31 +1288,36 @@ async function generateTemplateEvaluation(simulationState, duration) {
       },
       efficiency: {
         score: efficiencyScore,
-        description: "Time management and focused questioning",
-        feedback: efficiencyScore >= 80 ?
-          "Excellent time management and focused approach" :
-          efficiencyScore >= 70 ?
-          "Good efficiency with some unnecessary delays" :
-          "Time management needs improvement - focus on prioritizing key questions"
+        description: "Time management and focused approach to patient assessment",
+        feedback: generateEfficiencyFeedback(efficiencyScore, duration, clinicalActions.length)
       }
     };
 
-    // Generate recommendations
+    // Generate recommendations (enhanced with clinical actions)
     const recommendations = [];
     if (communicationScore < 80) {
       recommendations.push("Practice active listening techniques and empathetic responses");
     }
     if (clinicalReasoningScore < 80) {
-      recommendations.push("Review systematic approaches to clinical assessment");
+      recommendations.push("Review systematic approaches to clinical assessment and diagnostic reasoning");
+    }
+    if (clinicalActions.length < 3) {
+      recommendations.push("Practice using clinical actions (history, physical exam, labs) for comprehensive assessment");
     }
     if (efficiencyScore < 80) {
-      recommendations.push("Focus on prioritizing essential questions and information gathering");
+      recommendations.push("Focus on prioritizing essential questions and clinical actions");
+    }
+    if (!clinicalActions.some(action => action.action === 'history_taking')) {
+      recommendations.push("Always begin with comprehensive history taking");
+    }
+    if (!clinicalActions.some(action => action.action === 'physical_exam')) {
+      recommendations.push("Include physical examination in your clinical assessment");
     }
     if (overallScore >= 90) {
       recommendations.push("Excellent performance! Consider mentoring other students");
     }
 
-    // Identify strengths and improvement areas
+    // Identify strengths and improvement areas (enhanced with clinical actions)
     const strengths = [];
     const improvementAreas = [];
 
@@ -1041,12 +1333,30 @@ async function generateTemplateEvaluation(simulationState, duration) {
       }
     });
 
+    // Add clinical actions specific strengths/improvements
+    if (clinicalActions.length >= 4) {
+      strengths.push({ area: 'comprehensive assessment', score: 85 });
+    }
+    
+    if (assessSystematicApproach(clinicalActions) > 5) {
+      strengths.push({ area: 'systematic approach', score: 90 });
+    }
+    
+    if (clinicalActions.length < 2) {
+      improvementAreas.push({
+        area: 'clinical assessment',
+        score: 50,
+        suggestion: 'Perform more clinical actions like history taking and physical examination'
+      });
+    }
+
     return {
       overallScore,
       criteriaEvaluation,
       recommendations,
       strengths,
       improvementAreas,
+      clinicalActionsAnalysis: generateClinicalActionsAnalysis(clinicalActions, simulationState.caseData),
       caseInfo: {
         title: simulationState.caseData.case_metadata.title,
         specialty: simulationState.caseData.case_metadata.specialty,
@@ -1057,6 +1367,7 @@ async function generateTemplateEvaluation(simulationState, duration) {
         duration,
         messageCount: totalMessages,
         studentMessages: studentMessages.length,
+        clinicalActionsCount: clinicalActions.length,
         averageResponseLength: studentMessages.length > 0 ? 
           Math.round(studentMessages.reduce((sum, msg) => sum + msg.message.length, 0) / studentMessages.length) : 0
       }
@@ -1085,10 +1396,189 @@ async function generateTemplateEvaluation(simulationState, duration) {
       sessionMetrics: {
         duration: duration || 0,
         messageCount: simulationState.conversationHistory?.length || 0,
-        studentMessages: simulationState.conversationHistory?.filter(msg => msg.sender === 'student').length || 0
+        studentMessages: simulationState.conversationHistory?.filter(msg => msg.sender === 'student').length || 0,
+        clinicalActionsCount: 0
       }
     };
   }
+}
+
+/**
+ * Assess clinical actions performance
+ */
+function assessClinicalActions(clinicalActions, caseData) {
+  if (!clinicalActions || clinicalActions.length === 0) {
+    return 50; // Base score for no actions
+  }
+
+  const expectedActions = getExpectedActionsForCase(caseData);
+  const performedActions = clinicalActions.map(action => action.action);
+  
+  // Calculate completeness score
+  const criticalActionsCompleted = expectedActions.critical.filter(action => 
+    performedActions.includes(action)
+  ).length;
+  
+  const recommendedActionsCompleted = expectedActions.recommended.filter(action => 
+    performedActions.includes(action)
+  ).length;
+  
+  // Scoring: Critical actions worth more
+  const criticalScore = (criticalActionsCompleted / Math.max(1, expectedActions.critical.length)) * 60;
+  const recommendedScore = (recommendedActionsCompleted / Math.max(1, expectedActions.recommended.length)) * 30;
+  const systematicBonus = assessSystematicApproach(clinicalActions);
+  
+  return Math.min(100, Math.round(criticalScore + recommendedScore + systematicBonus));
+}
+
+/**
+ * Assess systematic approach to clinical actions
+ */
+function assessSystematicApproach(clinicalActions) {
+  if (!clinicalActions || clinicalActions.length === 0) return 0;
+  
+  const actionOrder = clinicalActions.map(action => action.action);
+  let systematicScore = 0;
+  
+  // Check for logical progression
+  const idealOrder = ['history_taking', 'physical_exam', 'order_labs', 'order_imaging', 'diagnosis', 'treatment_plan'];
+  
+  let lastIdealIndex = -1;
+  for (const action of actionOrder) {
+    const currentIdealIndex = idealOrder.indexOf(action);
+    if (currentIdealIndex > lastIdealIndex) {
+      systematicScore += 2; // Bonus for following logical order
+      lastIdealIndex = currentIdealIndex;
+    }
+  }
+  
+  // Bonus for completing assessment before management
+  const hasHistory = actionOrder.includes('history_taking');
+  const hasPhysicalExam = actionOrder.includes('physical_exam');
+  const hasDiagnosis = actionOrder.includes('diagnosis');
+  
+  if (hasHistory && hasPhysicalExam && hasDiagnosis) {
+    systematicScore += 5; // Bonus for complete assessment
+  }
+  
+  return Math.min(10, systematicScore); // Cap at 10 points bonus
+}
+
+/**
+ * Get expected actions for a case
+ */
+function getExpectedActionsForCase(caseData) {
+  const condition = caseData.clinical_dossier.hidden_diagnosis;
+  const specialty = caseData.case_metadata.specialty;
+  
+  // Default expected actions
+  let expected = {
+    critical: ['history_taking', 'physical_exam'],
+    recommended: ['diagnosis']
+  };
+  
+  // Customize based on condition/specialty
+  if (condition.toLowerCase().includes('cardiac') || condition.toLowerCase().includes('heart')) {
+    expected.critical.push('order_labs');
+    expected.recommended.push('order_imaging');
+  }
+  
+  if (specialty.toLowerCase().includes('emergency')) {
+    expected.critical.push('order_labs');
+    expected.recommended.push('treatment_plan');
+  }
+  
+  return expected;
+}
+
+/**
+ * Generate clinical reasoning feedback
+ */
+function generateClinicalReasoningFeedback(score, clinicalActions) {
+  const actionsCount = clinicalActions.length;
+  
+  if (score >= 85) {
+    return `Excellent clinical reasoning demonstrated with ${actionsCount} clinical actions performed systematically`;
+  } else if (score >= 75) {
+    return `Good clinical reasoning with ${actionsCount} actions. Consider more systematic approach to assessment`;
+  } else if (score >= 65) {
+    return `Clinical reasoning shows promise. Performed ${actionsCount} actions but could benefit from more comprehensive assessment`;
+  } else {
+    return `Clinical reasoning needs development. Only ${actionsCount} actions performed. Focus on systematic patient assessment`;
+  }
+}
+
+/**
+ * Generate efficiency feedback
+ */
+function generateEfficiencyFeedback(score, duration, actionsCount) {
+  if (score >= 85) {
+    return `Excellent efficiency: completed ${actionsCount} clinical actions in ${duration} minutes with focused approach`;
+  } else if (score >= 75) {
+    return `Good efficiency with ${actionsCount} actions in ${duration} minutes. Minor optimization possible`;
+  } else {
+    return `Efficiency needs improvement: ${actionsCount} actions in ${duration} minutes. Focus on prioritizing essential assessments`;
+  }
+}
+
+/**
+ * Generate clinical actions analysis
+ */
+function generateClinicalActionsAnalysis(clinicalActions, caseData) {
+  if (!clinicalActions || clinicalActions.length === 0) {
+    return {
+      summary: "No clinical actions performed",
+      missedOpportunities: ["History taking", "Physical examination", "Diagnostic workup"],
+      recommendations: ["Practice systematic patient assessment", "Follow clinical reasoning frameworks"]
+    };
+  }
+  
+  const expectedActions = getExpectedActionsForCase(caseData);
+  const performedActions = clinicalActions.map(action => action.action);
+  
+  const completedCritical = expectedActions.critical.filter(action => performedActions.includes(action));
+  const missedCritical = expectedActions.critical.filter(action => !performedActions.includes(action));
+  
+  return {
+    summary: `Performed ${clinicalActions.length} clinical actions including ${completedCritical.length}/${expectedActions.critical.length} critical assessments`,
+    actionsPerformed: clinicalActions.map(action => ({
+      action: action.action.replace('_', ' '),
+      details: action.details,
+      timestamp: action.timestamp,
+      category: action.category
+    })),
+    missedOpportunities: missedCritical.map(action => action.replace('_', ' ')),
+    recommendations: generateActionRecommendations(performedActions, expectedActions)
+  };
+}
+
+/**
+ * Generate action-specific recommendations
+ */
+function generateActionRecommendations(performedActions, expectedActions) {
+  const recommendations = [];
+  
+  if (!performedActions.includes('history_taking')) {
+    recommendations.push("Always start with comprehensive history taking");
+  }
+  
+  if (!performedActions.includes('physical_exam')) {
+    recommendations.push("Physical examination is essential for proper assessment");
+  }
+  
+  if (!performedActions.includes('diagnosis') && performedActions.length > 2) {
+    recommendations.push("Formulate differential diagnosis after gathering data");
+  }
+  
+  if (performedActions.includes('treatment_plan') && !performedActions.includes('diagnosis')) {
+    recommendations.push("Establish diagnosis before creating treatment plan");
+  }
+  
+  if (recommendations.length === 0) {
+    recommendations.push("Continue practicing systematic clinical approach");
+  }
+  
+  return recommendations;
 }
 
 // Helper methods are now available as regular functions
