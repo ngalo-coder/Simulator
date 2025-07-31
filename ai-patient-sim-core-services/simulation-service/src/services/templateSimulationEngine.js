@@ -144,10 +144,14 @@ class TemplateSimulationEngine {
         ),
       ]);
 
+      const patientResponse = aiResponse.patientResponse || aiResponse.response || this.getFallbackResponse(caseData);
+      
+      // Extract clinical information from the ACTUAL patient response, not just the template
+      const actualClinicalInfo = this.extractClinicalInfoFromResponse(patientResponse, userMessage, caseData);
+
       return {
-        response:
-          aiResponse.patientResponse || aiResponse.response || this.getFallbackResponse(caseData),
-        clinicalInfo: relevantClinicalInfo,
+        response: patientResponse,
+        clinicalInfo: actualClinicalInfo,
         usage: aiResponse.usage,
       };
     } catch (error) {
@@ -202,7 +206,7 @@ You are here because you need the doctor's help. Respond only as the patient wou
   }
 
   /**
-   * Fast clinical information extraction
+   * Fast clinical information extraction (for prompt optimization)
    */
   extractRelevantClinicalInfo(question, caseData) {
     const questionLower = question.toLowerCase();
@@ -254,6 +258,137 @@ You are here because you need the doctor's help. Respond only as the patient wou
     });
 
     return Object.keys(relevantInfo).length > 0 ? relevantInfo : null;
+  }
+
+  /**
+   * Extract clinical information from the ACTUAL patient response
+   * This ensures the "Clinical Information Revealed" matches what the patient actually said
+   */
+  extractClinicalInfoFromResponse(patientResponse, studentQuestion, caseData) {
+    if (!patientResponse || typeof patientResponse !== 'string') {
+      return null;
+    }
+
+    const responseLower = patientResponse.toLowerCase();
+    const questionLower = studentQuestion.toLowerCase();
+    const clinicalInfo = {};
+
+    // Extract timing information from patient's actual words
+    const timingPatterns = [
+      // Specific timeframes
+      { pattern: /(\d+)\s*(day|days)\s*(ago|now)/i, extract: (match) => `${match[1]} ${match[2]} ago` },
+      { pattern: /(\d+)\s*(week|weeks)\s*(ago|now)/i, extract: (match) => `${match[1]} ${match[2]} ago` },
+      { pattern: /(\d+)\s*(month|months)\s*(ago|now)/i, extract: (match) => `${match[1]} ${match[2]} ago` },
+      { pattern: /(\d+)\s*(year|years)\s*(ago|now)/i, extract: (match) => `${match[1]} ${match[2]} ago` },
+      
+      // Relative timeframes
+      { pattern: /about\s*(\d+)\s*(day|days|week|weeks|month|months|year|years)/i, extract: (match) => `About ${match[1]} ${match[2]}` },
+      { pattern: /(yesterday|last week|last month|last year)/i, extract: (match) => match[1] },
+      { pattern: /(recently|lately|a while ago)/i, extract: (match) => match[1] },
+      
+      // Duration patterns
+      { pattern: /for\s*(\d+)\s*(day|days|week|weeks|month|months)/i, extract: (match) => `For ${match[1]} ${match[2]}` },
+      { pattern: /since\s*(\d+)\s*(day|days|week|weeks|month|months)\s*ago/i, extract: (match) => `Since ${match[1]} ${match[2]} ago` },
+    ];
+
+    // Check if student asked about timing and extract from response
+    if (questionLower.match(/when|how long|start|begin|since/)) {
+      for (const { pattern, extract } of timingPatterns) {
+        const match = responseLower.match(pattern);
+        if (match) {
+          clinicalInfo.timing = extract(match);
+          break;
+        }
+      }
+    }
+
+    // Extract symptom characteristics from patient's actual words
+    const symptomPatterns = [
+      // Pain descriptions
+      { pattern: /(sharp|dull|aching|burning|stabbing|throbbing|cramping|shooting)/i, type: 'character' },
+      { pattern: /(mild|moderate|severe|excruciating|unbearable)/i, type: 'severity' },
+      { pattern: /(constant|intermittent|comes and goes|on and off)/i, type: 'pattern' },
+      
+      // Location descriptions
+      { pattern: /(chest|back|abdomen|head|neck|arm|leg|stomach)/i, type: 'location' },
+      
+      // Associated symptoms
+      { pattern: /(nausea|vomiting|fever|chills|sweating|dizziness)/i, type: 'associated_symptoms' },
+    ];
+
+    if (questionLower.match(/pain|hurt|feel|symptom|describe/)) {
+      const symptoms = {};
+      for (const { pattern, type } of symptomPatterns) {
+        const match = responseLower.match(pattern);
+        if (match) {
+          if (!symptoms[type]) symptoms[type] = [];
+          symptoms[type].push(match[1]);
+        }
+      }
+      if (Object.keys(symptoms).length > 0) {
+        clinicalInfo.symptoms = symptoms;
+      }
+    }
+
+    // Extract medication information from actual response
+    const medicationPatterns = [
+      { pattern: /(aspirin|ibuprofen|acetaminophen|tylenol|advil|motrin)/i, type: 'over_the_counter' },
+      { pattern: /(prescription|prescribed|doctor gave me)/i, type: 'prescription_mentioned' },
+      { pattern: /(no medications|not taking anything|no pills)/i, type: 'none' },
+    ];
+
+    if (questionLower.match(/medication|medicine|drug|pill|taking/)) {
+      const medications = {};
+      for (const { pattern, type } of medicationPatterns) {
+        const match = responseLower.match(pattern);
+        if (match) {
+          medications[type] = match[1];
+        }
+      }
+      if (Object.keys(medications).length > 0) {
+        clinicalInfo.medications = medications;
+      }
+    }
+
+    // Extract family history from actual response
+    if (questionLower.match(/family|parent|father|mother|history/)) {
+      const familyPatterns = [
+        { pattern: /(father|dad).*?(cancer|heart|diabetes|stroke)/i, relation: 'father' },
+        { pattern: /(mother|mom).*?(cancer|heart|diabetes|stroke)/i, relation: 'mother' },
+        { pattern: /(no family history|nothing in the family)/i, relation: 'none' },
+      ];
+
+      for (const { pattern, relation } of familyPatterns) {
+        const match = responseLower.match(pattern);
+        if (match) {
+          if (!clinicalInfo.familyHistory) clinicalInfo.familyHistory = {};
+          clinicalInfo.familyHistory[relation] = match[0];
+        }
+      }
+    }
+
+    // Extract social history from actual response
+    if (questionLower.match(/smoke|drink|alcohol|work|job/)) {
+      const socialPatterns = [
+        { pattern: /(smoke|smoking|cigarettes)/i, type: 'smoking' },
+        { pattern: /(drink|alcohol|beer|wine)/i, type: 'alcohol' },
+        { pattern: /(work|job|occupation)/i, type: 'occupation' },
+      ];
+
+      const socialHistory = {};
+      for (const { pattern, type } of socialPatterns) {
+        const match = responseLower.match(pattern);
+        if (match) {
+          socialHistory[type] = match[0];
+        }
+      }
+      if (Object.keys(socialHistory).length > 0) {
+        clinicalInfo.socialHistory = socialHistory;
+      }
+    }
+
+    // Only return clinical info if we actually extracted something meaningful
+    return Object.keys(clinicalInfo).length > 0 ? clinicalInfo : null;
   }
 
   /**
