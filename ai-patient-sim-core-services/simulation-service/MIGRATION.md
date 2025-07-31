@@ -5,6 +5,7 @@ This document explains how to migrate template cases from JSON files to the Mong
 ## Overview
 
 The system has been updated to store template cases in MongoDB instead of JSON files. This provides better:
+
 - Scalability
 - Query performance
 - Data management
@@ -16,6 +17,7 @@ The system has been updated to store template cases in MongoDB instead of JSON f
 ### 1. Prerequisites
 
 Ensure you have:
+
 - MongoDB running and accessible
 - Environment variables configured in `.env`
 - All dependencies installed (`npm install`)
@@ -37,6 +39,7 @@ node src/scripts/migrateTemplateCases.js
 ### 3. Verify Migration
 
 The script will output:
+
 - Number of cases processed
 - Success/failure counts
 - Sample migrated cases
@@ -72,11 +75,13 @@ Template cases are stored with the following structure:
 ## API Changes
 
 ### Template Cases Endpoint
+
 - `GET /api/template-simulations/cases` - Now queries database
 - Supports all existing filters
 - Returns same format as before
 
 ### New Management Endpoints (Admin Only)
+
 - `GET /api/template-cases/stats` - Case statistics
 - `POST /api/template-cases/create` - Create new case
 - `PUT /api/template-cases/:caseId` - Update case
@@ -97,6 +102,7 @@ Template cases are stored with the following structure:
 ## Rollback
 
 If you need to rollback to JSON files:
+
 1. Keep the original `case_templates.json` file
 2. Revert the `TemplateCaseService` changes
 3. Update the service to use file-based loading
@@ -104,17 +110,20 @@ If you need to rollback to JSON files:
 ## Troubleshooting
 
 ### Migration Fails
+
 - Check MongoDB connection
 - Verify environment variables
 - Ensure sufficient disk space
 - Check for duplicate case IDs
 
 ### Cases Not Loading
+
 - Verify database connection
 - Check case data integrity
 - Review server logs for errors
 
 ### Performance Issues
+
 - Ensure database indexes are created
 - Monitor database performance
 - Consider adding more indexes for specific queries
@@ -122,6 +131,7 @@ If you need to rollback to JSON files:
 ## Maintenance
 
 ### Adding New Cases
+
 Use the admin API endpoints or create cases programmatically:
 
 ```javascript
@@ -130,11 +140,13 @@ await templateCaseService.createCase(caseData);
 ```
 
 ### Updating Cases
+
 ```javascript
 await templateCaseService.updateCase(caseId, updateData);
 ```
 
 ### Backup
+
 Include template cases in your MongoDB backup strategy:
 
 ```bash
@@ -144,6 +156,7 @@ mongodump --db ai_patient_sim_simulations --collection templatecases
 ## Support
 
 For issues with migration or database operations, check:
+
 1. Server logs
 2. MongoDB logs
 3. Network connectivity

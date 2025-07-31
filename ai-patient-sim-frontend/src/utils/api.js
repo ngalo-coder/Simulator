@@ -2,6 +2,11 @@ import axios from 'axios';
 
 // Environment-based API configuration
 const getApiBaseUrl = () => {
+  // In production, use the production gateway URL
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.REACT_APP_API_URL || 'https://ai-patient-sim-gateway.onrender.com';
+  }
+  // In development, use local gateway
   return process.env.REACT_APP_API_GATEWAY_URL || 'http://localhost:4000';
 };
 
@@ -10,7 +15,10 @@ const API_BASE_URL = getApiBaseUrl();
 console.log('🔧 API Configuration:', {
   baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
-  hostname: window.location.hostname
+  hostname: window.location.hostname,
+  REACT_APP_API_GATEWAY_URL: process.env.REACT_APP_API_GATEWAY_URL,
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  isProduction: process.env.NODE_ENV === 'production'
 });
 
 // Create axios instance
