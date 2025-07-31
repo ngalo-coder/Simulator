@@ -1,7 +1,6 @@
 // ai-patient-sim-frontend/src/pages/SimulationPage.js - Updated with Beautiful Template UI
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { simulationAPI } from '../utils/simulationApi';
 import { 
   Send, 
@@ -20,7 +19,6 @@ import toast from 'react-hot-toast';
 const SimulationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   
   // Core state
   const [simulation, setSimulation] = useState(null);
