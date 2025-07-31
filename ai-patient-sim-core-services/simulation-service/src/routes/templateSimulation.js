@@ -48,7 +48,23 @@ router.get('/health', (req, res) => {
 });
 
 /**
- * Get all available template cases - OPTIMIZED
+ * Test authentication endpoint
+ */
+router.get('/auth-test', authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Authentication working',
+    user: {
+      id: req.user.id,
+      role: req.user.role,
+      email: req.user.email
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * Get all available template cases - OPTIMIZED (No auth required for browsing)
  */
 router.get('/cases', async (req, res) => {
   try {
@@ -123,8 +139,18 @@ router.get('/cases', async (req, res) => {
 router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res) => {
   try {
     const { caseId } = req.body;
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to start simulation',
+        code: 'AUTH_REQUIRED'
+      });
+    }
+    
     const userId = req.user.id;
-    const userRole = req.user.role;
+    const userRole = req.user.role || 'student';
 
     console.log(`🚀 Starting optimized template simulation - Case: ${caseId}, User: ${userId}`);
 
@@ -169,7 +195,7 @@ router.post('/start', authMiddleware, timeoutMiddleware(10000), async (req, res)
     activeSimulations.set(simulationId, simulationState);
 
     // Create database record asynchronously (don't wait)
-    const dbPromise = this.createDatabaseRecord(simulationState, userId, userRole);
+    const dbPromise = createDatabaseRecord(simulationState, userId, userRole);
     dbPromise.catch((error) => console.error('Database record creation failed:', error));
 
     console.log(`✅ Template simulation started quickly: ${simulationId}`);
@@ -255,7 +281,7 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
     // Get simulation from memory quickly
     const simulationState = activeSimulations.get(id);
     if (!simulationState || simulationState.userId !== userId) {
-      return this.handleSimulationNotFound(id, userId, res);
+      return handleSimulationNotFound(id, userId, res);
     }
 
     if (simulationState.status !== 'active') {
@@ -291,7 +317,7 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
       console.error('AI response failed:', error.message);
       // Use immediate fallback
       aiResponse = {
-        response: this.getEmergencyFallback(simulationState.caseData),
+        response: getEmergencyFallback(simulationState.caseData),
         clinicalInfo: null,
         error: error.message,
       };
@@ -325,7 +351,7 @@ router.post('/:id/message', authMiddleware, timeoutMiddleware(15000), async (req
     }
 
     // Update database asynchronously (don't wait)
-    this.updateDatabaseAsync(id, userId, simulationState, simulationEnded);
+    updateDatabaseAsync(id, userId, simulationState, simulationEnded);
 
     // Send response immediately
     res.json({
@@ -375,7 +401,7 @@ router.post('/:id/complete', authMiddleware, timeoutMiddleware(10000), async (re
     // Get simulation from memory
     const simulationState = activeSimulations.get(id);
     if (!simulationState || simulationState.userId !== userId) {
-      return this.handleSimulationNotFound(id, userId, res);
+      return handleSimulationNotFound(id, userId, res);
     }
 
     // Generate evaluation quickly
@@ -387,7 +413,7 @@ router.post('/:id/complete', authMiddleware, timeoutMiddleware(10000), async (re
     activeSimulations.delete(id);
 
     // Update database asynchronously
-    this.completeDatabaseRecordAsync(id, userId, endTime, duration, evaluation);
+    completeDatabaseRecordAsync(id, userId, endTime, duration, evaluation);
 
     // Send response immediately
     res.json({
@@ -751,12 +777,7 @@ router.post('/:id/fallback-message', authMiddleware, (req, res) => {
   }
 });
 
-// Attach helper methods to router for access in route handlers
-router.handleSimulationNotFound = handleSimulationNotFound;
-router.getEmergencyFallback = getEmergencyFallback;
-router.createDatabaseRecord = createDatabaseRecord;
-router.updateDatabaseAsync = updateDatabaseAsync;
-router.completeDatabaseRecordAsync = completeDatabaseRecordAsync;
+// Helper methods are now available as regular functions
 
 // Run cleanup every 30 minutes
 setInterval(cleanupExpiredSimulations, 30 * 60 * 1000);
