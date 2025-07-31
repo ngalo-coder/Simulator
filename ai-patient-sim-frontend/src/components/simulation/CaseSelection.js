@@ -10,7 +10,6 @@ import {
   Users, 
   Activity,
   Clock,
-  Star,
   Filter,
   Search
 } from 'lucide-react';
@@ -123,16 +122,7 @@ const CaseSelection = () => {
     }
   };
 
-  const getPatientTypeDisplay = (patientType) => {
-    const types = {
-      'adult': 'Adult Patient',
-      'pediatric_with_guardian': 'Pediatric + Guardian',
-      'adolescent_with_guardian': 'Adolescent + Guardian',
-      'pediatric_trauma_with_guardian': 'Pediatric Trauma + Guardian',
-      'adolescent_confidential': 'Adolescent (Confidential)'
-    };
-    return types[patientType] || patientType;
-  };
+
 
   const getProgramAreaDisplay = (programArea) => {
     // Handle template case program areas
