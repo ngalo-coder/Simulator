@@ -16,10 +16,28 @@ async function migrateTemplateCases() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Read the JSON file
+    // Check if JSON file exists (it has been deleted after successful migration)
     const jsonPath = path.join(__dirname, '../data/case_templates.json');
-    const rawData = await fs.readFile(jsonPath, 'utf8');
-    const casesData = JSON.parse(rawData);
+    
+    let casesData;
+    try {
+      const rawData = await fs.readFile(jsonPath, 'utf8');
+      casesData = JSON.parse(rawData);
+    } catch (error) {
+      console.log('⚠️ JSON file not found - migration has already been completed.');
+      console.log('📋 All template cases are now stored in MongoDB database.');
+      
+      // Show current database status
+      const totalCasesInDB = await TemplateCase.countDocuments({ isActive: true });
+      console.log(`✅ Current cases in database: ${totalCasesInDB}`);
+      
+      if (totalCasesInDB > 0) {
+        console.log('🎉 Migration was successful! Cases are available in the database.');
+      } else {
+        console.log('⚠️ No cases found in database. You may need to restore the JSON file to re-run migration.');
+      }
+      return;
+    }
     
     console.log(`📋 Found ${casesData.length} cases to migrate`);
 

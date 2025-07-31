@@ -17,90 +17,11 @@ class TemplateCaseService {
       return cases;
     } catch (error) {
       console.error('❌ Error loading template cases from database:', error);
-      // Fallback to sample template if database fails
-      return [this.getSampleTemplate()];
+      throw new Error('Database connection failed. Please ensure MongoDB is running and accessible.');
     }
   }
 
-  /**
-   * Get sample template for testing
-   */
-  getSampleTemplate() {
-    return [{
-      "version": "3.1-program-aware",
-      "description": "Sample virtual patient simulation case",
-      "system_instruction": "You are an AI-powered virtual patient in a medical simulation environment...",
-      "case_metadata": {
-        "program_area": "Basic Program",
-        "case_id": "VP-SAMPLE-001",
-        "title": "Sample Patient Case",
-        "specialty": "Internal Medicine",
-        "difficulty": "Easy",
-        "tags": ["sample", "internal medicine", "basic"],
-        "location": "Kenya"
-      },
-      "patient_persona": {
-        "name": "John Doe",
-        "age": "45",
-        "gender": "Male",
-        "occupation": "Teacher",
-        "chief_complaint": "Chest pain since morning",
-        "emotional_tone": "Anxious",
-        "background_story": "Works as a teacher, lives with family",
-        "speaks_for": "Self",
-        "patient_is_present": true,
-        "patient_age_for_communication": 45
-      },
-      "initial_prompt": "You are now interacting with a virtual patient. Begin by asking your clinical questions.",
-      "clinical_dossier": {
-        "comment": "This is the AI's source of truth. Only reveal these details when directly asked.",
-        "hidden_diagnosis": "Acute Myocardial Infarction",
-        "history_of_presenting_illness": {
-          "onset": "Started 2 hours ago",
-          "location": "Central chest",
-          "radiation": "Left arm and jaw",
-          "character": "Crushing, heavy pressure",
-          "severity": "8/10",
-          "timing_and_duration": "Constant since onset",
-          "exacerbating_factors": "Movement, deep breathing",
-          "relieving_factors": "Rest partially helps",
-          "associated_symptoms": ["Shortness of breath", "Sweating", "Nausea"]
-        },
-        "review_of_systems": {
-          "positive": ["Chest pain", "Shortness of breath", "Diaphoresis"],
-          "negative": ["No headache", "No abdominal pain", "No urinary symptoms"]
-        },
-        "past_medical_history": ["Hypertension", "Diabetes mellitus type 2"],
-        "medications": ["Metformin 500mg BID", "Lisinopril 10mg daily"],
-        "allergies": ["No known drug allergies"],
-        "surgical_history": ["None"],
-        "family_history": ["Father died of heart attack at 55"],
-        "social_history": {
-          "smoking_status": "Former smoker, quit 5 years ago",
-          "alcohol_use": "Social drinking",
-          "substance_use": "Denies",
-          "diet_and_exercise": "Sedentary lifestyle",
-          "living_situation": "Lives with wife and children"
-        }
-      },
-      "simulation_triggers": {
-        "end_session": {
-          "condition_keyword": "diagnosis",
-          "patient_response": "Thank you, doctor. What do you think is going on with me?"
-        },
-        "invalid_input": {
-          "response": "Sorry, I didn't understand that. Can you ask it differently?"
-        }
-      },
-      "evaluation_criteria": {
-        "History_Taking": "Did the user thoroughly explore the symptoms using OPQRST or similar?",
-        "Risk_Factor_Assessment": "Were lifestyle, past medical, and family histories covered?",
-        "Differential_Diagnosis_Questioning": "Did the clinician ask questions to rule out similar or dangerous conditions?",
-        "Communication_and_Empathy": "Was the approach sensitive to the patient's emotional tone?",
-        "Clinical_Urgency": "Did the clinician demonstrate appropriate urgency or escalation?"
-      }
-    }];
-  }
+
 
   /**
    * Get all available cases with optional filtering
@@ -113,8 +34,7 @@ class TemplateCaseService {
       return cases.map(case_ => case_.frontendFormat);
     } catch (error) {
       console.error('❌ Error getting cases from database:', error);
-      // Fallback to sample case
-      return [this.transformCaseForFrontend(this.getSampleTemplate())];
+      throw new Error('Failed to retrieve cases from database. Please check database connection.');
     }
   }
 
@@ -137,41 +57,7 @@ class TemplateCaseService {
     }
   }
 
-  /**
-   * Transform case data for frontend consumption (hide clinical dossier)
-   */
-  transformCaseForFrontend(caseData) {
-    if (!caseData.case_metadata || !caseData.patient_persona) {
-      console.warn('Invalid case data structure:', caseData);
-      return null;
-    }
 
-    return {
-      id: caseData.case_metadata.case_id,
-      title: caseData.case_metadata.title,
-      specialty: caseData.case_metadata.specialty,
-      difficulty: caseData.case_metadata.difficulty,
-      programArea: caseData.case_metadata.program_area,
-      tags: caseData.case_metadata.tags || [],
-      location: caseData.case_metadata.location,
-      patientInfo: {
-        name: caseData.patient_persona.name,
-        age: caseData.patient_persona.age,
-        gender: caseData.patient_persona.gender,
-        occupation: caseData.patient_persona.occupation,
-        chiefComplaint: caseData.patient_persona.chief_complaint,
-        emotionalTone: caseData.patient_persona.emotional_tone,
-        backgroundStory: caseData.patient_persona.background_story
-      },
-      description: caseData.description,
-      version: caseData.version,
-      hasGuardian: this.isPediatricCase(caseData.patient_persona),
-      guardianInfo: this.isPediatricCase(caseData.patient_persona) ? {
-        relationship: caseData.patient_persona.speaks_for || 'Parent/Guardian',
-        patientAge: caseData.patient_persona.age
-      } : null
-    };
-  }
 
   /**
    * Get unique values for filtering
