@@ -71,16 +71,16 @@ class TemplateSimulationEngine {
     // Create deterministic initial response based on template
     if (patient_persona.speaks_for !== 'Self') {
       // Guardian speaking for child
-      return `Hello doctor, I'm ${patient_persona.speaks_for} and this is ${
+      return `Hello doctor, I'm the ${patient_persona.speaks_for.toLowerCase()} and this is ${
         patient_persona.name
       }. We're here because ${
-        patient_persona.chief_complaint
+        patient_persona.chief_complaint.toLowerCase()
       }. I'm quite ${patient_persona.emotional_tone.toLowerCase()} about this.`;
     } else {
       // Adult patient speaking
       return `Hello doctor, I'm ${patient_persona.name}. I came to see you because ${
-        patient_persona.chief_complaint
-      }. I'm feeling ${patient_persona.emotional_tone.toLowerCase()} about this situation.`;
+        patient_persona.chief_complaint.toLowerCase()
+      }. I'm feeling ${patient_persona.emotional_tone.toLowerCase()} about this.`;
     }
   }
 
@@ -168,16 +168,18 @@ class TemplateSimulationEngine {
   buildOptimizedPrompt(caseData, userMessage, clinicalInfo) {
     const { patient_persona, clinical_dossier } = caseData;
 
-    let prompt = `You are ${patient_persona.name}, ${
-      patient_persona.age
-    } years old. You're ${patient_persona.emotional_tone.toLowerCase()}.
+    let prompt = `CRITICAL: You are ONLY the PATIENT - ${patient_persona.name}, ${patient_persona.age} years old.
 
-CHIEF COMPLAINT: ${patient_persona.chief_complaint}
-HIDDEN DIAGNOSIS: ${clinical_dossier.hidden_diagnosis}
+You are NOT a doctor, clinician, or medical professional. You are the PATIENT who needs help.
 
-CURRENT QUESTION: "${userMessage}"
+Your situation:
+- You have: ${patient_persona.chief_complaint}
+- You feel: ${patient_persona.emotional_tone.toLowerCase()}
+- Your condition: ${clinical_dossier.hidden_diagnosis}
 
-INFORMATION TO REVEAL (only if directly asked):`;
+The doctor just asked: "${userMessage}"
+
+INFORMATION YOU CAN SHARE (only if directly asked):`;
 
     if (clinicalInfo) {
       Object.entries(clinicalInfo).forEach(([category, info]) => {
@@ -185,12 +187,16 @@ INFORMATION TO REVEAL (only if directly asked):`;
       });
     }
 
-    prompt += `\n\nRESPOND AS THE PATIENT:
+    prompt += `\n\nPATIENT RESPONSE RULES:
+- You are the PATIENT seeking help, NOT the doctor
+- Answer from YOUR perspective as the patient
 - Keep response SHORT (1-2 sentences)
-- Show your emotional state: ${patient_persona.emotional_tone.toLowerCase()}
-- Only answer what was asked
-- Use simple, natural language
-- Don't volunteer extra information`;
+- Show you're ${patient_persona.emotional_tone.toLowerCase()}
+- Only answer what the doctor asked you
+- Use simple, natural patient language
+- NEVER give medical advice or act like a doctor
+
+You are here because you need the doctor's help. Respond only as the patient would.`;
 
     return prompt;
   }
@@ -259,19 +265,29 @@ INFORMATION TO REVEAL (only if directly asked):`;
 
     const fallbackResponses = {
       anxious: [
-        "I'm sorry, I'm quite anxious right now. Could you repeat that?",
+        "I'm sorry doctor, I'm quite anxious right now. Could you repeat that?",
         "I'm worried about what's happening to me. What did you ask?",
         "I'm feeling very nervous. Can you ask me again?",
       ],
       scared: [
-        "I'm scared. Could you please repeat your question?",
+        "I'm scared doctor. Could you please repeat your question?",
         "I'm frightened and didn't catch what you said.",
         "I'm really scared right now. What did you want to know?",
       ],
       calm: [
-        "I'm sorry, could you repeat that question?",
+        "I'm sorry doctor, could you repeat that question?",
         "I didn't quite understand. Can you ask me again?",
         'Could you please ask that again?',
+      ],
+      worried: [
+        "I'm worried and missed what you said. Can you ask again?",
+        "I'm concerned about my condition. What did you ask?",
+        "I'm feeling worried. Could you repeat that?",
+      ],
+      frustrated: [
+        "I'm getting frustrated with how I'm feeling. What did you ask?",
+        "I'm having trouble concentrating. Can you repeat that?",
+        "I'm frustrated about my symptoms. What did you want to know?",
       ],
     };
 

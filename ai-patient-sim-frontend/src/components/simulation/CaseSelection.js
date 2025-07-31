@@ -74,7 +74,7 @@ const CaseSelection = () => {
 
   const fetchCases = useCallback(async () => {
     try {
-      const response = await simulationAPI.getCases();
+      const response = await simulationAPI.getTemplateCases();
       setCases(response.cases || []);
     } catch (error) {
       console.error('Error fetching cases:', error);
@@ -95,7 +95,7 @@ const CaseSelection = () => {
   const handleStartSimulation = async (caseId, difficulty) => {
     setStartingSimulation(caseId);
     try {
-      const response = await simulationAPI.startSimulation(caseId, difficulty);
+      const response = await simulationAPI.startTemplateSimulation(caseId);
       if (response.success) {
         toast.success('Simulation started successfully!');
         navigate(`/simulation/${response.simulation.id}`);
