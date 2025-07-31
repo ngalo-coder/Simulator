@@ -195,10 +195,10 @@ class TemplateCaseService {
       },
       description: caseData.description,
       version: caseData.version,
-      hasGuardian: caseData.patient_persona.speaks_for !== "Self",
-      guardianInfo: caseData.patient_persona.speaks_for !== "Self" ? {
-        relationship: caseData.patient_persona.speaks_for,
-        patientAge: caseData.patient_persona.patient_age_for_communication
+      hasGuardian: this.isPediatricCase(caseData.patient_persona),
+      guardianInfo: this.isPediatricCase(caseData.patient_persona) ? {
+        relationship: caseData.patient_persona.speaks_for || 'Parent/Guardian',
+        patientAge: caseData.patient_persona.age
       } : null
     };
   }
@@ -385,6 +385,21 @@ Respond like a real patient based on the 'Patient Persona' and 'Clinical Dossier
       "Clinical_Reasoning": "Did the clinician demonstrate logical clinical thinking?",
       "Professionalism": "Was the interaction conducted professionally and respectfully?"
     };
+  }
+
+  /**
+   * Determine if this is a pediatric case based on patient age
+   */
+  isPediatricCase(patientPersona) {
+    const age = patientPersona.age;
+    if (typeof age === 'number') {
+      return age < 18;
+    }
+    if (typeof age === 'string') {
+      const ageNum = parseInt(age);
+      return !isNaN(ageNum) && ageNum < 18;
+    }
+    return false;
   }
 
   /**

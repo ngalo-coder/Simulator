@@ -26,6 +26,9 @@ const PROGRAM_ICONS = {
 };
 
 const DIFFICULTY_COLORS = {
+  'Easy': 'bg-green-100 text-green-800',
+  'Intermediate': 'bg-yellow-100 text-yellow-800',
+  'Hard': 'bg-red-100 text-red-800',
   'student': 'bg-green-100 text-green-800',
   'resident': 'bg-blue-100 text-blue-800',
   'fellow': 'bg-purple-100 text-purple-800'
@@ -57,15 +60,25 @@ const CaseSelection = () => {
     }
 
     if (filters.patientType) {
-      filtered = filtered.filter(case_ => case_.patientType === filters.patientType);
+      // Map template case structure to patient type
+      filtered = filtered.filter(case_ => {
+        if (filters.patientType === 'adult') {
+          return !case_.hasGuardian;
+        } else if (filters.patientType === 'pediatric_with_guardian') {
+          return case_.hasGuardian;
+        }
+        return true;
+      });
     }
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(case_ => 
-        case_.name?.toLowerCase().includes(searchLower) ||
-        case_.chiefComplaint?.toLowerCase().includes(searchLower) ||
-        case_.specialty?.toLowerCase().includes(searchLower)
+        case_.title?.toLowerCase().includes(searchLower) ||
+        case_.patientInfo?.name?.toLowerCase().includes(searchLower) ||
+        case_.patientInfo?.chiefComplaint?.toLowerCase().includes(searchLower) ||
+        case_.specialty?.toLowerCase().includes(searchLower) ||
+        case_.tags?.some(tag => tag.toLowerCase().includes(searchLower))
       );
     }
 
@@ -122,6 +135,10 @@ const CaseSelection = () => {
   };
 
   const getProgramAreaDisplay = (programArea) => {
+    // Handle template case program areas
+    if (programArea === 'Basic Program') return 'Basic Program';
+    if (programArea === 'Specialty Program') return 'Specialty Program';
+    
     const areas = {
       'internal_medicine': 'Internal Medicine',
       'pediatrics': 'Pediatrics',
@@ -181,6 +198,8 @@ const CaseSelection = () => {
               onChange={(e) => setFilters({ ...filters, programArea: e.target.value })}
             >
               <option value="">All Programs</option>
+              <option value="Basic Program">Basic Program</option>
+              <option value="Specialty Program">Specialty Program</option>
               <option value="internal_medicine">Internal Medicine</option>
               <option value="pediatrics">Pediatrics</option>
               <option value="psychiatry">Psychiatry</option>
@@ -196,6 +215,9 @@ const CaseSelection = () => {
               onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
             >
               <option value="">All Levels</option>
+              <option value="Easy">Easy</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Hard">Hard</option>
               <option value="student">Medical Student</option>
               <option value="resident">Resident</option>
               <option value="fellow">Fellow</option>
@@ -232,10 +254,10 @@ const CaseSelection = () => {
                       </div>
                       <div className="ml-3">
                         <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
-                          {case_.chiefComplaint || case_.name}
+                          {case_.title || case_.patientInfo?.chiefComplaint || case_.name}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {getProgramAreaDisplay(case_.programArea)}
+                          {getProgramAreaDisplay(case_.programArea)} • {case_.specialty}
                         </p>
                       </div>
                     </div>
@@ -245,54 +267,79 @@ const CaseSelection = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2" />
-                      {getPatientTypeDisplay(case_.patientType)}
+                      {case_.patientInfo?.name}, {case_.patientInfo?.age} • {case_.patientInfo?.gender}
                     </div>
                     
-                    {case_.patientAge && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Activity className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Chief Complaint:</span> {case_.patientInfo?.chiefComplaint}
+                    </div>
+
+                    {case_.patientInfo?.occupation && (
                       <div className="flex items-center text-sm text-gray-600">
                         <Clock className="h-4 w-4 mr-2" />
-                        Patient: {case_.patientName}, {case_.patientAge}
+                        Occupation: {case_.patientInfo.occupation}
                       </div>
                     )}
 
-                    {case_.guardianInfo && (
+                    {case_.hasGuardian && (
                       <div className="flex items-center text-sm text-gray-600">
                         <Users className="h-4 w-4 mr-2" />
-                        Guardian: {case_.guardianInfo.name} ({case_.guardianInfo.relationship})
-                        {case_.guardianInfo.primaryLanguage !== 'English' && (
-                          <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                            {case_.guardianInfo.primaryLanguage}
-                          </span>
-                        )}
+                        Guardian speaks for patient
+                        <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                          Pediatric Case
+                        </span>
+                      </div>
+                    )}
+
+                    {case_.location && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="h-4 w-4 mr-2">🌍</span>
+                        Location: {case_.location}
                       </div>
                     )}
                   </div>
 
-                  {/* Learning Objectives */}
-                  {case_.learningObjectives && case_.learningObjectives.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Learning Objectives:</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        {case_.learningObjectives.slice(0, 2).map((objective, index) => (
-                          <li key={index} className="flex items-start">
-                            <Star className="h-3 w-3 mr-2 mt-0.5 text-yellow-500 flex-shrink-0" />
-                            {objective}
-                          </li>
-                        ))}
-                        {case_.learningObjectives.length > 2 && (
-                          <li className="text-gray-500">
-                            +{case_.learningObjectives.length - 2} more objectives
-                          </li>
-                        )}
-                      </ul>
+                  {/* Case Details */}
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {case_.tags && case_.tags.slice(0, 3).map((tag, index) => (
+                        <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                      {case_.tags && case_.tags.length > 3 && (
+                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-500 rounded-full">
+                          +{case_.tags.length - 3} more
+                        </span>
+                      )}
                     </div>
-                  )}
+                    
+                    {case_.patientInfo?.emotionalTone && (
+                      <div className="text-sm text-gray-600 mb-2">
+                        <span className="font-medium">Patient Mood:</span> {case_.patientInfo.emotionalTone}
+                      </div>
+                    )}
+
+                    {case_.patientInfo?.backgroundStory && (
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Background:</span> {case_.patientInfo.backgroundStory}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${DIFFICULTY_COLORS[case_.difficulty]}`}>
-                      {case_.difficulty.charAt(0).toUpperCase() + case_.difficulty.slice(1)}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${DIFFICULTY_COLORS[case_.difficulty] || 'bg-gray-100 text-gray-800'}`}>
+                        {case_.difficulty}
+                      </span>
+                      {case_.version && (
+                        <span className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded-full">
+                          v{case_.version}
+                        </span>
+                      )}
+                    </div>
                     
                     <button
                       onClick={() => handleStartSimulation(case_.id, case_.difficulty)}
