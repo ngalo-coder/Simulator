@@ -191,15 +191,59 @@ templateCaseSchema.virtual('isPediatric').get(function() {
   return false;
 });
 
-// Virtual for frontend-friendly format
+// Virtual for frontend-friendly format (sanitized to avoid diagnostic hints)
 templateCaseSchema.virtual('frontendFormat').get(function() {
+  // Filter out diagnostic tags that could give away the diagnosis
+  const diagnosticKeywords = [
+    // Cancers and tumors
+    'cancer', 'tumor', 'malignancy', 'carcinoma', 'lymphoma', 'leukemia', 'melanoma',
+    // Cardiovascular
+    'diabetes', 'hypertension', 'heart failure', 'myocardial', 'stroke', 'syncope',
+    // Infectious diseases
+    'pneumonia', 'tuberculosis', 'malaria', 'hiv', 'aids', 'cholera', 'typhoid', 'measles',
+    // Surgical conditions
+    'appendicitis', 'gallstones', 'hernia', 'fracture', 'arthritis',
+    // Mental health
+    'depression', 'anxiety', 'psychosis', 'schizophrenia', 'bipolar',
+    // Respiratory
+    'asthma', 'copd', 'bronchitis',
+    // Eye conditions
+    'glaucoma', 'cataracts', 'conjunctivitis',
+    // Skin conditions
+    'psoriasis', 'acne', 'tinea', 'urticaria',
+    // Endocrine
+    'hypothyroidism', 'hyperthyroidism', 'pcos',
+    // Neurological
+    'seizures', 'parkinsonism', 'neuropathy',
+    // Kidney
+    'pyelonephritis', 'nephrolithiasis', 'glomerulonephritis',
+    // Rheumatological
+    'gout', 'lupus', 'spondylitis',
+    // Gastrointestinal
+    'gastroenteritis', 'reflux', 'diarrhea',
+    // Reproductive
+    'pregnancy', 'menstruation', 'contraception',
+    // Nutritional
+    'malnutrition', 'anemia'
+  ];
+  
+  const safeTags = (this.tags || []).filter(tag => {
+    const tagLower = tag.toLowerCase();
+    return !diagnosticKeywords.some(keyword => tagLower.includes(keyword));
+  });
+
+  // Create a generic title that doesn't reveal diagnosis
+  const ageGroup = this.isPediatric ? 'Child' : 'Adult';
+  const genericTitle = `${ageGroup} Patient - ${this.specialty} Case`;
+
   return {
     id: this.caseId,
-    title: this.title,
+    title: genericTitle, // Use generic title instead of diagnostic title
+    originalTitle: this.title, // Keep original for admin/debugging
     specialty: this.specialty,
     difficulty: this.difficulty,
     programArea: this.programArea,
-    tags: this.tags || [],
+    tags: safeTags, // Only non-diagnostic tags
     location: this.location,
     patientInfo: {
       name: this.patientPersona.name,
@@ -289,11 +333,13 @@ templateCaseSchema.statics.searchCases = function(filters = {}) {
   if (filters.search) {
     const searchRegex = new RegExp(filters.search, 'i');
     query.$or = [
-      { title: searchRegex },
       { 'patientPersona.name': searchRegex },
       { 'patientPersona.chiefComplaint': searchRegex },
       { specialty: searchRegex },
-      { tags: searchRegex }
+      { 'patientPersona.occupation': searchRegex },
+      { 'patientPersona.emotionalTone': searchRegex },
+      { location: searchRegex }
+      // Removed title and tags from search to avoid diagnostic hints
     ];
   }
 

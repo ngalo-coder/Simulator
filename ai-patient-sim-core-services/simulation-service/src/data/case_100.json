@@ -2534,7 +2534,7 @@
       "Clinical_Urgency": "Did the clinician recognize the need for neurology referral and dopamine agonist therapy?"
     }
   },
-   {
+  {
     "version": "3.1-program-aware",
     "description": "A universal template for creating virtual patient simulation cases.",
     "system_instruction": "You are an AI-powered virtual patient...",
@@ -2888,7 +2888,8 @@
       "Communication_and_Empathy": "Was the approach sensitive to Zawadi’s anxiety and self-criticism?",
       "Clinical_Urgency": "Did the clinician recognize the need for nutritional rehabilitation and psychological support?"
     }
-  },{
+  },
+  {
     "version": "3.1-program-aware",
     "description": "A universal template for creating virtual patient simulation cases.",
     "system_instruction": "You are an AI-powered virtual patient...",

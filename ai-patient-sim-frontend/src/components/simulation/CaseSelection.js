@@ -302,18 +302,20 @@ const CaseSelection = () => {
 
                   {/* Case Details */}
                   <div className="mb-4">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {case_.tags && case_.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
-                          {tag}
-                        </span>
-                      ))}
-                      {case_.tags && case_.tags.length > 3 && (
-                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-500 rounded-full">
-                          +{case_.tags.length - 3} more
-                        </span>
-                      )}
-                    </div>
+                    {case_.tags && case_.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {case_.tags.slice(0, 3).map((tag, index) => (
+                          <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                            {tag}
+                          </span>
+                        ))}
+                        {case_.tags.length > 3 && (
+                          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-500 rounded-full">
+                            +{case_.tags.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    )}
                     
                     {case_.patientInfo?.emotionalTone && (
                       <div className="text-sm text-gray-600 mb-2">
@@ -322,10 +324,14 @@ const CaseSelection = () => {
                     )}
 
                     {case_.patientInfo?.backgroundStory && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 mb-2">
                         <span className="font-medium">Background:</span> {case_.patientInfo.backgroundStory}
                       </div>
                     )}
+
+                    <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      🎯 Educational Simulation - Practice your clinical skills
+                    </div>
                   </div>
 
                   {/* Footer */}
