@@ -496,8 +496,92 @@ const DashboardPage = () => {
                   {recentSimulations.map((simulation) => {
                     const StatusIcon = getStatusIcon(simulation.status);
                     return (
-                      <div key={simulation.id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between">
+                      <div 
+                        key={simulation.id} 
+                        className={`p-4 sm:p-6 transition-colors ${
+                          simulation.status === 'active' || simulation.status === 'paused' 
+                            ? 'hover:bg-blue-50 cursor-pointer' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          if (simulation.status === 'active' || simulation.status === 'paused') {
+                            handleViewSimulation(simulation.id);
+                          }
+                        }}
+                      >
+                        {/* Mobile Layout */}
+                        <div className="sm:hidden">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <ProgramIcon programArea={simulation.programArea} />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm font-medium text-gray-900 leading-tight">
+                                {simulation.caseName || 'Untitled Case'}
+                              </h3>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(simulation.status)}`}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
+                                  {simulation.status.charAt(0).toUpperCase() + simulation.status.slice(1)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(simulation.createdAt)}
+                                </span>
+                              </div>
+                              {simulation.duration && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Duration: {formatDuration(simulation.duration)}
+                                </div>
+                              )}
+                              {simulation.overallScore !== null && simulation.overallScore !== undefined && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Score: {simulation.overallScore}%
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Mobile Action Button */}
+                          {(simulation.status === 'active' || simulation.status === 'paused') && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewSimulation(simulation.id);
+                                  }}
+                                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                  <ArrowRight className="h-4 w-4 mr-2" />
+                                  Continue & Complete
+                                </button>
+                              </div>
+                              <p className="text-xs text-gray-500 text-center mt-2">
+                                Tap to resume simulation and access complete button
+                              </p>
+                            </div>
+                          )}
+                          
+                          {simulation.status === 'completed' && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewSimulation(simulation.id);
+                                }}
+                                className="w-full inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Report
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Desktop Layout */}
+                        <div className="hidden sm:flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="flex-shrink-0">
                               <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -534,11 +618,27 @@ const DashboardPage = () => {
                               </div>
                             )}
                             <button
-                              onClick={() => handleViewSimulation(simulation.id)}
-                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewSimulation(simulation.id);
+                              }}
+                              className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-sm leading-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                                simulation.status === 'active' || simulation.status === 'paused'
+                                  ? 'border-blue-300 text-white bg-blue-600 hover:bg-blue-700'
+                                  : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                              }`}
                             >
-                              <Eye className="h-4 w-4 mr-1" />
-                              {simulation.status === 'active' || simulation.status === 'paused' ? 'Continue' : 'Review'}
+                              {simulation.status === 'active' || simulation.status === 'paused' ? (
+                                <>
+                                  <ArrowRight className="h-4 w-4 mr-1" />
+                                  Continue
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Review
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
