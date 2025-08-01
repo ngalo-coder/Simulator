@@ -97,16 +97,20 @@ const generateMockReport = (simulationId) => {
 };
 
 router.get('/:simulationId', (req, res) => {
+  console.log(`[Analytics Service] Received request for simulation ID: ${req.params.simulationId}`);
   const { simulationId } = req.params;
   if (!simulationId) {
+    console.error('[Analytics Service] Simulation ID is required');
     return res.status(400).json({ success: false, error: 'Simulation ID is required' });
   }
 
   try {
+    console.log(`[Analytics Service] Generating mock report for simulation ID: ${simulationId}`);
     const report = generateMockReport(simulationId);
+    console.log(`[Analytics Service] Successfully generated mock report for simulation ID: ${simulationId}`);
     res.json(report);
   } catch (error) {
-    console.error('Error generating report:', error);
+    console.error('[Analytics Service] Error generating report:', error);
     res.status(500).json({ success: false, error: 'Failed to generate report' });
   }
 });
