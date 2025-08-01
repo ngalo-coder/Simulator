@@ -1895,53 +1895,92 @@ function getImagingCorrelation(condition, imagingType) {
   return correlationMap[condition]?.[imagingType] || 'Imaging supports clinical assessment';
 }
 
-// NEW ROUTE: Generate detailed simulation report
-router.get('/:id/report', authMiddleware, async (req, res) => {
+// REMOVED: Duplicate report route - using the enhanced version below
+
+// Get simulation status and basic info (for debugging report issues)
+router.get('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
+
+    console.log(`📋 Getting status for simulation ${id} by user ${userId}`);
 
     const simulation = await Simulation.findOne({ id, userId });
     if (!simulation) {
       return res.status(404).json({
         success: false,
         error: 'Simulation not found or access denied',
+        simulationId: id,
+        userId: userId
       });
     }
 
-    // Only generate reports for completed simulations
-    if (simulation.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: 'Report can only be generated for completed simulations',
-        currentStatus: simulation.status
-      });
-    }
-
-    console.log(`📊 Generating report for simulation ${id} by calling analytics service`);
-
-    const analyticsServiceUrl = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3004';
-    const reportResponse = await axios.get(`${analyticsServiceUrl}/reports/${id}`);
-
-    res.json(reportResponse.data);
-
+    res.json({
+      success: true,
+      simulation: {
+        id: simulation.id,
+        status: simulation.status,
+        caseName: simulation.caseName,
+        programArea: simulation.programArea,
+        difficulty: simulation.difficulty,
+        createdAt: simulation.createdAt,
+        updatedAt: simulation.updatedAt,
+        sessionMetrics: simulation.sessionMetrics,
+        canGenerateReport: simulation.status === 'completed',
+        availableActions: simulation.status === 'active' ? ['complete', 'pause'] : 
+                         simulation.status === 'paused' ? ['resume', 'complete'] : 
+                         simulation.status === 'completed' ? ['report'] : []
+      }
+    });
   } catch (error) {
-    console.error('❌ Error generating simulation report:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error details:', {
-        message: error.message,
-        url: error.config.url,
-        method: error.config.method,
-        response: error.response ? {
-          status: error.response.status,
-          data: error.response.data,
-        } : 'No response',
-      });
-    }
+    console.error('❌ Error getting simulation status:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate simulation report',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: 'Failed to get simulation status',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Debug endpoint to find simulations by user (helpful for troubleshooting)
+router.get('/debug/user-simulations', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { limit = 10, status } = req.query;
+
+    console.log(`🔍 Debug: Finding simulations for user ${userId}`);
+
+    let query = { userId };
+    if (status) {
+      query.status = status;
+    }
+
+    const simulations = await Simulation.find(query)
+      .select('id status caseName programArea createdAt updatedAt sessionMetrics')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      userId,
+      totalFound: simulations.length,
+      simulations: simulations.map(sim => ({
+        id: sim.id,
+        status: sim.status,
+        caseName: sim.caseName,
+        programArea: sim.programArea,
+        createdAt: sim.createdAt,
+        updatedAt: sim.updatedAt,
+        duration: sim.sessionMetrics?.totalDuration || 'N/A',
+        canGenerateReport: sim.status === 'completed'
+      }))
+    });
+  } catch (error) {
+    console.error('❌ Error in debug endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Debug query failed',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -2453,29 +2492,45 @@ router.get('/:id/report', authMiddleware, async (req, res) => {
     // Find the simulation
     const simulation = await Simulation.findOne({ id, userId });
     if (!simulation) {
+      console.log(`❌ Simulation ${id} not found for user ${userId}`);
       return res.status(404).json({
         success: false,
-        error: 'Simulation not found or access denied'
+        error: 'Simulation not found or access denied',
+        simulationId: id,
+        userId: userId,
+        timestamp: new Date().toISOString()
       });
     }
 
+    console.log(`📋 Found simulation ${id} with status: ${simulation.status}`);
+
     // Only generate reports for completed simulations
     if (simulation.status !== 'completed') {
+      console.log(`⚠️ Cannot generate report - simulation status is ${simulation.status}, not completed`);
       return res.status(400).json({
         success: false,
         error: 'Report can only be generated for completed simulations',
-        currentStatus: simulation.status
+        suggestion: 'Please complete the simulation first',
+        currentStatus: simulation.status,
+        simulationId: id,
+        availableActions: simulation.status === 'active' ? ['complete', 'pause'] : ['resume'],
+        timestamp: new Date().toISOString()
       });
     }
+
+    console.log(`📊 Generating comprehensive report for completed simulation ${id}`);
 
     // Generate the comprehensive report
     const reportResult = await reportGenerator.generateSimulationReport(simulation);
 
     if (!reportResult.success) {
+      console.error(`❌ Report generation failed for simulation ${id}:`, reportResult.error);
       return res.status(500).json({
         success: false,
         error: 'Failed to generate simulation report',
-        details: reportResult.error
+        details: reportResult.error,
+        simulationId: id,
+        timestamp: new Date().toISOString()
       });
     }
 

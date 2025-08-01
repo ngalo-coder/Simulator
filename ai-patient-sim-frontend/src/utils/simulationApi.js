@@ -397,15 +397,58 @@ export const simulationAPI = {
     };
   },
 
+  // Check simulation status before generating report
+  getSimulationStatus: async (simulationId) => {
+    try {
+      console.log('📋 Checking status for simulation:', simulationId);
+      const response = await api.get(`/api/simulations/${simulationId}/status`);
+      console.log('✅ Simulation status:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error getting simulation status:', error);
+      throw error;
+    }
+  },
+
   // Generate comprehensive simulation report
   generateReport: async (simulationId) => {
     try {
       console.log('📊 Generating comprehensive report for simulation:', simulationId);
+      
+      // First check if simulation exists and is completed
+      try {
+        const statusResponse = await api.get(`/api/simulations/${simulationId}/status`);
+        const simulation = statusResponse.data.simulation;
+        
+        if (!simulation.canGenerateReport) {
+          throw new Error(`Cannot generate report: Simulation is ${simulation.status}. Please complete the simulation first.`);
+        }
+      } catch (statusError) {
+        if (statusError.response?.status === 404) {
+          throw new Error('Simulation not found. Please check the simulation ID.');
+        }
+        // If status check fails, continue with report generation (might be older API)
+        console.warn('⚠️ Status check failed, attempting report generation anyway:', statusError.message);
+      }
+      
       const response = await api.get(`/api/simulations/${simulationId}/report`);
       console.log('✅ Report generated successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Error generating report:', error);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (errorData.currentStatus) {
+          throw new Error(`Cannot generate report: Simulation is ${errorData.currentStatus}. Please complete the simulation first.`);
+        }
+      } else if (error.response?.status === 404) {
+        throw new Error('Simulation not found. Please check the simulation ID.');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error while generating report. Please try again later.');
+      }
+      
       throw error;
     }
   },

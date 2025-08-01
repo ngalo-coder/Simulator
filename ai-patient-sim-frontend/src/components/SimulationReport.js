@@ -24,6 +24,7 @@ const SimulationReport = () => {
   const navigate = useNavigate();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -35,6 +36,28 @@ const SimulationReport = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // First check simulation status
+      try {
+        const statusResponse = await simulationAPI.getSimulationStatus(simulationId);
+        console.log('Simulation status:', statusResponse);
+        
+        if (!statusResponse.simulation.canGenerateReport) {
+          const status = statusResponse.simulation.status;
+          const message = `Cannot generate report: Simulation is ${status}. ${
+            status === 'active' ? 'Please complete the simulation first.' :
+            status === 'paused' ? 'Please resume and complete the simulation first.' :
+            'Simulation must be completed to generate a report.'
+          }`;
+          setError(message);
+          toast.error(message);
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Status check failed, proceeding with report generation:', statusError.message);
+      }
+      
       const response = await simulationAPI.generateReport(simulationId);
       
       // Debug logging
@@ -42,22 +65,36 @@ const SimulationReport = () => {
       
       if (response && response.success) {
         setReport(response);
+        setError(null);
       } else {
+        const errorMessage = response?.error || 'Failed to generate simulation report';
         console.error('Report generation failed:', response);
-        toast.error(response?.error || 'Failed to generate simulation report');
+        setError(errorMessage);
+        toast.error(errorMessage);
         setReport(null);
       }
     } catch (error) {
       console.error('Error fetching report:', error);
       
-      // Check if it's a 400 error (simulation not completed)
-      if (error.response?.status === 400) {
-        toast.error('Report can only be generated for completed simulations');
+      let errorMessage = 'Failed to load simulation report';
+      
+      // Handle specific error types
+      if (error.message && error.message.includes('Cannot generate report')) {
+        errorMessage = error.message;
+      } else if (error.response?.status === 400) {
+        const responseData = error.response.data;
+        errorMessage = responseData?.error || 'Report can only be generated for completed simulations';
+        if (responseData?.currentStatus) {
+          errorMessage += ` (Current status: ${responseData.currentStatus})`;
+        }
       } else if (error.response?.status === 404) {
-        toast.error('Simulation not found');
-      } else {
-        toast.error('Failed to load simulation report');
+        errorMessage = 'Simulation not found. Please check the simulation ID.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error while generating report. Please try again later.';
       }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
       
       setReport(null);
     } finally {
@@ -86,6 +123,36 @@ const SimulationReport = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Not Available</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-x-4">
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                fetchReport();
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
