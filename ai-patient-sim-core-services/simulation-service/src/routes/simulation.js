@@ -9,6 +9,7 @@ const ReportGenerator = require('../services/reportGenerator');
 const { PATIENT_PERSONAS, PROGRAM_AREAS } = require('../data/patientPersonas');
 const { authMiddleware, authorize } = require('../middleware/auth');
 const DialogueEnhancer = require('../services/dialogue/dialogueEnhancer');
+const axios = require('axios');
 
 
 const router = express.Router();
@@ -1908,17 +1909,21 @@ router.get('/:id/report', authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`📊 Generating report for simulation ${id}`);
+    // Only generate reports for completed simulations
+    if (simulation.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Report can only be generated for completed simulations',
+        currentStatus: simulation.status
+      });
+    }
 
-    // Generate comprehensive report
-    const report = await generateSimulationReport(simulation);
+    console.log(`📊 Generating report for simulation ${id} by calling analytics service`);
 
-    res.json({
-      success: true,
-      report,
-      simulationId: id,
-      generatedAt: new Date().toISOString()
-    });
+    const analyticsServiceUrl = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3004';
+    const reportResponse = await axios.get(`${analyticsServiceUrl}/reports/${id}`);
+
+    res.json(reportResponse.data);
 
   } catch (error) {
     console.error('❌ Error generating simulation report:', error);

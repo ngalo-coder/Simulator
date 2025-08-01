@@ -17,7 +17,7 @@ const createProxy = (target, pathRewrite) => {
 
 const serviceRoutes = (app) => {
   app.use('/api/users', createProxy(serviceUrls.users, { '^/api/users': '' }));
-  app.use('/api/simulation', createProxy(serviceUrls.simulation, { '^/api/simulation': '' }));
+  app.use('/api/simulations', createProxy(serviceUrls.simulation, { '^/api/simulations': '' }));
   app.use('/api/clinical', createProxy(serviceUrls.clinical, { '^/api/clinical': '' }));
   app.use('/api/cases', createProxy(serviceUrls.cases, { '^/api/cases': '' }));
   app.use('/api/analytics', createProxy(serviceUrls.analytics, { '^/api/analytics': '' }));
