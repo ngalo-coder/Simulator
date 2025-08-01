@@ -1927,6 +1927,17 @@ router.get('/:id/report', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error generating simulation report:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error details:', {
+        message: error.message,
+        url: error.config.url,
+        method: error.config.method,
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data,
+        } : 'No response',
+      });
+    }
     res.status(500).json({
       success: false,
       error: 'Failed to generate simulation report',
