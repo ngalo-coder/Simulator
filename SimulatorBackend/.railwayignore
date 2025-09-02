@@ -1,0 +1,70 @@
+# Railway ignore file - exclude these from deployment
+
+# Development files
+.env.example
+.env.railway
+*.log
+logs/
+
+# Documentation
+README.md
+VERCEL_DEPLOYMENT.md
+RAILWAY_DEPLOYMENT.md
+*.md
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+test.js
+test.http
+
+# Development scripts
+scripts/
+utils/
+checkInitialPrompts.js
+checkPatientNames.js
+checkPediatric.js
+checkPediatricStatus.js
+addPatientNames.js
+reorganize-programs.js
+seed.js
+test-*.js
+testSimulationAPI.js
+updateInitialPrompts.js
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel specific
+.vercel/
+vercel.json
+.vercelignore
+
+# Git
+.git/
+.gitignore
+
+# Node modules (will be installed during build)
+node_modules/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Data files (should be in database)
+data/
+case_template/
+
+# API testing
+api/
