@@ -19,7 +19,7 @@ export function generateToken(userId, username, role = 'user') {
     logger.error('JWT_SECRET is missing. Cannot generate token.');
     throw new Error('JWT secret is missing.');
   }
-  return jwt.sign({ id: userId, username, role }, JWT_SECRET, {
+  return jwt.sign({ userId, username, role }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
 }

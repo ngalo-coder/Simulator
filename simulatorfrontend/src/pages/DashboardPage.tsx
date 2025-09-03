@@ -7,7 +7,7 @@ import PrivacySettingsModal from '../components/PrivacySettings';
 import DataExportModal from '../components/DataExportModal';
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
   const navigate = useNavigate();
   const [progressData, setProgressData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -16,33 +16,34 @@ const DashboardPage: React.FC = () => {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number>>({});
 
+
   useEffect(() => {
-    const fetchProgressData = async () => {
-      if (user?.id) {
-        try {
-          const data = await api.getUserProgress(user.id);
-          setProgressData(data);
-        } catch (error) {
-          console.error('Error fetching progress data:', error);
-        } finally {
-          setLoading(false);
-        }
+    const loadDashboardData = async () => {
+      if (!isAuthenticated || !user?.id) {
+        setLoading(false);
+        return;
       }
-    };
 
-    const fetchSpecialties = async () => {
+      setLoading(true);
       try {
-        const categoriesData = await api.getCaseCategories();
-        setSpecialties(categoriesData.specialties || []);
-        setSpecialtyCounts(categoriesData.specialty_counts || {});
+        const [progressResponse, categoriesResponse] = await Promise.all([
+          api.getUserProgress(user.id),
+          api.getCaseCategories(),
+        ]);
+
+        setProgressData(progressResponse);
+        setSpecialties(categoriesResponse.specialties || []);
+        setSpecialtyCounts(categoriesResponse.specialty_counts || {});
       } catch (error) {
-        console.error('Error fetching specialties:', error);
+        console.error('Error loading dashboard data:', error);
+        // Optionally, show an error message to the user
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProgressData();
-    fetchSpecialties();
-  }, [user?.id]);
+    loadDashboardData();
+  }, [user?.id, isAuthenticated]); // Add isAuthenticated to dependencies
 
   const handleSpecialtyNavigation = (specialty: string) => {
     // Clear any existing specialty context

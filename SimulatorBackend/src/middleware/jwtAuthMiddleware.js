@@ -30,7 +30,7 @@ export const protect = async (req, res, next) => {
     }
 
     // Get user from database
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
       return res.status(401).json({
         message: 'User not found.'
@@ -87,7 +87,7 @@ export const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded) {
-        const user = await User.findById(decoded.id).select('-password');
+        const user = await User.findById(decoded.userId).select('-password');
         if (user) {
           req.user = {
             id: user._id.toString(),
