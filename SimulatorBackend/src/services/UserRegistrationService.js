@@ -8,8 +8,9 @@ import jwt from 'jsonwebtoken';
  */
 class UserRegistrationService {
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/auth.js');
+    this.jwtSecret = JWT_SECRET;
+    this.jwtExpiresIn = JWT_EXPIRES_IN;
   }
 
   /**

@@ -1,6 +1,7 @@
 import User from '../models/UserModel.js';
 import Case from '../models/CaseModel.js';
 import auditLogger from './AuditLoggerService.js';
+import StudentProgressService from './StudentProgressService.js';
 import mongoose from 'mongoose';
 
 /**
@@ -100,21 +101,22 @@ class StudentDashboardService {
       console.error('Get student dashboard overview error:', error);
       throw new Error('Failed to load dashboard overview');
     }
-  }  /
-**
+  }  
+  
+  /**
    * Get student progress summary
    * @param {Object} student - Student user object
    * @returns {Promise<Object>} - Progress summary data
    */
   async getProgressSummary(student) {
     try {
-      // Get case attempts for this student
-      const caseAttempts = await mongoose.connection.db.collection('case_attempts').find({
-        user_id: student._id,
-        status: 'completed'
-      }).toArray();
-
-      if (caseAttempts.length === 0) {
+      // Use the new StudentProgressService to get comprehensive progress data
+      const progressSummary = await StudentProgressService.getProgressSummary(student._id);
+      
+      // Get recent case attempts for trend analysis
+      const recentAttempts = await StudentProgressService.getCaseAttemptHistory(student._id, 10);
+      
+      if (recentAttempts.length === 0) {
         return {
           totalAttempts: 0,
           completedCases: 0,
@@ -123,41 +125,27 @@ class StudentDashboardService {
           competencyScores: {},
           recentTrend: 'stable',
           nextMilestone: null,
-          studyStreak: 0
+          studyStreak: progressSummary.streak.currentStreak,
+          lastActivity: null
         };
       }
 
-      // Calculate basic metrics
-      const totalScore = caseAttempts.reduce((sum, attempt) => sum + (attempt.score?.overall || 0), 0);
-      const averageScore = (totalScore / caseAttempts.length).toFixed(1);
-      const completedCases = new Set(caseAttempts.map(attempt => attempt.case_id.toString())).size;
+      // Calculate recent trend from the last 5 attempts
+      const recentTrend = this.calculateRecentTrend(recentAttempts);
 
-      // Calculate competency scores
-      const competencyScores = this.calculateCompetencyScores(caseAttempts, student.profile?.discipline);
-
-      // Calculate overall progress (based on completed cases and competency development)
-      const overallProgress = this.calculateOverallProgress(student, caseAttempts, competencyScores);
-
-      // Calculate recent trend
-      const recentTrend = this.calculateRecentTrend(caseAttempts);
-
-      // Get next milestone
-      const nextMilestone = await this.getNextMilestone(student, overallProgress);
-
-      // Calculate study streak
-      const studyStreak = await this.calculateStudyStreak(student);
+      // Get next milestone based on overall progress
+      const nextMilestone = await this.getNextMilestone(student, progressSummary.overallProgress.overallScore);
 
       return {
-        totalAttempts: caseAttempts.length,
-        completedCases,
-        averageScore: parseFloat(averageScore),
-        overallProgress: Math.round(overallProgress),
-        competencyScores,
+        totalAttempts: progressSummary.overallProgress.totalCasesAttempted,
+        completedCases: progressSummary.overallProgress.totalCasesCompleted,
+        averageScore: progressSummary.overallProgress.overallScore,
+        overallProgress: progressSummary.progressPercentage,
+        competencyScores: this.formatCompetencyScores(progressSummary.competencies),
         recentTrend,
         nextMilestone,
-        studyStreak,
-        lastActivity: new Date(Math.max(...caseAttempts.map(attempt => 
-          new Date(attempt.end_time || attempt.start_time).getTime())))
+        studyStreak: progressSummary.streak.currentStreak,
+        lastActivity: progressSummary.overallProgress.lastActivity
       };
     } catch (error) {
       console.error('Get progress summary error:', error);
@@ -233,29 +221,24 @@ class StudentDashboardService {
    */
   async getRecentActivity(student, limit = 5) {
     try {
-      const recentAttempts = await mongoose.connection.db.collection('case_attempts').find({
-        user_id: student._id
-      })
-      .sort({ start_time: -1 })
-      .limit(limit)
-      .toArray();
-
+      const recentAttempts = await StudentProgressService.getCaseAttemptHistory(student._id, limit);
+      
       const activities = await Promise.all(
         recentAttempts.map(async (attempt) => {
-          const caseDoc = await Case.findById(attempt.case_id)
+          const caseDoc = await Case.findById(attempt.caseId)
             .select('case_metadata')
             .lean();
 
           return {
             id: attempt._id,
             type: 'case_attempt',
-            title: caseDoc?.case_metadata?.title || 'Unknown Case',
+            title: caseDoc?.case_metadata?.title || attempt.caseTitle || 'Unknown Case',
             status: attempt.status,
-            score: attempt.score?.overall,
-            startTime: attempt.start_time,
-            endTime: attempt.end_time,
-            duration: attempt.time_spent,
-            caseId: attempt.case_id
+            score: attempt.score,
+            startTime: attempt.startTime,
+            endTime: attempt.endTime,
+            duration: attempt.duration,
+            caseId: attempt.caseId
           };
         })
       );
@@ -274,34 +257,38 @@ class StudentDashboardService {
    */
   async getAchievements(student) {
     try {
-      const caseAttempts = await mongoose.connection.db.collection('case_attempts').find({
-        user_id: student._id,
-        status: 'completed'
-      }).toArray();
+      const { achievements, milestones } = await StudentProgressService.getAchievementsAndMilestones(student._id);
+      
+      const progressSummary = await StudentProgressService.getProgressSummary(student._id);
+      const completedCases = progressSummary.overallProgress.totalCasesCompleted;
+      const averageScore = progressSummary.overallProgress.overallScore;
 
-      const achievements = {
-        badges: [],
-        milestones: [],
-        streaks: {},
-        totalPoints: 0
+      // Format achievements for dashboard
+      const formattedAchievements = {
+        badges: achievements.map(ach => ({
+          id: ach.achievementId?.toString() || ach._id?.toString(),
+          name: ach.name,
+          icon: this.getAchievementIcon(ach.type),
+          earnedAt: ach.earnedDate,
+          tier: ach.tier
+        })),
+        milestones: milestones.map(ms => ({
+          id: ms.milestoneId?.toString() || ms._id?.toString(),
+          name: ms.name,
+          description: ms.description,
+          achievedDate: ms.achievedDate,
+          rewardPoints: ms.rewardPoints
+        })),
+        streaks: {
+          current: progressSummary.streak.currentStreak,
+          longest: progressSummary.streak.longestStreak
+        },
+        totalPoints: achievements.reduce((sum, ach) => sum + (ach.rewardPoints || 0), 0) +
+                   milestones.reduce((sum, ms) => sum + (ms.rewardPoints || 0), 0)
       };
 
-      // Calculate various achievements
-      const completedCases = new Set(caseAttempts.map(attempt => attempt.case_id.toString())).size;
-      const totalAttempts = caseAttempts.length;
-      const averageScore = caseAttempts.length > 0 
-        ? caseAttempts.reduce((sum, attempt) => sum + (attempt.score?.overall || 0), 0) / caseAttempts.length
-        : 0;
-
-      // Badge achievements
-      if (completedCases >= 1) achievements.badges.push({ id: 'first_case', name: 'First Case', icon: 'star', earnedAt: new Date() });
-      if (completedCases >= 5) achievements.badges.push({ id: 'case_explorer', name: 'Case Explorer', icon: 'compass', earnedAt: new Date() });
-      if (completedCases >= 10) achievements.badges.push({ id: 'dedicated_learner', name: 'Dedicated Learner', icon: 'book', earnedAt: new Date() });
-      if (averageScore >= 90) achievements.badges.push({ id: 'high_achiever', name: 'High Achiever', icon: 'trophy', earnedAt: new Date() });
-      if (averageScore >= 95) achievements.badges.push({ id: 'excellence', name: 'Excellence', icon: 'crown', earnedAt: new Date() });
-
-      // Milestone achievements
-      achievements.milestones = [
+      // Add system-generated milestones based on progress
+      const systemMilestones = [
         { id: 'cases_5', name: '5 Cases Completed', target: 5, current: completedCases, completed: completedCases >= 5 },
         { id: 'cases_10', name: '10 Cases Completed', target: 10, current: completedCases, completed: completedCases >= 10 },
         { id: 'cases_25', name: '25 Cases Completed', target: 25, current: completedCases, completed: completedCases >= 25 },
@@ -309,11 +296,9 @@ class StudentDashboardService {
         { id: 'score_90', name: '90% Average Score', target: 90, current: Math.round(averageScore), completed: averageScore >= 90 }
       ];
 
-      // Calculate total points
-      achievements.totalPoints = achievements.badges.length * 100 + 
-        achievements.milestones.filter(m => m.completed).length * 50;
+      formattedAchievements.milestones.push(...systemMilestones);
 
-      return achievements;
+      return formattedAchievements;
     } catch (error) {
       console.error('Get achievements error:', error);
       throw error;
@@ -566,8 +551,8 @@ class StudentDashboardService {
   calculateRecentTrend(caseAttempts) {
     if (caseAttempts.length < 2) return 'stable';
 
-    const sortedAttempts = caseAttempts.sort((a, b) => 
-      new Date(a.start_time) - new Date(b.start_time));
+    const sortedAttempts = caseAttempts.sort((a, b) =>
+      new Date(a.startTime || a.createdAt) - new Date(b.startTime || b.createdAt));
 
     const recentCount = Math.min(5, Math.floor(sortedAttempts.length / 2));
     const recent = sortedAttempts.slice(-recentCount);
@@ -575,8 +560,8 @@ class StudentDashboardService {
 
     if (previous.length === 0) return 'stable';
 
-    const recentAvg = recent.reduce((sum, attempt) => sum + (attempt.score?.overall || 0), 0) / recent.length;
-    const previousAvg = previous.reduce((sum, attempt) => sum + (attempt.score?.overall || 0), 0) / previous.length;
+    const recentAvg = recent.reduce((sum, attempt) => sum + (attempt.score || 0), 0) / recent.length;
+    const previousAvg = previous.reduce((sum, attempt) => sum + (attempt.score || 0), 0) / previous.length;
 
     const difference = recentAvg - previousAvg;
     
@@ -642,12 +627,13 @@ class StudentDashboardService {
    * Get student's competency scores
    */
   async getStudentCompetencyScores(student) {
-    const caseAttempts = await mongoose.connection.db.collection('case_attempts').find({
-      user_id: student._id,
-      status: 'completed'
-    }).toArray();
-
-    return this.calculateCompetencyScores(caseAttempts, student.profile?.discipline);
+    try {
+      const progressSummary = await StudentProgressService.getProgressSummary(student._id);
+      return this.formatCompetencyScores(progressSummary.competencies);
+    } catch (error) {
+      console.error('Get student competency scores error:', error);
+      return {};
+    }
   }
 
   /**
@@ -792,6 +778,30 @@ class StudentDashboardService {
         url: '/student/help'
       }
     ];
+  }
+
+  /**
+   * Format competency scores for dashboard display
+   */
+  formatCompetencyScores(competencies) {
+    const scores = {};
+    competencies.forEach(comp => {
+      scores[comp.competencyName || comp.competencyId?.toString()] = comp.score;
+    });
+    return scores;
+  }
+
+  /**
+   * Get appropriate icon for achievement type
+   */
+  getAchievementIcon(achievementType) {
+    const iconMap = {
+      'skill': 'star',
+      'completion': 'check-circle',
+      'performance': 'trophy',
+      'participation': 'users'
+    };
+    return iconMap[achievementType] || 'award';
   }
 }
 

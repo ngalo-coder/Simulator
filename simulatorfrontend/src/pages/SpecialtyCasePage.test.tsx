@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import SpecialtyCasePage from './SpecialtyCasePage';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 
 // Mock the API service
 vi.mock('../services/apiService', () => ({
@@ -97,7 +97,7 @@ const renderComponent = () => {
 describe('SpecialtyCasePage Enhanced Filtering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getCases as any).mockResolvedValue(mockCasesResponse);
+    (apiService.getCases as any).mockResolvedValue(mockCasesResponse);
   });
 
   it('should render search input and filter controls', async () => {
@@ -136,7 +136,7 @@ describe('SpecialtyCasePage Enhanced Filtering', () => {
     fireEvent.change(searchInput, { target: { value: 'chest pain' } });
 
     await waitFor(() => {
-      expect(api.getCases).toHaveBeenCalledWith(
+      expect(apiService.getCases).toHaveBeenCalledWith(
         expect.objectContaining({
           specialty: 'Internal Medicine',
           search: 'chest pain',
@@ -206,7 +206,7 @@ describe('SpecialtyCasePage Enhanced Filtering', () => {
       hasPrevPage: false
     };
 
-    (api.getCases as any).mockResolvedValue(paginatedResponse);
+    (apiService.getCases as any).mockResolvedValue(paginatedResponse);
 
     renderComponent();
 
@@ -220,7 +220,7 @@ describe('SpecialtyCasePage Enhanced Filtering', () => {
   });
 
   it('should preserve specialty context when starting simulation', async () => {
-    (api.startSimulation as any).mockResolvedValue({ sessionId: 'test-session' });
+    (apiService.startSimulation as any).mockResolvedValue({ sessionId: 'test-session' });
 
     renderComponent();
 
@@ -232,7 +232,7 @@ describe('SpecialtyCasePage Enhanced Filtering', () => {
     fireEvent.click(startButton);
 
     await waitFor(() => {
-      expect(api.setSpecialtyContext).toHaveBeenCalledWith('', 'Internal Medicine');
+      expect(apiService.setSpecialtyContext).toHaveBeenCalledWith('', 'Internal Medicine');
     });
   });
 });

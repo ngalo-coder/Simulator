@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 
 interface PrivacySettings {
   showInLeaderboard: boolean;
@@ -33,7 +33,7 @@ const PrivacySettingsModal: React.FC<PrivacySettingsProps> = ({ onClose }) => {
 
   const fetchPrivacySettings = async () => {
     try {
-      const response = await api.getPrivacySettings();
+      const response = await apiService.getPrivacySettings();
       setSettings({
         showInLeaderboard: response.showInLeaderboard,
         showRealName: response.showRealName,
@@ -58,7 +58,7 @@ const PrivacySettingsModal: React.FC<PrivacySettingsProps> = ({ onClose }) => {
   const saveSettings = async () => {
     try {
       setLoading(true);
-      await api.updatePrivacySettings(settings);
+      await apiService.updatePrivacySettings(settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
@@ -87,7 +87,7 @@ const PrivacySettingsModal: React.FC<PrivacySettingsProps> = ({ onClose }) => {
       if (doubleConfirmed) {
         try {
           setLoading(true);
-          await api.requestAccountDeletion();
+          await apiService.requestAccountDeletion();
           alert('Your account has been successfully deleted. You will be logged out now.');
           
           // Clear local storage and redirect to home

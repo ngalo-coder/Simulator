@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { useSpecialtyContext } from './useSpecialtyContext';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import React from 'react';
 
 // Mock the API service
@@ -33,7 +33,7 @@ describe('useSpecialtyContext', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getCaseCategories as any).mockResolvedValue({
+    (apiService.getCaseCategories as any).mockResolvedValue({
       specialties: mockSpecialties,
       specialty_counts: mockSpecialtyCounts,
     });
@@ -127,7 +127,7 @@ describe('useSpecialtyContext', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    (api.getCaseCategories as any).mockRejectedValue(new Error('API Error'));
+    (apiService.getCaseCategories as any).mockRejectedValue(new Error('API Error'));
     
     const { result } = renderHook(() => useSpecialtyContext(), { wrapper });
     
@@ -141,7 +141,7 @@ describe('useSpecialtyContext', () => {
   });
 
   it('should clear error state', async () => {
-    (api.getCaseCategories as any).mockRejectedValue(new Error('API Error'));
+    (apiService.getCaseCategories as any).mockRejectedValue(new Error('API Error'));
     
     const { result } = renderHook(() => useSpecialtyContext(), { wrapper });
     
@@ -167,7 +167,7 @@ describe('useSpecialtyContext', () => {
 
     // Clear the mock and set up new data
     vi.clearAllMocks();
-    (api.getCaseCategories as any).mockResolvedValue({
+    (apiService.getCaseCategories as any).mockResolvedValue({
       specialties: ['Cardiology'],
       specialty_counts: { 'Cardiology': 5 },
     });
@@ -176,7 +176,7 @@ describe('useSpecialtyContext', () => {
       await result.current.refreshSpecialties();
     });
 
-    expect(api.getCaseCategories).toHaveBeenCalled();
+    expect(apiService.getCaseCategories).toHaveBeenCalled();
     expect(result.current.availableSpecialties).toEqual(['Cardiology']);
   });
 
@@ -188,7 +188,7 @@ describe('useSpecialtyContext', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      expect(api.getCaseCategories).toHaveBeenCalledTimes(1);
+      expect(apiService.getCaseCategories).toHaveBeenCalledTimes(1);
 
       // Rerender the hook - should use cached data
       rerender();
@@ -198,7 +198,7 @@ describe('useSpecialtyContext', () => {
       });
 
       // Should still only be called once due to caching
-      expect(api.getCaseCategories).toHaveBeenCalledTimes(1);
+      expect(apiService.getCaseCategories).toHaveBeenCalledTimes(1);
     });
 
     it('should refresh cache when explicitly requested', async () => {
@@ -208,13 +208,13 @@ describe('useSpecialtyContext', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
 
-      expect(api.getCaseCategories).toHaveBeenCalledTimes(1);
+      expect(apiService.getCaseCategories).toHaveBeenCalledTimes(1);
 
       await act(async () => {
         await result.current.refreshSpecialties();
       });
 
-      expect(api.getCaseCategories).toHaveBeenCalledTimes(2);
+      expect(apiService.getCaseCategories).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -342,7 +342,7 @@ describe('useSpecialtyContext', () => {
 
   describe('error handling and recovery', () => {
     it('should handle network timeouts', async () => {
-      (api.getCaseCategories as any).mockRejectedValue(new Error('Network timeout'));
+      (apiService.getCaseCategories as any).mockRejectedValue(new Error('Network timeout'));
       
       const { result } = renderHook(() => useSpecialtyContext(), { wrapper });
       
@@ -356,7 +356,7 @@ describe('useSpecialtyContext', () => {
     });
 
     it('should handle malformed API responses', async () => {
-      (api.getCaseCategories as any).mockResolvedValue({
+      (apiService.getCaseCategories as any).mockResolvedValue({
         // Missing specialties array
         specialty_counts: mockSpecialtyCounts,
       });
@@ -372,9 +372,9 @@ describe('useSpecialtyContext', () => {
 
     it('should recover from errors when refreshing', async () => {
       // First call fails
-      (api.getCaseCategories as any).mockRejectedValueOnce(new Error('API Error'));
+      (apiService.getCaseCategories as any).mockRejectedValueOnce(new Error('API Error'));
       // Second call succeeds
-      (api.getCaseCategories as any).mockResolvedValueOnce({
+      (apiService.getCaseCategories as any).mockResolvedValueOnce({
         specialties: mockSpecialties,
         specialty_counts: mockSpecialtyCounts,
       });

@@ -3,7 +3,9 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  transform: {},
+  transform: {
+    '^.+\\.js$': 'babel-jest'
+  },
   testMatch: [
     '**/__tests__/**/*.js',
     '**/?(*.)+(spec|test).js'

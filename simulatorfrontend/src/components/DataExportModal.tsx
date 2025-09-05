@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 
 interface DataExportModalProps {
   onClose: () => void;
@@ -17,7 +17,7 @@ const DataExportModal: React.FC<DataExportModalProps> = ({ onClose }) => {
       setLoading(true);
       
       // Call the real API
-      const exportData = await api.exportUserData(exportType, format);
+      const exportData = await apiService.exportUserData(exportType, format);
       
       // Create download
       let dataStr: string;

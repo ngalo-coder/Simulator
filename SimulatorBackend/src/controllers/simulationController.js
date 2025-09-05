@@ -93,6 +93,68 @@ export async function endSession(req, res) {
     }
 }
 
+// Start a retake session for a previously attempted case
+export async function startRetakeSession(req, res) {
+    const log = req.log.child({ caseId: req.body.caseId, previousSessionId: req.body.previousSessionId });
+    try {
+        const { caseId, previousSessionId, retakeReason, improvementFocusAreas } = req.body;
+        const user = req.user;
+        
+        if (!caseId) {
+            log.warn('Start retake session failed: caseId is required.');
+            return res.status(400).json({ error: 'caseId is required' });
+        }
+
+        const result = await simulationService.startRetakeSession(caseId, previousSessionId, retakeReason, improvementFocusAreas, user);
+        log.info({ sessionId: result.sessionId, attemptNumber: result.attemptNumber }, 'Retake session started successfully');
+        handleSuccess(res, result);
+    } catch (error) {
+        log.error(error, 'Error starting retake session');
+        handleError(res, error, log);
+    }
+}
+
+// Get retake sessions for a specific case
+export async function getCaseRetakeSessions(req, res) {
+    const log = req.log.child({ caseId: req.params.caseId });
+    try {
+        const { caseId } = req.params;
+        const userId = req.user.id;
+        
+        if (!caseId) {
+            log.warn('Get retake sessions failed: caseId is required.');
+            return res.status(400).json({ error: 'caseId parameter is required' });
+        }
+
+        const result = await simulationService.getCaseRetakeSessions(caseId, userId);
+        log.info({ count: result.length }, 'Retake sessions retrieved successfully');
+        handleSuccess(res, result);
+    } catch (error) {
+        log.error(error, 'Error getting retake sessions');
+        handleError(res, error, log);
+    }
+}
+
+// Calculate improvement metrics between two sessions
+export async function calculateImprovementMetrics(req, res) {
+    const log = req.log.child({ currentSessionId: req.body.currentSessionId, previousSessionId: req.body.previousSessionId });
+    try {
+        const { currentSessionId, previousSessionId } = req.body;
+        
+        if (!currentSessionId || !previousSessionId) {
+            log.warn('Calculate improvement metrics failed: both currentSessionId and previousSessionId are required.');
+            return res.status(400).json({ error: 'currentSessionId and previousSessionId are required' });
+        }
+
+        const result = await simulationService.calculateImprovementMetrics(currentSessionId, previousSessionId);
+        log.info('Improvement metrics calculated successfully');
+        handleSuccess(res, result);
+    } catch (error) {
+        log.error(error, 'Error calculating improvement metrics');
+        handleError(res, error, log);
+    }
+}
+
 export async function getCaseCategories(req, res) {
     const log = req.log;
     try {
@@ -136,5 +198,56 @@ export async function getPerformanceMetricsByUser(req, res) {
     } catch (error) {
         log.error(error, 'Error fetching performance metrics for user.');
         handleError(res, { message: 'Failed to fetch performance metrics for user' }, log);
+    }
+}
+
+export async function submitTreatmentPlan(req, res) {
+    const log = req.log.child({ sessionId: req.params.sessionId });
+    try {
+        const { sessionId } = req.params;
+        const { treatmentPlan } = req.body;
+
+        if (!treatmentPlan || !Array.isArray(treatmentPlan)) {
+            log.warn('Invalid treatment plan format');
+            return res.status(400).json({ error: 'Treatment plan must be an array of interventions' });
+        }
+
+        const TreatmentService = await import('../services/treatmentService.js');
+        
+        // Record treatment decisions in session
+        await TreatmentService.default.recordTreatmentDecisions(sessionId, treatmentPlan);
+        
+        // Analyze treatment plan and simulate outcomes
+        const result = await TreatmentService.default.simulateTreatmentOutcomes(sessionId, treatmentPlan);
+        
+        log.info('Treatment plan submitted and outcomes simulated successfully');
+        handleSuccess(res, result);
+    } catch (error) {
+        log.error(error, 'Error submitting treatment plan');
+        handleError(res, { message: 'Failed to submit treatment plan' }, log);
+    }
+}
+
+export async function getTreatmentOutcomes(req, res) {
+    const log = req.log.child({ sessionId: req.params.sessionId });
+    try {
+        const { sessionId } = req.params;
+        
+        const TreatmentService = await import('../services/treatmentService.js');
+        const session = await import('../models/SessionModel.js').then(mod => mod.default.findById(sessionId));
+        
+        if (!session || !session.treatment_plan || session.treatment_plan.length === 0) {
+            log.warn('No treatment plan found for session');
+            return res.status(404).json({ error: 'No treatment plan found for this session' });
+        }
+
+        // Simulate outcomes based on recorded treatment plan
+        const result = await TreatmentService.default.simulateTreatmentOutcomes(sessionId, session.treatment_plan);
+        
+        log.info('Treatment outcomes retrieved successfully');
+        handleSuccess(res, result);
+    } catch (error) {
+        log.error(error, 'Error retrieving treatment outcomes');
+        handleError(res, { message: 'Failed to retrieve treatment outcomes' }, log);
     }
 }

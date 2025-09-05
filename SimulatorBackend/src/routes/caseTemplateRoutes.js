@@ -1,12 +1,12 @@
 import express from 'express';
 import caseTemplateService from '../services/CaseTemplateService.js';
-import authMiddleware from '../middleware/authMiddleware.js';
-import rbacMiddleware from '../middleware/rbacMiddleware.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
+import { requireAnyRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 /**
  * @route GET /api/case-templates
@@ -84,7 +84,7 @@ router.get('/:discipline/fields', async (req, res) => {
  * @desc Validate case data against template
  * @access Private (Educator, Admin)
  */
-router.post('/:discipline/validate', rbacMiddleware(['educator', 'admin']), async (req, res) => {
+router.post('/:discipline/validate', requireAnyRole(['educator', 'admin']), async (req, res) => {
   try {
     const { discipline } = req.params;
     const caseData = req.body;
@@ -109,7 +109,7 @@ router.post('/:discipline/validate', rbacMiddleware(['educator', 'admin']), asyn
  * @desc Create case from template
  * @access Private (Educator, Admin)
  */
-router.post('/:discipline/create', rbacMiddleware(['educator', 'admin']), async (req, res) => {
+router.post('/:discipline/create', requireAnyRole(['educator', 'admin']), async (req, res) => {
   try {
     const { discipline } = req.params;
     const customData = req.body;
@@ -135,7 +135,7 @@ router.post('/:discipline/create', rbacMiddleware(['educator', 'admin']), async 
  * @desc Get template usage statistics
  * @access Private (Admin)
  */
-router.get('/admin/statistics', rbacMiddleware(['admin']), async (req, res) => {
+router.get('/admin/statistics', requireAnyRole(['admin']), async (req, res) => {
   try {
     const statistics = caseTemplateService.getTemplateStatistics();
     

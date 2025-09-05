@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/UserModel.js';
 import auditLogger from '../services/AuditLoggerService.js';
+import { verifyToken } from '../config/auth.js';
 
 /**
  * Authentication Middleware
@@ -34,8 +35,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    const decoded = jwt.verify(token, jwtSecret);
+    const decoded = verifyToken(token);
 
     // Get user from database to ensure they still exist and are active
     const user = await User.findById(decoded.userId);
@@ -146,8 +146,7 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     // If token is provided, validate it
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    const decoded = jwt.verify(token, jwtSecret);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findById(decoded.userId);
     

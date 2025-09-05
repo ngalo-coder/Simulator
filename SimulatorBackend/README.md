@@ -19,6 +19,15 @@ Simuatech Backend is a high-performance Node.js API that powers realistic medica
 - **Context Awareness** - Maintains conversation history and patient state
 - **Dynamic Scenarios** - Adaptive case progression based on user input
 
+### 📚 **Case Publishing & Distribution**
+- **Publication Workflow** - Comprehensive case publishing with metadata management
+- **Access Control** - Role-based access with public, restricted, and private levels
+- **Target Audience** - Audience-specific case distribution by discipline and specialty
+- **Licensing Management** - Educational licensing with attribution requirements
+- **Distribution Channels** - Multi-channel case distribution and availability scheduling
+- **Recommendation Engine** - Personalized case recommendations based on user profiles
+- **Usage Analytics** - Track case access and usage statistics
+
 ### 🔐 **Security & Privacy**
 - **JWT Authentication** - Secure token-based authentication
 - **Privacy Controls** - Comprehensive GDPR-compliant privacy management
@@ -31,6 +40,7 @@ Simuatech Backend is a high-performance Node.js API that powers realistic medica
 - **Progress Monitoring** - Detailed learning progress analysis
 - **Leaderboard System** - Privacy-aware competitive features
 - **Admin Dashboard** - Comprehensive system management
+- **Case Statistics** - Distribution analytics by specialty, difficulty, and access level
 
 ### 🏗️ **Architecture**
 - **RESTful API** - Clean, predictable endpoint design
@@ -124,6 +134,8 @@ src/
 │   └── validation.js
 ├── models/            # Database schemas
 │   ├── CaseModel.js
+│   ├── ContributedCaseModel.js
+│   ├── CaseReviewModel.js
 │   ├── PerformanceMetricModel.js
 │   ├── SessionModel.js
 │   ├── UserModel.js
@@ -131,12 +143,18 @@ src/
 ├── routes/            # API route definitions
 │   ├── adminRoutes.js
 │   ├── authRoutes.js
+│   ├── casePublishingRoutes.js
+│   ├── caseReviewRoutes.js
+│   ├── contributeCaseRoutes.js
 │   ├── performanceRoutes.js
 │   ├── privacyRoutes.js
 │   └── simulationRoutes.js
 ├── services/          # Business logic
 │   ├── aiService.js
 │   ├── caseService.js
+│   ├── CasePublishingService.js
+│   ├── CaseReviewService.js
+│   ├── CaseSearchService.js
 │   ├── privacyService.js
 │   └── simulationService.js
 └── utils/             # Utility functions
@@ -160,6 +178,19 @@ GET    /api/simulation/case-categories # Get case categories
 POST   /api/simulation/start          # Start new simulation
 GET    /api/simulation/ask            # Stream patient responses
 POST   /api/simulation/end            # End simulation session
+```
+
+### Case Publishing & Distribution
+```
+GET    /api/publishing/cases              # Get published cases with search/filters
+GET    /api/publishing/cases/recommendations # Get personalized case recommendations
+GET    /api/publishing/cases/popular      # Get popular published cases
+GET    /api/publishing/cases/:id/access   # Check case access permissions
+GET    /api/publishing/cases/:id          # Get published case with access control
+POST   /api/publishing/cases/:id/publish  # Publish a case (educator/admin)
+POST   /api/publishing/cases/:id/unpublish # Unpublish/archive a case (educator/admin)
+POST   /api/publishing/cases/:id/track-usage # Track case usage
+GET    /api/publishing/stats              # Get case distribution statistics (admin)
 ```
 
 ### Privacy & Data
@@ -344,23 +375,36 @@ GET /health/detailed # Detailed system status
 
 ## 🧪 Testing
 
-> **Current Status**: Testing infrastructure is planned for future implementation.
+> **Current Status**: Testing infrastructure includes comprehensive test suites for key functionality.
 
 ```bash
-# Planned testing commands
-npm test              # Will run test suite (not yet implemented)
-npm run test:coverage # Will generate coverage reports (not yet implemented)
+# Available testing commands
+npm test              # Run test suite (includes case publishing tests)
+npm run test:coverage # Generate coverage reports (planned)
 
-# Current validation
-npm run dev          # Manual testing via development server
+# Current test suites
+- casePublishing.test.js   # Case publishing and distribution functionality
+- caseWorkflow.test.js     # Case creation workflow testing
+- educatorDashboard.test.js # Educator dashboard features
+- studentDashboard.test.js # Student dashboard features
+
+# Manual testing
+npm run dev          # Development server for manual testing
 # Use API testing tools like Postman or Insomnia for endpoint testing
 ```
 
-**Recommended Testing Setup** (for future implementation):
-- **Unit Tests**: Jest or Mocha for service and utility testing
+**Testing Setup**:
+- **Unit Tests**: Mocha/Chai for service and utility testing
 - **Integration Tests**: Supertest for API endpoint testing
-- **Database Tests**: MongoDB Memory Server for isolated testing
-- **Coverage**: Istanbul/NYC for code coverage reporting
+- **Database Tests**: Real MongoDB connection for integration testing
+- **Coverage**: Planned implementation with Istanbul/NYC
+
+**Case Publishing Tests**:
+- Case publication workflow with metadata validation
+- Access control and permission testing
+- Recommendation engine functionality
+- Distribution statistics and analytics
+- Error handling and edge cases
 
 ## 🤝 Contributing
 

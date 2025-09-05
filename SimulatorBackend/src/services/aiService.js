@@ -21,12 +21,83 @@ const openai = new OpenAI({
 
 function buildPrompt(caseData, conversationHistory, newQuestion, willEndCurrentResponse) {
   const patient = caseData.patient_profile || caseData.patient_persona || {};
+  const clinical_dossier = caseData.clinical_dossier || {};
   const historyString = conversationHistory
     .map((entry) => `${entry.role}: ${entry.content}`)
     .join('\n');
   const endInstructions = willEndCurrentResponse
     ? '\n\nIMPORTANT: The clinician has diagnosed the patient and is admitting them to the hospital. Express trust, relief, and bring the conversation to a natural close.'
     : '';
+
+  // Build comprehensive medical history section
+  let medicalHistory = `Chief Complaint: ${patient.chief_complaint || 'Not specified'}\n\n`;
+
+  // History of Presenting Illness
+  if (clinical_dossier.history_of_presenting_illness) {
+    const hpi = clinical_dossier.history_of_presenting_illness;
+    medicalHistory += `History of Presenting Illness:\n`;
+    if (hpi.onset) medicalHistory += `- Onset: ${hpi.onset}\n`;
+    if (hpi.location) medicalHistory += `- Location: ${hpi.location}\n`;
+    if (hpi.radiation) medicalHistory += `- Radiation: ${hpi.radiation}\n`;
+    if (hpi.character) medicalHistory += `- Character: ${hpi.character}\n`;
+    if (hpi.severity) medicalHistory += `- Severity: ${hpi.severity}/10\n`;
+    if (hpi.timing_and_duration) medicalHistory += `- Timing/Duration: ${hpi.timing_and_duration}\n`;
+    if (hpi.exacerbating_factors) medicalHistory += `- Exacerbating Factors: ${hpi.exacerbating_factors}\n`;
+    if (hpi.relieving_factors) medicalHistory += `- Relieving Factors: ${hpi.relieving_factors}\n`;
+    if (hpi.associated_symptoms && hpi.associated_symptoms.length > 0) {
+      medicalHistory += `- Associated Symptoms: ${hpi.associated_symptoms.join(', ')}\n`;
+    }
+    medicalHistory += '\n';
+  }
+
+  // Past Medical History
+  if (clinical_dossier.past_medical_history && clinical_dossier.past_medical_history.length > 0) {
+    medicalHistory += `Past Medical History: ${clinical_dossier.past_medical_history.join(', ')}\n`;
+  }
+
+  // Medications
+  if (clinical_dossier.medications && clinical_dossier.medications.length > 0) {
+    medicalHistory += `Current Medications: ${clinical_dossier.medications.join(', ')}\n`;
+  }
+
+  // Allergies
+  if (clinical_dossier.allergies && clinical_dossier.allergies.length > 0) {
+    medicalHistory += `Allergies: ${clinical_dossier.allergies.join(', ')}\n`;
+  }
+
+  // Surgical History
+  if (clinical_dossier.surgical_history && clinical_dossier.surgical_history.length > 0) {
+    medicalHistory += `Surgical History: ${clinical_dossier.surgical_history.join(', ')}\n`;
+  }
+
+  // Family History
+  if (clinical_dossier.family_history && clinical_dossier.family_history.length > 0) {
+    medicalHistory += `Family History: ${clinical_dossier.family_history.join(', ')}\n`;
+  }
+
+  // Social History
+  if (clinical_dossier.social_history) {
+    const social = clinical_dossier.social_history;
+    medicalHistory += `Social History:\n`;
+    if (social.smoking_status) medicalHistory += `- Smoking: ${social.smoking_status}\n`;
+    if (social.alcohol_use) medicalHistory += `- Alcohol: ${social.alcohol_use}\n`;
+    if (social.substance_use) medicalHistory += `- Substance Use: ${social.substance_use}\n`;
+    if (social.diet_and_exercise) medicalHistory += `- Diet/Exercise: ${social.diet_and_exercise}\n`;
+    if (social.living_situation) medicalHistory += `- Living Situation: ${social.living_situation}\n`;
+  }
+
+  // Review of Systems
+  if (clinical_dossier.review_of_systems) {
+    const ros = clinical_dossier.review_of_systems;
+    medicalHistory += `Review of Systems:\n`;
+    if (ros.comment) medicalHistory += `- General: ${ros.comment}\n`;
+    if (ros.positive && ros.positive.length > 0) {
+      medicalHistory += `- Positive: ${ros.positive.join(', ')}\n`;
+    }
+    if (ros.negative && ros.negative.length > 0) {
+      medicalHistory += `- Negative: ${ros.negative.join(', ')}\n`;
+    }
+  }
 
   let personaDescription = `You are ${patient.name || 'the patient'}, a ${
     patient.age || 'unknown'
@@ -46,11 +117,25 @@ function buildPrompt(caseData, conversationHistory, newQuestion, willEndCurrentR
       caseData.response_rules?.emotional_tone || patient.emotional_tone || 'concerned'
     } tone.
     Background: ${patient.case_notes || patient.background_story || 'No additional notes'}
+    
+    COMPLETE MEDICAL HISTORY:
+    ${medicalHistory}
+
     Conversation History:
     ${historyString}
     Clinician's latest question: "${newQuestion}"
     ${endInstructions}
-    Your response (1-2 sentences):
+    
+    RESPONSE GUIDELINES:
+    1. Respond naturally and authentically as the patient would
+    2. Only reveal information when asked by the clinician
+    3. Never self-diagnose or suggest treatments
+    4. Maintain a ${patient.emotional_tone || 'concerned'} emotional tone throughout
+    5. Refer to your medical history when answering questions about symptoms or history
+    6. If unsure about something, say "I'm not sure" or "I don't remember"
+    7. Keep responses concise (1-2 sentences typically)
+
+    Your response:
   `;
 }
 
@@ -264,6 +349,7 @@ export async function getEvaluation(caseData, conversationHistory, parentLog) {
   const historyString = conversationHistory
     .map((entry) => `${entry.role}: ${entry.content}`)
     .join('\n');
+  // Enhanced evaluation prompt with clinical reasoning focus
   const evaluationPrompt = `
     You are an expert medical educator evaluating a clinician's performance with a simulated patient.
     Hidden Diagnosis: ${hiddenDiagnosis}.
@@ -272,77 +358,120 @@ export async function getEvaluation(caseData, conversationHistory, parentLog) {
     ${historyString}
     --- END ---
 
-    Evaluate based on these criteria:
+    Evaluate based on these clinical reasoning competencies:
     1. History Taking: ${
       criteriaMap.get('History_Taking') ||
       criteriaMap.get('history_taking') ||
-      'Did the clinician take a complete history?'
+      'Completeness and relevance of history gathered, including onset, location, character, severity, timing, exacerbating/relieving factors, and associated symptoms.'
     }
     2. Risk Factor Assessment: ${
       criteriaMap.get('Risk_Factor_Assessment') ||
       criteriaMap.get('risk_factor_assessment') ||
-      'Did the clinician assess risk factors?'
+      'Identification and exploration of relevant risk factors, past medical history, family history, and social determinants of health.'
     }
-    3. Differential Diagnosis Questioning: ${
-      criteriaMap.get('Differential_Diagnosis_Questioning') ||
-      criteriaMap.get('differential_diagnosis_questioning') ||
-      'Did the clinician explore differential diagnoses?'
+    3. Differential Diagnosis Generation: ${
+      criteriaMap.get('Differential_Diagnosis_Generation') ||
+      criteriaMap.get('differential_diagnosis_generation') ||
+      'Ability to generate appropriate differential diagnoses, prioritize possibilities, and consider rare but serious conditions.'
     }
-    4. Communication and Empathy: ${
+    4. Diagnostic Reasoning: ${
+      criteriaMap.get('Diagnostic_Reasoning') ||
+      criteriaMap.get('diagnostic_reasoning') ||
+      'Logical progression from history to differential diagnosis, appropriate test selection, and interpretation of findings.'
+    }
+    5. Clinical Decision Making: ${
+      criteriaMap.get('Clinical_Decision_Making') ||
+      criteriaMap.get('clinical_decision_making') ||
+      'Appropriateness of diagnostic tests ordered, treatment decisions, and management plan based on available information.'
+    }
+    6. Communication and Empathy: ${
       criteriaMap.get('Communication_and_Empathy') ||
       criteriaMap.get('communication_empathy') ||
-      "How was the clinician's communication and empathy?"
+      "Patient-centered communication, empathy, rapport building, and clear explanation of findings and plans."
     }
-    5. Clinical Urgency: ${
-      criteriaMap.get('Clinical_Urgency') ||
-      criteriaMap.get('clinical_urgency') ||
-      'Did the clinician recognize the urgency of the case?'
+    7. Clinical Urgency Recognition: ${
+      criteriaMap.get('Clinical_Urgency_Recognition') ||
+      criteriaMap.get('clinical_urgency_recognition') ||
+      'Recognition of time-sensitive conditions, appropriate escalation, and emergency management when needed.'
     }
 
-    For each, rate as Excellent, Very Good, Good, Fair, or Poor, with examples.
-    Conclude with a "Summary & Recommendations", stating if the diagnosis was reached.
-    Provide an "Overall Performance Score: [0-100]%" and a "Performance Label: [Excellent/Very good/Good/Fair/Poor]" based on these thresholds: 85-100: Excellent, 75-84: Very good, 65-74: Good, 50-64: Fair, <50: Poor.
+    For each competency, rate as Excellent, Very Good, Good, Fair, or Poor, with specific examples from the conversation.
+    Provide detailed feedback on clinical reasoning patterns, cognitive biases, and areas for improvement.
+
+    Conclude with a "Clinical Reasoning Analysis" that includes:
+    - Pattern recognition strengths and weaknesses
+    - Hypothesis-driven questioning assessment
+    - Diagnostic accuracy and efficiency
+    - Management decision appropriateness
+    - Specific learning recommendations
+
+    State whether the correct diagnosis was reached, partially reached, or missed.
+
+    Provide an "Overall Clinical Reasoning Score: [0-100]%" and a "Performance Label: [Excellent/Very good/Good/Fair/Poor]" based on these thresholds:
+    90-100: Excellent (Masterful clinical reasoning),
+    80-89: Very good (Strong clinical reasoning with minor gaps),
+    70-79: Good (Adequate clinical reasoning with some areas for improvement),
+    60-69: Fair (Basic clinical reasoning with significant gaps),
+    <60: Poor (Needs substantial improvement in clinical reasoning).
 
     Format exactly as follows:
     SESSION END
-    Thank you for completing the simulation. Here is an evaluation of your performance based on the case of ${patientName}.
+    Thank you for completing the simulation. Here is a comprehensive evaluation of your clinical reasoning performance based on the case of ${patientName}.
     Hidden Diagnosis: ${hiddenDiagnosis}
-    Evaluation of Your Performance:
+    
+    CLINICAL REASONING EVALUATION:
     1. History Taking: (Rating: [Rating])
-    [Assessment]
+    [Detailed assessment with examples]
+    
     2. Risk Factor Assessment: (Rating: [Rating])
-    [Assessment]
-    3. Differential Diagnosis Questioning: (Rating: [Rating])
-    [Assessment]
-    4. Communication and Empathy: (Rating: [Rating])
-    [Assessment]
-    5. Clinical Urgency: (Rating: [Rating])
-    [Assessment]
-    Summary & Recommendations:
-    [Summary]
-    Overall Performance Score: [Score]%
+    [Detailed assessment with examples]
+    
+    3. Differential Diagnosis Generation: (Rating: [Rating])
+    [Detailed assessment with examples]
+    
+    4. Diagnostic Reasoning: (Rating: [Rating])
+    [Detailed assessment with examples]
+    
+    5. Clinical Decision Making: (Rating: [Rating])
+    [Detailed assessment with examples]
+    
+    6. Communication and Empathy: (Rating: [Rating])
+    [Detailed assessment with examples]
+    
+    7. Clinical Urgency Recognition: (Rating: [Rating])
+    [Detailed assessment with examples]
+    
+    CLINICAL REASONING ANALYSIS:
+    [Comprehensive analysis of reasoning patterns, cognitive processes, and decision-making quality]
+    
+    DIAGNOSTIC ACCURACY: [Reached/Partially Reached/Missed]
+    
+    Overall Clinical Reasoning Score: [Score]%
     Performance Label: [Label]
+    
+    KEY RECOMMENDATIONS:
+    [3-5 specific, actionable recommendations for improving clinical reasoning skills]
   `;
 
   try {
-    log.info('Requesting evaluation from AI.');
+    log.info('Requesting comprehensive clinical reasoning evaluation from AI.');
     const response = await openai.chat.completions.create({
       model: 'openai/gpt-4o',
       messages: [{ role: 'system', content: evaluationPrompt }],
-      temperature: 0.5,
-      max_tokens: 1500,
+      temperature: 0.4, // Lower temperature for more consistent evaluations
+      max_tokens: 2000, // Increased tokens for detailed evaluation
     });
 
     const evaluationText =
       response.choices[0]?.message?.content || 'Could not generate evaluation.';
-    log.info('Successfully received evaluation from AI.');
+    log.info('Successfully received comprehensive clinical reasoning evaluation from AI.');
     const extractedMetrics = parseEvaluationMetrics(evaluationText, log);
 
     return { evaluationText, extractedMetrics };
   } catch (error) {
-    log.error(error, 'Error calling OpenAI for evaluation.');
+    log.error(error, 'Error calling OpenAI for comprehensive evaluation.');
     return {
-      evaluationText: 'An error occurred while generating the evaluation.',
+      evaluationText: 'An error occurred while generating the comprehensive evaluation.',
       extractedMetrics: parseEvaluationMetrics(null, log),
     };
   }

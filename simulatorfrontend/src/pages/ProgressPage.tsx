@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import { formatDate, formatScore, getPerformanceColor } from '../utils/helpers';
 import { ClinicianProgressResponse } from '../types';
 
@@ -20,7 +20,7 @@ const ProgressPage: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await api.getUserProgress(user.id);
+      const data = await apiService.getUserProgress(user.id);
       setProgressData(data);
     } catch (err) {
       setError('Failed to load progress data');

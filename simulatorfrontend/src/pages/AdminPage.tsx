@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import AdminUserManagement from '../components/AdminUserManagement';
 
 interface SystemStats {
@@ -23,7 +23,7 @@ const AdminPage: React.FC = () => {
   const fetchSystemStats = async () => {
     try {
       setLoading(true);
-      const data = await api.getSystemStats();
+      const data = await apiService.getSystemStats();
       setStats(data);
     } catch (error) {
       console.error('Error fetching system stats:', error);

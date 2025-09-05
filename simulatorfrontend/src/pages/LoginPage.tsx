@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

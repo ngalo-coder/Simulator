@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 
 interface Case {
   id: string;
@@ -25,7 +25,7 @@ const SimulationPage: React.FC = () => {
     
     // If no preselected filters, try to use specialty context for smart "All Cases"
     if (!preselectedFilters?.program_area && !preselectedFilters?.specialty) {
-      const context = api.getSpecialtyContext();
+      const context = apiService.getSpecialtyContext();
       if (context) {
         return {
           program_area: context.programArea,
@@ -85,7 +85,7 @@ const SimulationPage: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.getCaseCategories();
+      const response = await apiService.getCaseCategories();
       if (response) {
         setCategories(response);
         setAvailableSpecialties(response.specialties || []);
@@ -104,7 +104,7 @@ const SimulationPage: React.FC = () => {
 
   const fetchSpecialtiesForProgramArea = async (programArea: string) => {
     try {
-      const response = await api.getCaseCategories({ program_area: programArea });
+      const response = await apiService.getCaseCategories({ program_area: programArea });
       if (response && response.specialties) {
         setAvailableSpecialties(response.specialties);
       } else {
@@ -119,7 +119,7 @@ const SimulationPage: React.FC = () => {
   const fetchCases = async () => {
     try {
       setLoading(true);
-      const response = await api.getCases(filters);
+      const response = await apiService.getCases(filters);
       if (response && Array.isArray(response.cases)) {
         setCases(response.cases);
       } else {
@@ -136,7 +136,7 @@ const SimulationPage: React.FC = () => {
   const handleStartSimulation = async (case_: Case) => {
     try {
       setStartingSimulation(true);
-      const response = await api.startSimulation(case_.id);
+      const response = await apiService.startSimulation(case_.id);
       
       // Determine return URL based on current context
       let returnUrl = '/simulation';
@@ -205,7 +205,7 @@ const SimulationPage: React.FC = () => {
                   Showing all cases in {filters.specialty}. Want to see cases from other specialties?{' '}
                   <button 
                     onClick={() => {
-                      api.clearSpecialtyContext();
+                      apiService.clearSpecialtyContext();
                       setFilters({ program_area: '', specialty: '', search: '' });
                     }}
                     className="text-blue-600 hover:text-blue-800 underline"
@@ -414,7 +414,7 @@ const SimulationPage: React.FC = () => {
                 {isUsingSpecialtyContext && (
                   <button
                     onClick={() => {
-                      api.clearSpecialtyContext();
+                      apiService.clearSpecialtyContext();
                       setFilters({ program_area: '', specialty: '', search: '' });
                     }}
                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"

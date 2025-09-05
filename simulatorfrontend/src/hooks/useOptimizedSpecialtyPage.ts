@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import { slugToSpecialty, isValidSpecialtySlug } from '../utils/urlUtils';
 import { useNotification } from '../components/NotificationToast';
 import { specialtyCache } from '../utils/specialtyCache';
@@ -198,7 +198,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
         Object.entries(apiFilters).filter(([_, value]) => value !== undefined && value !== '')
       );
 
-      const response = await api.getCases(cleanFilters);
+      const response = await apiService.getCases(cleanFilters);
       endApiCall();
       
       // Check if request was aborted
@@ -270,7 +270,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
   const handleStartSimulation = useCallback(async (case_: Case) => {
     try {
       setStartingSimulation(true);
-      const response = await api.startSimulation(case_.id);
+      const response = await apiService.startSimulation(case_.id);
       
       // Handle navigation logic here or return response for parent to handle
       addNotification(`Starting simulation for "${case_.title}"`, 'success');

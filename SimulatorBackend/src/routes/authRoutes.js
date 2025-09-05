@@ -2,12 +2,13 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/UserModel.js';
 import auditLogger from '../services/AuditLoggerService.js';
-import { 
-  authenticateToken, 
-  requireAuth, 
+import {
+  authenticateToken,
+  requireAuth,
   requireAdmin,
-  rateLimiter 
+  rateLimiter
 } from '../middleware/authMiddleware.js';
+import { getJwtSecret, getJwtExpiresIn } from '../config/auth.js';
 
 const router = express.Router();
 
@@ -108,8 +109,8 @@ router.post('/login',
       }
 
       // Generate JWT token
-      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-      const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+      const jwtSecret = getJwtSecret();
+      const jwtExpiresIn = getJwtExpiresIn();
 
       const tokenPayload = {
         userId: user._id,
@@ -231,8 +232,8 @@ router.post('/refresh', requireAuth, async (req, res) => {
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const jwtSecret = getJwtSecret();
+    const jwtExpiresIn = getJwtExpiresIn();
 
     const tokenPayload = {
       userId: user._id,

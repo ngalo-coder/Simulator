@@ -67,7 +67,14 @@ const RegisterPage: React.FC = () => {
       await register({
         username: formData.username,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        primaryRole: 'student',
+        discipline: 'medicine',
+        profile: {
+          firstName: formData.username, // Using username as a placeholder
+          lastName: 'User', // Using a placeholder
+          institution: 'SimuaTech University' // Using a placeholder
+        }
       });
       navigate('/dashboard');
     } catch (err) {

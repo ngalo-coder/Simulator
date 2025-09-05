@@ -1,16 +1,17 @@
 import express from 'express';
 import educatorDashboardService from '../services/EducatorDashboardService.js';
 import caseManagementService from '../services/CaseManagementService.js';
-import authMiddleware from '../middleware/authMiddleware.js';
-import rbacMiddleware from '../middleware/rbacMiddleware.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
+import { requireAnyRole } from '../middleware/rbacMiddleware.js';
+
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Apply RBAC middleware to ensure only educators and admins can access
-router.use(rbacMiddleware(['educator', 'admin']));
+router.use(requireAnyRole(['educator', 'admin']));
 
 /**
  * @route GET /api/educator/dashboard

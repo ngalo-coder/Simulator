@@ -362,7 +362,7 @@ class CaseTemplateService {
 
   /**
    * Laboratory Case Template
-   * Specimen processing and diagnostic testing workflows
+   * Specimen processing and diagnostic testing workflows with enhanced fields for simulation
    */
   getLaboratoryTemplate() {
     return {
@@ -375,74 +375,106 @@ class CaseTemplateService {
         learning_objectives: [],
         keywords: [],
         case_type: 'diagnostic_testing',
-        location: 'clinical_laboratory'
+        location: 'clinical_laboratory',
+        department: 'general', // e.g., hematology, microbiology, chemistry
+        accreditation_standards: ['ISO 15189', 'CLIA'] // Relevant standards
       },
       description: '',
-      system_instruction: 'You are a medical laboratory scientist processing specimens and interpreting results. Ensure accuracy and quality control.',
+      system_instruction: 'You are a medical laboratory scientist processing specimens and interpreting results. Ensure accuracy, quality control, and adherence to safety protocols. Follow standard operating procedures for each test.',
       patient_persona: {
         name: '',
         age: null,
         gender: '',
         clinical_information: '',
         ordering_physician: '',
-        urgency_level: 'routine',
-        specimen_source: ''
+        urgency_level: 'routine', // routine, urgent, stat
+        specimen_source: '',
+        patient_id: '',
+        collection_date: '',
+        collector: ''
       },
       clinical_dossier: {
         specimen_information: {
-          specimen_type: '',
-          collection_method: '',
+          specimen_type: '', // e.g., blood, urine, tissue
+          collection_method: '', // e.g., venipuncture, swab
           collection_time: '',
-          transport_conditions: '',
-          specimen_quality: '',
-          volume_adequacy: '',
-          labeling_accuracy: ''
+          transport_conditions: '', // e.g., room temp, refrigerated
+          specimen_quality: '', // e.g., acceptable, hemolyzed, clotted
+          volume_adequacy: '', // sufficient, insufficient
+          labeling_accuracy: '', // correct, incorrect
+          stability: '', // stable, unstable
+          contamination_risk: '' // low, medium, high
         },
         test_requests: {
-          ordered_tests: [],
-          test_priorities: [],
-          special_instructions: [],
-          reference_ranges: {}
+          ordered_tests: [], // array of test objects
+          test_priorities: [], // routine, urgent, stat
+          special_instructions: [], // e.g., repeat if positive, add-on test
+          reference_ranges: {}, // test-specific reference ranges
+          turnaround_times: {} // expected TAT for each test
         },
         pre_analytical_phase: {
-          specimen_processing: [],
-          quality_checks: [],
-          storage_conditions: '',
-          preparation_steps: []
+          specimen_processing: [], // steps like centrifugation, aliquoting
+          quality_checks: [], // checks upon receipt
+          storage_conditions: '', // e.g., 2-8°C, -20°C
+          preparation_steps: [], // pre-test preparation
+          rejection_criteria: [], // reasons for specimen rejection
+          acceptance_status: '' // accepted, rejected
         },
         analytical_phase: {
-          instrumentation: [],
-          calibration_status: '',
-          quality_control_results: [],
-          test_procedures: [],
-          technical_issues: []
+          instrumentation: [], // instruments used for testing
+          calibration_status: '', // calibrated, needs calibration
+          quality_control_results: [], // QC data for each test
+          test_procedures: [], // step-by-step procedures
+          technical_issues: [], // any issues during testing
+          reagent_lots: {}, // lot numbers and expirations
+          environmental_conditions: {} // temperature, humidity
         },
         post_analytical_phase: {
-          result_verification: [],
-          critical_values: [],
-          result_interpretation: '',
-          reporting_requirements: []
+          result_verification: [], // steps for result verification
+          critical_values: [], // critical results to report
+          result_interpretation: '', // clinical interpretation
+          reporting_requirements: [], // how to report results
+          delta_checks: [], // comparison with previous results
+          autoverification_rules: [] // rules for auto-verification
         },
-        hidden_results: {},
-        expected_findings: [],
-        potential_interferences: []
+        quality_control: {
+          qc_materials: [], // QC materials used
+          qc_frequency: '', // daily, weekly, per run
+          qc_rules: {}, // Westgard rules or other
+          qc_failures: [], // any QC failures
+          corrective_actions: [] // actions taken for failures
+        },
+        safety_protocols: {
+          personal_protective_equipment: [], // required PPE
+          biohazard_handling: '', // procedures for biohazards
+          spill_procedures: '', // steps for spills
+          waste_disposal: '', // disposal methods
+          exposure_plan: '' // plan for exposures
+        },
+        hidden_results: {}, // actual results for evaluation
+        expected_findings: [], // expected outcomes
+        potential_interferences: [], // factors that may interfere
+        case_challenges: [] // specific challenges for the case
       },
-      initial_prompt: 'A specimen has arrived in the laboratory for testing...',
+      initial_prompt: 'A specimen has arrived in the laboratory for testing. Begin by verifying the specimen and processing it according to standard protocols.',
       simulation_triggers: {
-        quality_control_failures: [],
-        critical_results: [],
-        specimen_problems: [],
-        instrument_malfunctions: []
+        quality_control_failures: [], // triggers for QC issues
+        critical_results: [], // triggers for critical values
+        specimen_problems: [], // triggers for specimen issues
+        instrument_malfunctions: [], // triggers for instrument problems
+        safety_incidents: [], // triggers for safety events
+        reporting_deadlines: [] // triggers for TAT issues
       },
       evaluation_criteria: {
-        specimen_handling: { weight: 0.20, max_score: 100 },
-        quality_control: { weight: 0.25, max_score: 100 },
-        technical_competency: { weight: 0.25, max_score: 100 },
+        specimen_handling: { weight: 0.15, max_score: 100 },
+        quality_control: { weight: 0.20, max_score: 100 },
+        technical_competency: { weight: 0.20, max_score: 100 },
         result_interpretation: { weight: 0.20, max_score: 100 },
-        safety_protocols: { weight: 0.10, max_score: 100 }
+        safety_protocols: { weight: 0.15, max_score: 100 },
+        timeliness: { weight: 0.10, max_score: 100 } // added timeliness
       }
     };
-  } 
+  }
  /**
    * Radiology Case Template
    * Imaging interpretation and diagnostic reporting
@@ -728,6 +760,33 @@ class CaseTemplateService {
     }
     if (!caseData.clinical_dossier?.test_requests) {
       errors.push('Laboratory cases require test requests');
+    }
+    
+    // Validate quality control section
+    if (!caseData.clinical_dossier?.quality_control) {
+      warnings.push('Quality control section is recommended for laboratory cases');
+    }
+    
+    // Validate safety protocols
+    if (!caseData.clinical_dossier?.safety_protocols) {
+      warnings.push('Safety protocols section is recommended for laboratory cases');
+    }
+    
+    // Check for required fields in specimen information
+    const specimenInfo = caseData.clinical_dossier?.specimen_information;
+    if (specimenInfo) {
+      if (!specimenInfo.specimen_type) {
+        errors.push('Specimen type is required');
+      }
+      if (!specimenInfo.collection_method) {
+        warnings.push('Collection method is recommended');
+      }
+    }
+    
+    // Check test requests
+    const testRequests = caseData.clinical_dossier?.test_requests;
+    if (testRequests && (!testRequests.ordered_tests || testRequests.ordered_tests.length === 0)) {
+      errors.push('At least one test must be ordered');
     }
   }
 

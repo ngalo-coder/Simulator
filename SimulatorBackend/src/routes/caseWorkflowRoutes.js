@@ -1,15 +1,16 @@
 import express from 'express';
 import caseCreationWorkflowService from '../services/CaseCreationWorkflowService.js';
-import authMiddleware from '../middleware/authMiddleware.js';
-import rbacMiddleware from '../middleware/rbacMiddleware.js';
+import Case from '../models/CaseModel.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
+import { requireAnyRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Apply RBAC middleware to ensure only educators and admins can access
-router.use(rbacMiddleware(['educator', 'admin']));
+router.use(requireAnyRole(['educator', 'admin']));
 
 /**
  * @route POST /api/case-workflow/initialize
@@ -279,9 +280,9 @@ router.get('/terminology', async (req, res) => {
 router.get('/steps/:discipline', async (req, res) => {
   try {
     const { discipline } = req.params;
-    
+
     const steps = caseCreationWorkflowService.getWorkflowSteps(discipline);
-    
+
     res.json({
       success: true,
       data: {
@@ -294,6 +295,187 @@ router.get('/steps/:discipline', async (req, res) => {
     res.status(400).json({
       success: false,
       message: error.message || 'Failed to get workflow steps'
+    });
+  }
+});
+
+/**
+ * @route POST /api/case-workflow/cases/:caseId/duplicate
+ * @desc Duplicate an existing case
+ * @access Private (Educator, Admin)
+ */
+router.post('/cases/:caseId/duplicate', async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const { title, description, includeMultimedia, createAsTemplate } = req.body;
+
+    const options = {
+      title,
+      description,
+      includeMultimedia: includeMultimedia || false,
+      createAsTemplate: createAsTemplate || false
+    };
+
+    const duplicatedCase = await caseCreationWorkflowService.duplicateCase(caseId, req.user, options);
+
+    res.status(201).json({
+      success: true,
+      message: 'Case duplicated successfully',
+      data: duplicatedCase
+    });
+  } catch (error) {
+    console.error('Duplicate case error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to duplicate case'
+    });
+  }
+});
+
+/**
+ * @route POST /api/case-workflow/cases/:caseId/create-template
+ * @desc Create a template from an existing case
+ * @access Private (Educator, Admin)
+ */
+router.post('/cases/:caseId/create-template', async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const { name, description, tags, categories, isPublic } = req.body;
+
+    const templateData = {
+      name,
+      description,
+      tags: tags || [],
+      categories: categories || [],
+      isPublic: isPublic || false
+    };
+
+    const template = await caseCreationWorkflowService.createTemplateFromCase(caseId, templateData, req.user);
+
+    res.status(201).json({
+      success: true,
+      message: 'Template created successfully',
+      data: template
+    });
+  } catch (error) {
+    console.error('Create template error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to create template'
+    });
+  }
+});
+
+/**
+ * @route GET /api/case-workflow/templates
+ * @desc Get available case templates
+ * @access Private (Educator, Admin)
+ */
+router.get('/templates', async (req, res) => {
+  try {
+    const { discipline, specialty, difficulty, page = 1, limit = 20 } = req.query;
+
+    const filters = {};
+    if (discipline) filters.discipline = discipline;
+    if (specialty) filters.specialty = specialty;
+    if (difficulty) filters.difficulty = difficulty;
+
+    // For now, get cases marked as templates
+    const templates = await Case.find({
+      isTemplate: true,
+      ...filters
+    })
+    .populate('createdBy', 'username profile.firstName profile.lastName')
+    .populate('categories')
+    .sort({ usageCount: -1, createdAt: -1 })
+    .limit(limit * 1)
+    .skip((page - 1) * limit)
+    .lean();
+
+    const total = await Case.countDocuments({
+      isTemplate: true,
+      ...filters
+    });
+
+    res.json({
+      success: true,
+      data: {
+        templates,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get templates error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve templates'
+    });
+  }
+});
+
+/**
+ * @route POST /api/case-workflow/templates/:templateId/use
+ * @desc Create a new case from a template
+ * @access Private (Educator, Admin)
+ */
+router.post('/templates/:templateId/use', async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const { title, description } = req.body;
+
+    const template = await Case.findById(templateId);
+    if (!template || !template.isTemplate) {
+      return res.status(404).json({
+        success: false,
+        message: 'Template not found'
+      });
+    }
+
+    // Create new case from template
+    const caseData = {
+      version: 1,
+      description: description || template.description,
+      system_instruction: template.system_instruction,
+      case_metadata: {
+        ...template.case_metadata.toObject(),
+        case_id: await caseCreationWorkflowService.generateCaseId(template.case_metadata.specialty || 'general'),
+        title: title || `${template.case_metadata.title} (from template)`
+      },
+      patient_persona: template.patient_persona,
+      initial_prompt: template.initial_prompt,
+      clinical_dossier: template.clinical_dossier,
+      simulation_triggers: template.simulation_triggers,
+      evaluation_criteria: template.evaluation_criteria,
+      multimediaContent: template.multimediaContent || [],
+      categories: template.categories || [],
+      tags: template.tags || [],
+      templateSource: templateId,
+      status: 'draft',
+      createdBy: req.user._id,
+      lastModifiedBy: req.user._id
+    };
+
+    const newCase = new Case(caseData);
+    await newCase.save();
+
+    // Increment template usage count
+    await Case.findByIdAndUpdate(templateId, { $inc: { usageCount: 1 } });
+
+    res.status(201).json({
+      success: true,
+      message: 'Case created from template successfully',
+      data: newCase
+    });
+  } catch (error) {
+    console.error('Use template error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create case from template'
     });
   }
 });

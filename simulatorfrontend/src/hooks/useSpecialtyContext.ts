@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import { isValidSpecialtySlug } from '../utils/urlUtils';
 import { 
   specialtyCache, 
@@ -84,7 +84,7 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
         };
       }
 
-      const categoriesData = await api.getCaseCategories();
+      const categoriesData = await apiService.getCaseCategories();
       const specialties = categoriesData.specialties || [];
       const specialtyCounts = categoriesData.specialty_counts || {};
 

@@ -30,7 +30,7 @@ const SpecialtyNavigation: React.FC<SpecialtyNavigationProps> = ({
       <div className={`animate-pulse ${className}`}>
         <div className="flex flex-wrap gap-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-24"></div>
+            <div key={i} className="h-8 bg-background-alt dark:bg-background-dark-alt rounded-lg w-24"></div>
           ))}
         </div>
       </div>
@@ -54,10 +54,10 @@ const SpecialtyNavigation: React.FC<SpecialtyNavigationProps> = ({
             className={`
               inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
               ${route.isActive
-                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400'
+                ? 'bg-primary-light dark:bg-primary-dark text-primary-dark dark:text-primary-light border border-primary-dark dark:border-primary-light'
+                : 'bg-background dark:bg-background-dark text-text dark:text-text-dark border border-border dark:border-border-dark hover:border-primary-dark dark:hover:border-primary-light hover:text-primary-dark dark:hover:text-primary-light'
               }
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1
             `}
             aria-current={route.isActive ? 'page' : undefined}
           >
@@ -66,8 +66,8 @@ const SpecialtyNavigation: React.FC<SpecialtyNavigationProps> = ({
               <span className={`
                 ml-2 px-1.5 py-0.5 text-xs rounded-full
                 ${route.isActive
-                  ? 'bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  ? 'bg-primary dark:bg-primary-dark text-white dark:text-text-dark'
+                  : 'bg-background-alt dark:bg-background-dark-alt text-text-muted dark:text-text-dark-muted'
                 }
               `}>
                 {route.caseCount}
@@ -79,7 +79,7 @@ const SpecialtyNavigation: React.FC<SpecialtyNavigationProps> = ({
         {hasMore && (
           <button
             onClick={() => setShowAll(!showAll)}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-background-alt dark:bg-background-dark-alt text-text-muted dark:text-text-dark-muted hover:bg-border dark:hover:bg-border-dark transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
           >
             {showAll ? (
               <>

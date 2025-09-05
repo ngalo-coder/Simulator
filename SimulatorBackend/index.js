@@ -16,12 +16,22 @@ import adminRoutes from './src/routes/adminRoutes.js';
 import adminProgramRoutes from './src/routes/adminProgramRoutes.js';
 import adminContributionRoutes from './src/routes/adminContributionRoutes.js';
 import contributeCaseRoutes from './src/routes/contributeCaseRoutes.js';
+import caseReviewRoutes from './src/routes/caseReviewRoutes.js';
 import performanceRoutes from './src/routes/performanceRoutes.js';
+import performanceReviewRoutes from './src/routes/performanceReviewRoutes.js';
 import privacyRoutes from './src/routes/privacyRoutes.js';
 import educatorRoutes from './src/routes/educatorRoutes.js';
 import studentRoutes from './src/routes/studentRoutes.js';
 import caseTemplateRoutes from './src/routes/caseTemplateRoutes.js';
 import caseWorkflowRoutes from './src/routes/caseWorkflowRoutes.js';
+import analyticsRoutes from './src/routes/analyticsRoutes.js';
+import progressAnalyticsRoutes from './src/routes/progressAnalyticsRoutes.js';
+import feedbackRoutes from './src/routes/feedbackRoutes.js';
+import casePublishingRoutes from './src/routes/casePublishingRoutes.js';
+import interactionTrackingRoutes from './src/routes/interactionTrackingRoutes.js';
+import learningGoalRoutes from './src/routes/learningGoalRoutes.js';
+import learningPathRoutes from './src/routes/learningPathRoutes.js';
+import competencyAssessmentRoutes from './src/routes/competencyAssessmentRoutes.js';
 
 dotenv.config();
 
@@ -128,12 +138,22 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminProgramRoutes);
 app.use('/api/admin', adminContributionRoutes);
 app.use('/api/contribute', contributeCaseRoutes);
+app.use('/api/reviews', caseReviewRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/privacy', privacyRoutes);
 app.use('/api/educator', educatorRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/case-templates', caseTemplateRoutes);
 app.use('/api/case-workflow', caseWorkflowRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/progress-analytics', progressAnalyticsRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/publishing', casePublishingRoutes);
+app.use('/api/interaction-tracking', interactionTrackingRoutes);
+app.use('/api/performance-review', performanceReviewRoutes);
+app.use('/api/learning', learningGoalRoutes);
+app.use('/api/learning-paths', learningPathRoutes);
+app.use('/api/competency', competencyAssessmentRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

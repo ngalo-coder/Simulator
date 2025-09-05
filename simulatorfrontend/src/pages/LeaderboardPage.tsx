@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import PrivacySettingsModal from '../components/PrivacySettings';
 
 interface LeaderboardEntry {
@@ -33,7 +33,7 @@ const LeaderboardPage: React.FC = () => {
 
   const fetchSpecialties = async () => {
     try {
-      const categories = await api.getCaseCategories();
+      const categories = await apiService.getCaseCategories();
       setSpecialties(categories.specialties || []);
     } catch (error) {
       console.error('Error fetching specialties:', error);
@@ -44,7 +44,7 @@ const LeaderboardPage: React.FC = () => {
     try {
       setLoading(true);
       // Fetch real leaderboard data from API
-      const data = await api.getLeaderboard(selectedSpecialty, 20);
+      const data = await apiService.getLeaderboard(selectedSpecialty, 20);
       
       // Add rank numbers and privacy handling to the data
       const rankedData = data.map((entry: any, index: number) => {

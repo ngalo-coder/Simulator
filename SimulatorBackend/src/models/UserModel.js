@@ -320,7 +320,7 @@ UserSchema.methods.removePermission = function(resource, action) {
 // Method to update last login
 UserSchema.methods.updateLastLogin = function() {
   this.lastLogin = new Date();
-  return this.save();
+  return this.save({ validateBeforeSave: false });
 };
 
 // Static method to find users by discipline

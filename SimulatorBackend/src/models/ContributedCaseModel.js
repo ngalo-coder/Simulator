@@ -18,11 +18,56 @@ const ContributedCaseSchema = new mongoose.Schema({
   reviewedBy: { type: String },
   reviewedAt: { type: Date },
   reviewComments: { type: String },
-  revisionRequests: [{ 
-    field: String, 
-    comment: String, 
-    requestedAt: Date 
+  revisionRequests: [{
+    field: String,
+    comment: String,
+    requestedAt: Date
   }],
+  assignedReviewerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  assignedReviewerName: {
+    type: String
+  },
+  reviewDeadline: {
+    type: Date
+  },
+  reviewPriority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'urgent'],
+    default: 'medium'
+  },
+  reviewScore: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  qualityRating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  educationalValueRating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  clinicalAccuracyRating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  communicationRating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  culturalAppropriatenessRating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
   
   // Case Content (matching your existing case structure)
   caseData: {
@@ -124,7 +169,61 @@ const ContributedCaseSchema = new mongoose.Schema({
   // Timestamps
   submittedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+  
+  // Review tracking
+  reviewRound: {
+    type: Number,
+    default: 1
+  },
+  totalReviewTime: {
+    type: Number, // in minutes
+    default: 0
+  },
+  lastReviewStartedAt: {
+    type: Date
+  },
+  lastReviewCompletedAt: {
+    type: Date
+  },
+
+  // Student feedback metrics
+  studentFeedbackCount: {
+    type: Number,
+    default: 0
+  },
+  averageStudentRating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    default: 0
+  },
+  studentFeedbackComments: [{
+    comment: String,
+    rating: Number,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+  // Case effectiveness metrics
+  effectivenessMetrics: {
+    totalSessions: { type: Number, default: 0 },
+    averageScore: { type: Number, default: 0 },
+    passRate: { type: Number, default: 0 }, // Percentage of sessions with score >= 70
+    excellentRate: { type: Number, default: 0 }, // Percentage of sessions with score >= 85
+    avgCompletionTime: { type: Number, default: 0 }, // Average session duration in minutes
+    lastUpdated: { type: Date, default: Date.now }
+  },
+
+  // Quality assurance flags
+  qualityFlags: {
+    needsContentReview: { type: Boolean, default: false },
+    needsDifficultyAdjustment: { type: Boolean, default: false },
+    technicalIssuesReported: { type: Boolean, default: false },
+    lastQualityCheck: { type: Date }
+  }
 });
 
 // Update the updatedAt field on save
@@ -162,5 +261,47 @@ ContributedCaseSchema.pre('save', function(next) {
   }
   next();
 });
+
+// Method to assign reviewer
+ContributedCaseSchema.methods.assignReviewer = function(reviewerId, reviewerName, deadline, priority) {
+  this.assignedReviewerId = reviewerId;
+  this.assignedReviewerName = reviewerName;
+  this.reviewDeadline = deadline;
+  this.reviewPriority = priority;
+  this.status = 'under_review';
+  return this.save();
+};
+
+// Method to complete review
+ContributedCaseSchema.methods.completeReview = function(decision, feedback, ratings) {
+  this.status = decision === 'approved' ? 'approved' : decision;
+  this.finalDecision = decision;
+  this.decisionReason = feedback;
+  this.reviewedAt = new Date();
+  
+  // Update ratings if provided
+  if (ratings) {
+    if (ratings.reviewScore) this.reviewScore = ratings.reviewScore;
+    if (ratings.qualityRating) this.qualityRating = ratings.qualityRating;
+    if (ratings.educationalValueRating) this.educationalValueRating = ratings.educationalValueRating;
+    if (ratings.clinicalAccuracyRating) this.clinicalAccuracyRating = ratings.clinicalAccuracyRating;
+    if (ratings.communicationRating) this.communicationRating = ratings.communicationRating;
+    if (ratings.culturalAppropriatenessRating) this.culturalAppropriatenessRating = ratings.culturalAppropriatenessRating;
+  }
+  
+  return this.save();
+};
+
+// Method to request revisions
+ContributedCaseSchema.methods.requestRevisions = function(feedback) {
+  this.status = 'needs_revision';
+  this.revisionRequests.push({
+    field: 'general',
+    comment: feedback,
+    requestedAt: new Date()
+  });
+  this.reviewRound += 1;
+  return this.save();
+};
 
 export default mongoose.model('ContributedCase', ContributedCaseSchema);

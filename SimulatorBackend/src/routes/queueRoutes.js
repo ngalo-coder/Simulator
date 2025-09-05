@@ -1,6 +1,7 @@
 import express from 'express';
 import { startQueueSession, getNextCaseInQueue, markCaseStatus, getQueueSession, getCaseHistory } from '../controllers/queueController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
+
 
 const router = express.Router();
 
@@ -10,23 +11,23 @@ const router = express.Router();
 
 // Initialize or Resume Queue Session
 // POST /api/users/queue/session/start
-router.post('/queue/session/start', protect, startQueueSession);
+router.post('/queue/session/start', authenticateToken, startQueueSession);
 
 // Get Next Case in Queue Session
 // POST /api/users/queue/session/:sessionId/next
-router.post('/queue/session/:sessionId/next', protect, getNextCaseInQueue);
+router.post('/queue/session/:sessionId/next', authenticateToken, getNextCaseInQueue);
 
 // Mark Case Interaction Status
 // POST /api/users/cases/:originalCaseIdString/status
-router.post('/cases/:originalCaseIdString/status', protect, markCaseStatus);
+router.post('/cases/:originalCaseIdString/status', authenticateToken, markCaseStatus);
 
 // Get Queue Session Details
 // GET /api/users/queue/session/:sessionId
-router.get('/queue/session/:sessionId', protect, getQueueSession);
+router.get('/queue/session/:sessionId', authenticateToken, getQueueSession);
 
 // Get User's Case History
 // GET /api/users/cases/history
 // GET /api/users/cases/history/:userId (for admin)
-router.get('/cases/history/:userId?', protect, getCaseHistory);
+router.get('/cases/history/:userId?', authenticateToken, getCaseHistory);
 
 export default router;

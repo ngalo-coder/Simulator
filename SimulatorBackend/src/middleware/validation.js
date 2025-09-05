@@ -31,3 +31,28 @@ export const validateProgressUpdate = (req, res, next) => {
     }
     next();
 };
+
+export const validateTreatmentPlan = (req, res, next) => {
+    const { treatmentPlan } = req.body;
+    
+    if (!treatmentPlan || !Array.isArray(treatmentPlan)) {
+        return res.status(400).json({ message: 'Treatment plan must be an array' });
+    }
+
+    for (const intervention of treatmentPlan) {
+        if (!intervention.intervention || typeof intervention.intervention !== 'string') {
+            return res.status(400).json({ message: 'Each intervention must have a valid intervention description' });
+        }
+
+        // Validate optional fields if present
+        if (intervention.dosage && typeof intervention.dosage !== 'string') {
+            return res.status(400).json({ message: 'Dosage must be a string if provided' });
+        }
+
+        if (intervention.frequency && typeof intervention.frequency !== 'string') {
+            return res.status(400).json({ message: 'Frequency must be a string if provided' });
+        }
+    }
+
+    next();
+};

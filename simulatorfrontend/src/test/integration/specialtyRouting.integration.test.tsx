@@ -3,17 +3,27 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import App from '../../App';
-import { api } from '../../services/apiService';
+import { apiService } from '../../services/apiService';
 
 // Mock the API service
 vi.mock('../../services/apiService', () => ({
-  api: {
+  apiService: {
     getCases: vi.fn(),
     getCaseCategories: vi.fn(),
     startSimulation: vi.fn(),
     setSpecialtyContext: vi.fn(),
     checkAuth: vi.fn(),
     getUserProfile: vi.fn(),
+    getSpecialtyContext: vi.fn(),
+    login: vi.fn(),
+    register: vi.fn(),
+    streamSimulationAsk: vi.fn(),
+    getPerformanceSummary: vi.fn(),
+    healthCheck: vi.fn(),
+    clearSpecialtyContext: vi.fn(),
+    getCase: vi.fn(),
+    submitInteraction: vi.fn(),
+    endSimulation: vi.fn(),
   }
 }));
 
@@ -114,14 +124,14 @@ describe('Specialty Routing Integration Tests', () => {
     vi.clearAllMocks();
     
     // Setup default API responses
-    (api.getCaseCategories as any).mockResolvedValue({
+    (apiService.getCaseCategories as any).mockResolvedValue({
       specialties: mockSpecialties,
       specialty_counts: mockSpecialtyCounts,
     });
     
-    (api.getCases as any).mockResolvedValue(mockCasesResponse);
-    (api.checkAuth as any).mockResolvedValue({ valid: true });
-    (api.getUserProfile as any).mockResolvedValue({ id: '1', username: 'testuser' });
+    (apiService.getCases as any).mockResolvedValue(mockCasesResponse);
+    (apiService.checkAuth as any).mockResolvedValue({ valid: true });
+    (apiService.getUserProfile as any).mockResolvedValue({ id: '1', username: 'testuser' });
   });
 
   afterEach(() => {
@@ -167,7 +177,7 @@ describe('Specialty Routing Integration Tests', () => {
       
       // Should call API with specialty filter
       await waitFor(() => {
-        expect(api.getCases).toHaveBeenCalledWith(
+        expect(apiService.getCases).toHaveBeenCalledWith(
           expect.objectContaining({
             specialty: 'Internal Medicine'
           })
@@ -211,7 +221,7 @@ describe('Specialty Routing Integration Tests', () => {
       });
 
       // Should call API with new specialty filter
-      expect(api.getCases).toHaveBeenCalledWith(
+      expect(apiService.getCases).toHaveBeenCalledWith(
         expect.objectContaining({
           specialty: 'Pediatrics'
         })
@@ -228,7 +238,7 @@ describe('Specialty Routing Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(api.getCases).toHaveBeenCalledWith(
+        expect(apiService.getCases).toHaveBeenCalledWith(
           expect.objectContaining({
             specialty: 'Internal Medicine',
             page: 1,
@@ -245,7 +255,7 @@ describe('Specialty Routing Integration Tests', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      (api.getCases as any).mockRejectedValue(new Error('Network error'));
+      (apiService.getCases as any).mockRejectedValue(new Error('Network error'));
 
       render(
         <MemoryRouter initialEntries={['/internal_medicine']}>
@@ -259,7 +269,7 @@ describe('Specialty Routing Integration Tests', () => {
     });
 
     it('should handle empty specialty results', async () => {
-      (api.getCases as any).mockResolvedValue({
+      (apiService.getCases as any).mockResolvedValue({
         cases: [],
         currentPage: 1,
         totalPages: 1,
@@ -295,7 +305,7 @@ describe('Specialty Routing Integration Tests', () => {
       fireEvent.change(searchInput, { target: { value: 'chest pain' } });
 
       await waitFor(() => {
-        expect(api.getCases).toHaveBeenCalledWith(
+        expect(apiService.getCases).toHaveBeenCalledWith(
           expect.objectContaining({
             specialty: 'Internal Medicine',
             search: 'chest pain',
@@ -309,7 +319,7 @@ describe('Specialty Routing Integration Tests', () => {
 
   describe('Simulation Integration', () => {
     it('should start simulation with specialty context preserved', async () => {
-      (api.startSimulation as any).mockResolvedValue({ sessionId: 'test-session-123' });
+      (apiService.startSimulation as any).mockResolvedValue({ sessionId: 'test-session-123' });
 
       render(
         <MemoryRouter initialEntries={['/internal_medicine']}>
@@ -326,13 +336,13 @@ describe('Specialty Routing Integration Tests', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(api.startSimulation).toHaveBeenCalledWith('1');
-        expect(api.setSpecialtyContext).toHaveBeenCalledWith('', 'Internal Medicine');
+        expect(apiService.startSimulation).toHaveBeenCalledWith('1');
+        expect(apiService.setSpecialtyContext).toHaveBeenCalledWith('', 'Internal Medicine');
       });
     });
 
     it('should handle simulation start errors', async () => {
-      (api.startSimulation as any).mockRejectedValue(new Error('Simulation start failed'));
+      (apiService.startSimulation as any).mockRejectedValue(new Error('Simulation start failed'));
 
       render(
         <MemoryRouter initialEntries={['/internal_medicine']}>
@@ -348,7 +358,7 @@ describe('Specialty Routing Integration Tests', () => {
       fireEvent.click(startButton);
 
       await waitFor(() => {
-        expect(api.startSimulation).toHaveBeenCalled();
+        expect(apiService.startSimulation).toHaveBeenCalled();
         // Error should be handled gracefully
       });
     });
@@ -391,7 +401,7 @@ describe('Specialty Routing Integration Tests', () => {
       });
 
       // Should maintain specialty context after "refresh"
-      expect(api.getCases).toHaveBeenCalledWith(
+      expect(apiService.getCases).toHaveBeenCalledWith(
         expect.objectContaining({
           specialty: 'Internal Medicine'
         })
@@ -404,7 +414,7 @@ describe('Specialty Routing Integration Tests', () => {
       // Mock a component error
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
-      (api.getCases as any).mockImplementation(() => {
+      (apiService.getCases as any).mockImplementation(() => {
         throw new Error('Component error');
       });
 
@@ -433,7 +443,7 @@ describe('Specialty Routing Integration Tests', () => {
       );
 
       await waitFor(() => {
-        expect(api.getCaseCategories).toHaveBeenCalledTimes(1);
+        expect(apiService.getCaseCategories).toHaveBeenCalledTimes(1);
       });
 
       // Navigate to different specialty
@@ -448,7 +458,7 @@ describe('Specialty Routing Integration Tests', () => {
       });
 
       // Should not call getCaseCategories again due to caching
-      expect(api.getCaseCategories).toHaveBeenCalledTimes(1);
+      expect(apiService.getCaseCategories).toHaveBeenCalledTimes(1);
     });
 
     it('should handle concurrent navigation requests', async () => {
@@ -476,7 +486,7 @@ describe('Specialty Routing Integration Tests', () => {
       });
 
       // Should handle rapid navigation without errors
-      expect(api.getCases).toHaveBeenCalled();
+      expect(apiService.getCases).toHaveBeenCalled();
     });
   });
 });

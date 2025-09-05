@@ -121,7 +121,7 @@ class CaseManagementService {
   async updateCase(caseId, updateData, user) {
     try {
       const caseDoc = await Case.findById(caseId);
-      
+
       if (!caseDoc) {
         throw new Error('Case not found');
       }
@@ -136,7 +136,7 @@ class CaseManagementService {
 
       // Store original data for version history
       const originalData = caseDoc.toObject();
-      
+
       // Update case fields
       Object.keys(updateData).forEach(key => {
         if (key !== '_id' && key !== 'createdBy' && key !== 'createdAt') {
@@ -149,20 +149,26 @@ class CaseManagementService {
       caseDoc.lastModifiedAt = new Date();
 
       // If case was approved and now being edited, reset to draft
-      if (caseDoc.status === this.caseStatuses.APPROVED || 
+      if (caseDoc.status === this.caseStatuses.APPROVED ||
           caseDoc.status === this.caseStatuses.PUBLISHED) {
         caseDoc.status = this.caseStatuses.DRAFT;
       }
 
-      // Add to version history
-      const changes = this.generateChangeDescription(originalData, updateData);
+      // Enhanced version history tracking
+      const changeDetails = this.generateDetailedChangeDescription(originalData, updateData);
       if (!caseDoc.versionHistory) caseDoc.versionHistory = [];
+
       caseDoc.versionHistory.push({
-        version: caseDoc.version + 1,
+        version: (caseDoc.version || 1) + 1,
         createdBy: user._id,
         createdAt: new Date(),
-        changes: changes,
-        status: caseDoc.status
+        changes: changeDetails.summary,
+        status: caseDoc.status,
+        changeType: changeDetails.changeType,
+        affectedFields: changeDetails.affectedFields,
+        multimediaChanges: changeDetails.multimediaChanges,
+        reviewComments: changeDetails.reviewComments,
+        reviewSuggestions: changeDetails.reviewSuggestions
       });
 
       caseDoc.version = (caseDoc.version || 1) + 1;
@@ -178,7 +184,8 @@ class CaseManagementService {
           caseId: caseDoc._id,
           caseTitle: caseDoc.case_metadata?.title || 'Untitled Case',
           version: caseDoc.version,
-          changes: changes
+          changes: changeDetails.summary,
+          changeType: changeDetails.changeType
         }
       });
 
@@ -706,6 +713,197 @@ class CaseManagementService {
     return `${prefix}_${timestamp}_${random}`;
   }
 
+  /**
+   * Duplicate an existing case
+   * @param {string} caseId - Case ID to duplicate
+   * @param {Object} user - User creating the duplicate
+   * @param {Object} options - Duplication options
+   * @returns {Promise<Object>} - Duplicated case
+   */
+  async duplicateCase(caseId, user, options = {}) {
+    try {
+      const originalCase = await Case.findById(caseId)
+        .populate('createdBy', 'username profile.firstName profile.lastName')
+        .populate('lastModifiedBy', 'username profile.firstName profile.lastName');
+
+      if (!originalCase) {
+        throw new Error('Case not found');
+      }
+
+      // Check permissions
+      if (!this.canUserAccessCase(originalCase, user)) {
+        throw new Error('Access denied');
+      }
+
+      // Create duplicate data
+      const duplicateData = {
+        version: 1,
+        description: options.description || `${originalCase.description} (Copy)`,
+        system_instruction: originalCase.system_instruction,
+        case_metadata: {
+          ...originalCase.case_metadata.toObject(),
+          case_id: await this.generateCaseId(originalCase.case_metadata.specialty || 'general'),
+          title: options.title || `${originalCase.case_metadata.title} (Copy)`
+        },
+        patient_persona: originalCase.patient_persona,
+        initial_prompt: originalCase.initial_prompt,
+        clinical_dossier: originalCase.clinical_dossier,
+        simulation_triggers: originalCase.simulation_triggers,
+        evaluation_criteria: originalCase.evaluation_criteria,
+        // Copy multimedia content if requested
+        multimediaContent: options.includeMultimedia ? originalCase.multimediaContent : [],
+        // Copy categories and tags
+        categories: originalCase.categories || [],
+        tags: [...(originalCase.tags || []), 'duplicate'],
+        // Set as template if requested
+        isTemplate: options.createAsTemplate || false,
+        // Reference original case
+        templateSource: originalCase._id,
+        // Set status
+        status: this.caseStatuses.DRAFT,
+        // Collaboration
+        createdBy: user._id,
+        lastModifiedBy: user._id,
+        collaborators: [{
+          user: user._id,
+          role: 'owner',
+          permissions: ['read', 'write', 'delete', 'share'],
+          addedAt: new Date(),
+          addedBy: user._id
+        }],
+        // Initialize version history
+        versionHistory: [{
+          version: 1,
+          createdBy: user._id,
+          createdAt: new Date(),
+          changes: `Case duplicated from ${originalCase.case_metadata.title}`,
+          status: this.caseStatuses.DRAFT,
+          changeType: 'content_update',
+          affectedFields: ['all'],
+          multimediaChanges: []
+        }]
+      };
+
+      const duplicatedCase = new Case(duplicateData);
+      await duplicatedCase.save();
+
+      // Log case duplication
+      await auditLogger.logAuthEvent({
+        event: 'CASE_DUPLICATED',
+        userId: user._id,
+        username: user.username,
+        metadata: {
+          originalCaseId: caseId,
+          duplicatedCaseId: duplicatedCase._id,
+          originalTitle: originalCase.case_metadata.title,
+          duplicatedTitle: duplicatedCase.case_metadata.title,
+          includeMultimedia: options.includeMultimedia || false
+        }
+      });
+
+      return await this.getCaseById(duplicatedCase._id, user);
+    } catch (error) {
+      console.error('Duplicate case error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a template from an existing case
+   * @param {string} caseId - Case ID to create template from
+   * @param {Object} templateData - Template metadata
+   * @param {Object} user - User creating the template
+   * @returns {Promise<Object>} - Created template
+   */
+  async createTemplateFromCase(caseId, templateData, user) {
+    try {
+      const sourceCase = await Case.findById(caseId);
+
+      if (!sourceCase) {
+        throw new Error('Source case not found');
+      }
+
+      // Check permissions
+      if (!this.canUserAccessCase(sourceCase, user)) {
+        throw new Error('Access denied');
+      }
+
+      // Create template data
+      const template = {
+        name: templateData.name || `${sourceCase.case_metadata.title} Template`,
+        description: templateData.description || `Template based on ${sourceCase.case_metadata.title}`,
+        discipline: sourceCase.case_metadata.program_area || 'General',
+        specialty: sourceCase.case_metadata.specialty || 'General',
+        difficulty: sourceCase.case_metadata.difficulty || 'Intermediate',
+        tags: templateData.tags || sourceCase.tags || [],
+        categories: templateData.categories || sourceCase.categories || [],
+        multimediaContent: sourceCase.multimediaContent || [],
+        templateData: {
+          case_metadata: sourceCase.case_metadata,
+          patient_persona: sourceCase.patient_persona,
+          clinical_dossier: sourceCase.clinical_dossier,
+          simulation_triggers: sourceCase.simulation_triggers,
+          evaluation_criteria: sourceCase.evaluation_criteria
+        },
+        usageCount: 0,
+        isPublic: templateData.isPublic || false,
+        createdBy: user._id,
+        createdAt: new Date(),
+        lastModified: new Date(),
+        sourceCaseId: caseId
+      };
+
+      // Note: This would need to be implemented with the CaseTemplate model
+      // const newTemplate = new CaseTemplate(template);
+      // await newTemplate.save();
+
+      // For now, create as a regular case marked as template
+      const templateCase = new Case({
+        ...sourceCase.toObject(),
+        _id: undefined,
+        case_metadata: {
+          ...sourceCase.case_metadata.toObject(),
+          case_id: await this.generateCaseId(sourceCase.case_metadata.specialty || 'template'),
+          title: template.name
+        },
+        isTemplate: true,
+        templateSource: caseId,
+        status: this.caseStatuses.PUBLISHED,
+        createdBy: user._id,
+        lastModifiedBy: user._id,
+        versionHistory: [{
+          version: 1,
+          createdBy: user._id,
+          createdAt: new Date(),
+          changes: 'Template created from case',
+          status: this.caseStatuses.PUBLISHED,
+          changeType: 'content_update',
+          affectedFields: ['all']
+        }]
+      });
+
+      await templateCase.save();
+
+      // Log template creation
+      await auditLogger.logAuthEvent({
+        event: 'CASE_TEMPLATE_CREATED',
+        userId: user._id,
+        username: user.username,
+        metadata: {
+          sourceCaseId: caseId,
+          templateId: templateCase._id,
+          templateName: template.name,
+          isPublic: template.isPublic
+        }
+      });
+
+      return await this.getCaseById(templateCase._id, user);
+    } catch (error) {
+      console.error('Create template from case error:', error);
+      throw error;
+    }
+  }
+
   generateChangeDescription(originalData, updateData) {
     const changes = [];
     Object.keys(updateData).forEach(key => {
@@ -714,6 +912,109 @@ class CaseManagementService {
       }
     });
     return changes.length > 0 ? changes.join(', ') : 'Minor updates';
+  }
+
+  /**
+   * Generate detailed change description for enhanced version tracking
+   * @param {Object} originalData - Original case data
+   * @param {Object} updateData - Updated case data
+   * @returns {Object} - Detailed change information
+   */
+  generateDetailedChangeDescription(originalData, updateData) {
+    const affectedFields = [];
+    const multimediaChanges = [];
+    let changeType = 'content_update';
+    let summary = '';
+
+    // Check for multimedia changes
+    if (updateData.multimediaContent || originalData.multimediaContent) {
+      const originalMultimedia = originalData.multimediaContent || [];
+      const updatedMultimedia = updateData.multimediaContent || [];
+
+      // Check for added multimedia
+      updatedMultimedia.forEach(content => {
+        if (!originalMultimedia.find(orig => orig.fileId === content.fileId)) {
+          multimediaChanges.push({
+            action: 'added',
+            fileId: content.fileId,
+            filename: content.filename
+          });
+        }
+      });
+
+      // Check for removed multimedia
+      originalMultimedia.forEach(content => {
+        if (!updatedMultimedia.find(upd => upd.fileId === content.fileId)) {
+          multimediaChanges.push({
+            action: 'removed',
+            fileId: content.fileId,
+            filename: content.filename
+          });
+        }
+      });
+
+      if (multimediaChanges.length > 0) {
+        changeType = multimediaChanges[0].action === 'added' ? 'multimedia_add' : 'multimedia_remove';
+        affectedFields.push('multimediaContent');
+      }
+    }
+
+    // Check for metadata changes
+    if (updateData.case_metadata) {
+      Object.keys(updateData.case_metadata).forEach(key => {
+        if (JSON.stringify(originalData.case_metadata?.[key]) !== JSON.stringify(updateData.case_metadata[key])) {
+          affectedFields.push(`case_metadata.${key}`);
+        }
+      });
+      if (affectedFields.some(field => field.startsWith('case_metadata'))) {
+        changeType = 'metadata_update';
+      }
+    }
+
+    // Check for content changes
+    ['description', 'system_instruction', 'initial_prompt'].forEach(field => {
+      if (originalData[field] !== updateData[field]) {
+        affectedFields.push(field);
+      }
+    });
+
+    // Check for patient persona changes
+    if (updateData.patient_persona) {
+      Object.keys(updateData.patient_persona).forEach(key => {
+        if (JSON.stringify(originalData.patient_persona?.[key]) !== JSON.stringify(updateData.patient_persona[key])) {
+          affectedFields.push(`patient_persona.${key}`);
+        }
+      });
+    }
+
+    // Check for clinical dossier changes
+    if (updateData.clinical_dossier) {
+      Object.keys(updateData.clinical_dossier).forEach(key => {
+        if (JSON.stringify(originalData.clinical_dossier?.[key]) !== JSON.stringify(updateData.clinical_dossier[key])) {
+          affectedFields.push(`clinical_dossier.${key}`);
+        }
+      });
+    }
+
+    // Generate summary
+    if (multimediaChanges.length > 0) {
+      const added = multimediaChanges.filter(c => c.action === 'added').length;
+      const removed = multimediaChanges.filter(c => c.action === 'removed').length;
+      summary = `Multimedia: ${added > 0 ? `+${added} files` : ''}${removed > 0 ? ` -${removed} files` : ''}`;
+    } else if (affectedFields.length > 0) {
+      summary = `Updated: ${affectedFields.slice(0, 3).join(', ')}${affectedFields.length > 3 ? ` and ${affectedFields.length - 3} more` : ''}`;
+    } else {
+      summary = 'Minor updates';
+    }
+
+    return {
+      summary,
+      changeType,
+      affectedFields,
+      multimediaChanges,
+      reviewComments: updateData.reviewComments,
+      reviewSuggestions: updateData.reviewSuggestions
+    };
   }
 }
 

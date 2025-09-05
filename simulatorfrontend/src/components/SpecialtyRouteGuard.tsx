@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { isValidSpecialtySlug, slugToSpecialty } from '../utils/urlUtils';
-import { api } from '../services/apiService';
+import { apiService } from '../services/apiService';;
 import { useNotification } from './NotificationToast';
 import SpecialtyFallback from './SpecialtyFallback';
 
@@ -51,7 +51,7 @@ const SpecialtyRouteGuard: React.FC<SpecialtyRouteGuardProps> = ({ children }) =
 
       try {
         // Fetch available specialties from the API to validate
-        const categories = await api.getCaseCategories();
+        const categories = await apiService.getCaseCategories();
         const availableSpecialties = categories.specialties || [];
         
         // Convert slug back to specialty name and check if it exists
