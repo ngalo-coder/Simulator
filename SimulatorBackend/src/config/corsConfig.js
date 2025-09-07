@@ -5,6 +5,8 @@ const allowedOrigins = [
   'https://preview-virtual-patient-api-kzmoqedp61tnz9rz9idx.vusercontent.net',
   // Railway domains
   /^https:\/\/.*\.up\.railway\.app$/,
+  // Render domains
+  /^https:\/\/.*\.render\.com$/,
   // Local development
   'http://localhost:3000',
   'http://localhost:3001',
