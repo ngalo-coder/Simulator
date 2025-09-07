@@ -12,6 +12,7 @@ import { swaggerSpec, swaggerUi, swaggerUiOptions } from './src/config/swagger.j
 import authRoutes from './src/routes/authRoutes.js';
 import simulationRoutes from './src/routes/simulationRoutes.js';
 import queueRoutes from './src/routes/queueRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
 import clinicianProgressRoutes from './src/routes/clinicianProgressRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import adminProgramRoutes from './src/routes/adminProgramRoutes.js';
@@ -121,7 +122,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOpti
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/simulation', simulationRoutes);
-app.use('/api/users', queueRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/progress', clinicianProgressRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminProgramRoutes);

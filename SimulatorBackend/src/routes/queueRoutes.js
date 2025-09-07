@@ -6,11 +6,11 @@ const router = express.Router();
 
 // All routes in this file will be protected and expect a valid JWT
 
-// Base path for these routes will be /api/users (defined in index.js)
+// Base path for these routes will be /api/queue (defined in index.js)
 
 /**
  * @swagger
- * /users/queue/session/start:
+ * /queue/session/start:
  *   post:
  *     summary: Initialize or resume a queue session
  *     description: Starts a new queue session or resumes an existing one for the authenticated user
@@ -36,11 +36,11 @@ const router = express.Router();
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.post('/queue/session/start', authenticateToken, startQueueSession);
+router.post('/session/start', authenticateToken, startQueueSession);
 
 /**
  * @swagger
- * /users/queue/session/{sessionId}/next:
+ * /queue/session/{sessionId}/next:
  *   post:
  *     summary: Get next case in queue session
  *     description: Retrieves the next case in the specified queue session
@@ -68,11 +68,11 @@ router.post('/queue/session/start', authenticateToken, startQueueSession);
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.post('/queue/session/:sessionId/next', authenticateToken, getNextCaseInQueue);
+router.post('/session/:sessionId/next', authenticateToken, getNextCaseInQueue);
 
 /**
  * @swagger
- * /users/cases/{originalCaseIdString}/status:
+ * /cases/{originalCaseIdString}/status:
  *   post:
  *     summary: Mark case interaction status
  *     description: Updates the status of a case interaction (completed, skipped, etc.)
@@ -118,7 +118,7 @@ router.post('/cases/:originalCaseIdString/status', authenticateToken, markCaseSt
 
 /**
  * @swagger
- * /users/queue/session/{sessionId}:
+ * /queue/session/{sessionId}:
  *   get:
  *     summary: Get queue session details
  *     description: Retrieves details of a specific queue session
@@ -167,11 +167,11 @@ router.post('/cases/:originalCaseIdString/status', authenticateToken, markCaseSt
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.get('/queue/session/:sessionId', authenticateToken, getQueueSession);
+router.get('/session/:sessionId', authenticateToken, getQueueSession);
 
 /**
  * @swagger
- * /users/cases/history/{userId}:
+ * /cases/history/{userId}:
  *   get:
  *     summary: Get user's case history
  *     description: Retrieves the case interaction history for a user (admin can access other users' history)
