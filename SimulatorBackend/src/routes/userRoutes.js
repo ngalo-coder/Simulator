@@ -31,12 +31,15 @@ const router = express.Router();
  *               - username
  *               - email
  *               - password
- *               - primaryRole
  *               - discipline
+ *               - firstName
+ *               - lastName
+ *               - institution
  *             properties:
  *               username:
  *                 type: string
  *                 example: 'johndoe'
+ *                 description: Must contain only letters and numbers (no special characters)
  *               email:
  *                 type: string
  *                 format: email
@@ -45,10 +48,7 @@ const router = express.Router();
  *                 type: string
  *                 format: password
  *                 example: 'password123'
- *               primaryRole:
- *                 type: string
- *                 enum: [student, educator, admin]
- *                 example: 'student'
+ *                 description: Must be at least 6 characters long
  *               discipline:
  *                 type: string
  *                 enum: [medicine, nursing, radiology, pharmacy, laboratory]
@@ -59,6 +59,25 @@ const router = express.Router();
  *               lastName:
  *                 type: string
  *                 example: 'Doe'
+ *               institution:
+ *                 type: string
+ *                 example: 'Medical University'
+ *               primaryRole:
+ *                 type: string
+ *                 enum: [student, educator, admin]
+ *                 example: 'student'
+ *                 default: 'student'
+ *               specialization:
+ *                 type: string
+ *                 example: 'Cardiology'
+ *               yearOfStudy:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 10
+ *                 example: 3
+ *               licenseNumber:
+ *                 type: string
+ *                 example: 'MD123456'
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -75,7 +94,10 @@ const router = express.Router();
  *                   example: 'User registered successfully'
  *                 user:
  *                   $ref: '#/components/schemas/User'
- *                 verificationRequired:
+ *                 token:
+ *                   type: string
+ *                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+ *                 profileComplete:
  *                   type: boolean
  *                   example: true
  *       400:
