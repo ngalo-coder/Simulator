@@ -8,9 +8,7 @@ import jwt from 'jsonwebtoken';
  */
 class UserRegistrationService {
   constructor() {
-    const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/auth.js');
-    this.jwtSecret = JWT_SECRET;
-    this.jwtExpiresIn = JWT_EXPIRES_IN;
+    // JWT configuration will be handled dynamically in generateToken method
   }
 
   /**
@@ -69,7 +67,7 @@ class UserRegistrationService {
     await user.save();
 
     // Generate JWT token
-    const token = this.generateToken(user);
+    const token = await this.generateToken(user);
 
     // Return user data (without password)
     const userResponse = user.toObject();
@@ -435,7 +433,11 @@ class UserRegistrationService {
    * @param {Object} user - User object
    * @returns {string} - JWT token
    */
-  generateToken(user) {
+  async generateToken(user) {
+    const { getJwtSecret, getJwtExpiresIn } = await import('../config/auth.js');
+    const jwtSecret = getJwtSecret();
+    const jwtExpiresIn = getJwtExpiresIn();
+    
     const payload = {
       userId: user._id,
       username: user.username,
@@ -444,7 +446,7 @@ class UserRegistrationService {
       discipline: user.discipline
     };
 
-    return jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
+    return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
   }
 
   /**
