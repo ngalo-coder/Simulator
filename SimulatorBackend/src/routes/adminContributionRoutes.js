@@ -5,7 +5,75 @@ import ClinicianPerformance from '../models/ClinicianPerformanceModel.js';
 
 const router = express.Router();
 
-// Get all contributed cases for admin review
+/**
+ * @swagger
+ * tags:
+ *   name: Admin Contribution
+ *   description: Admin management of contributed cases and review process
+ */
+
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases:
+ *   get:
+ *     summary: Get all contributed cases for admin review
+ *     description: Retrieves a paginated list of contributed cases with filtering options
+ *     tags: [Admin Contribution]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [submitted, under_review, approved, rejected, needs_revision, all]
+ *         description: Filter by case status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by specialty
+ *     responses:
+ *       200:
+ *         description: List of contributed cases retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cases:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ContributedCase'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/contributed-cases', async (req, res) => {
   try {
     const { status = 'submitted', page = 1, limit = 20, specialty } = req.query;
@@ -43,7 +111,78 @@ router.get('/contributed-cases', async (req, res) => {
   }
 });
 
-// Get full case details for review
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases/{caseId}:
+ *   get:
+ *     summary: Get full case details for review
+ *     description: Retrieves detailed information about a specific contributed case including contributor performance
+ *     tags: [Admin Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the contributed case to retrieve
+ *     responses:
+ *       200:
+ *         description: Case details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 contributorName:
+ *                   type: string
+ *                 contributorEmail:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 caseData:
+ *                   $ref: '#/components/schemas/Case'
+ *                 submittedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 reviewComments:
+ *                   type: string
+ *                 reviewedBy:
+ *                   type: string
+ *                 reviewedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 contributorPerformance:
+ *                   type: object
+ *                   properties:
+ *                     totalCases:
+ *                       type: integer
+ *                     excellentCount:
+ *                       type: integer
+ *                     averageRating:
+ *                       type: number
+ *                     contributionHistory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     eligibleSpecialties:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/contributed-cases/:caseId', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -75,7 +214,72 @@ router.get('/contributed-cases/:caseId', async (req, res) => {
   }
 });
 
-// Approve case and add to main database
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases/{caseId}/approve:
+ *   post:
+ *     summary: Approve case and add to main database
+ *     description: Approves a contributed case and adds it to the main case database
+ *     tags: [Admin Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to approve
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reviewerId
+ *               - reviewerName
+ *             properties:
+ *               reviewerId:
+ *                 type: string
+ *                 description: ID of the reviewer
+ *               reviewerName:
+ *                 type: string
+ *                 description: Name of the reviewer
+ *               reviewComments:
+ *                 type: string
+ *                 description: Comments from the reviewer
+ *     responses:
+ *       200:
+ *         description: Case approved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 newCaseId:
+ *                   type: string
+ *                 caseId:
+ *                   type: string
+ *       400:
+ *         description: Bad request - case not in reviewable state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/contributed-cases/:caseId/approve', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -126,7 +330,68 @@ router.post('/contributed-cases/:caseId/approve', async (req, res) => {
   }
 });
 
-// Reject case
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases/{caseId}/reject:
+ *   post:
+ *     summary: Reject case
+ *     description: Rejects a contributed case
+ *     tags: [Admin Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to reject
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reviewerId
+ *               - reviewerName
+ *             properties:
+ *               reviewerId:
+ *                 type: string
+ *                 description: ID of the reviewer
+ *               reviewerName:
+ *                 type: string
+ *                 description: Name of the reviewer
+ *               reviewComments:
+ *                 type: string
+ *                 description: Comments from the reviewer
+ *     responses:
+ *       200:
+ *         description: Case rejected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Bad request - case not in reviewable state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/contributed-cases/:caseId/reject', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -164,7 +429,74 @@ router.post('/contributed-cases/:caseId/reject', async (req, res) => {
   }
 });
 
-// Request revisions
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases/{caseId}/request-revision:
+ *   post:
+ *     summary: Request revisions for case
+ *     description: Requests revisions for a contributed case and changes status to needs_revision
+ *     tags: [Admin Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to request revisions for
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reviewerId
+ *               - reviewerName
+ *               - revisionRequests
+ *             properties:
+ *               reviewerId:
+ *                 type: string
+ *                 description: ID of the reviewer
+ *               reviewerName:
+ *                 type: string
+ *                 description: Name of the reviewer
+ *               reviewComments:
+ *                 type: string
+ *                 description: General comments from the reviewer
+ *               revisionRequests:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     section:
+ *                       type: string
+ *                     feedback:
+ *                       type: string
+ *                     required:
+ *                       type: boolean
+ *     responses:
+ *       200:
+ *         description: Revision requested successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/contributed-cases/:caseId/request-revision', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -196,7 +528,78 @@ router.post('/contributed-cases/:caseId/request-revision', async (req, res) => {
   }
 });
 
-// Bulk actions
+/**
+ * @swagger
+ * /admin/contribution/contributed-cases/bulk-action:
+ *   post:
+ *     summary: Perform bulk actions on cases
+ *     description: Approve or reject multiple cases in bulk
+ *     tags: [Admin Contribution]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *               - caseIds
+ *               - reviewerId
+ *               - reviewerName
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [approve, reject]
+ *                 description: Action to perform on the cases
+ *               caseIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of case IDs to process
+ *               reviewerId:
+ *                 type: string
+ *                 description: ID of the reviewer
+ *               reviewerName:
+ *                 type: string
+ *                 description: Name of the reviewer
+ *               reviewComments:
+ *                 type: string
+ *                 description: Comments from the reviewer
+ *     responses:
+ *       200:
+ *         description: Bulk action completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       caseId:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                         enum: [success, error]
+ *                       message:
+ *                         type: string
+ *                       newCaseId:
+ *                         type: string
+ *       400:
+ *         description: Bad request - invalid action
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.post('/contributed-cases/bulk-action', async (req, res) => {
   try {
     const { action, caseIds, reviewerId, reviewerName, reviewComments } = req.body;
@@ -275,7 +678,67 @@ router.post('/contributed-cases/bulk-action', async (req, res) => {
   }
 });
 
-// Get contribution statistics
+/**
+ * @swagger
+ * /admin/contribution/contribution-stats:
+ *   get:
+ *     summary: Get contribution statistics
+ *     description: Retrieves statistics about case contributions including status counts, top contributors, and specialty stats
+ *     tags: [Admin Contribution]
+ *     responses:
+ *       200:
+ *         description: Contribution statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusStats:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                 topContributors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       contributorName:
+ *                         type: string
+ *                       contributorEmail:
+ *                         type: string
+ *                       totalSubmissions:
+ *                         type: integer
+ *                       approved:
+ *                         type: integer
+ *                       rejected:
+ *                         type: integer
+ *                       approvalRate:
+ *                         type: number
+ *                 specialtyStats:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       total:
+ *                         type: integer
+ *                       approved:
+ *                         type: integer
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/contribution-stats', async (req, res) => {
   try {
     const stats = await ContributedCase.aggregate([
@@ -341,7 +804,64 @@ router.get('/contribution-stats', async (req, res) => {
   }
 });
 
-// Get review queue summary
+/**
+ * @swagger
+ * /admin/contribution/review-queue:
+ *   get:
+ *     summary: Get review queue summary
+ *     description: Retrieves summary information about the current review queue including urgent cases
+ *     tags: [Admin Contribution]
+ *     responses:
+ *       200:
+ *         description: Review queue summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 queueStats:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                       oldestSubmission:
+ *                         type: string
+ *                         format: date-time
+ *                 urgentCases:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       contributorName:
+ *                         type: string
+ *                       caseData:
+ *                         type: object
+ *                         properties:
+ *                           case_metadata:
+ *                             type: object
+ *                             properties:
+ *                               title:
+ *                                 type: string
+ *                               specialty:
+ *                                 type: string
+ *                       submittedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 totalPending:
+ *                   type: integer
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/review-queue', async (req, res) => {
   try {
     const queueStats = await ContributedCase.aggregate([

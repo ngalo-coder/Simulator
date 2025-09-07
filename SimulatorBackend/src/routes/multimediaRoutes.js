@@ -10,9 +10,82 @@ const router = express.Router();
 router.use(authenticateToken);
 
 /**
- * @route POST /api/multimedia/upload
- * @desc Upload multimedia files
- * @access Private (Educator, Admin)
+ * @swagger
+ * /multimedia/upload:
+ *   post:
+ *     summary: Upload multimedia files
+ *     description: Uploads multimedia files for use in cases. Supports multiple file types including images, videos, audio, and documents.
+ *     tags: [Multimedia]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - files
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Multimedia files to upload (max 10 files)
+ *               caseId:
+ *                 type: string
+ *                 description: ID of the case to associate the files with (optional)
+ *               category:
+ *                 type: string
+ *                 enum: [reference_material, teaching_aid, patient_data, diagnostic_image, procedure_video, audio_recording, document]
+ *                 description: Category of the multimedia content
+ *               description:
+ *                 type: string
+ *                 description: Description of the multimedia content
+ *               tags:
+ *                 type: string
+ *                 description: Comma-separated list of tags
+ *     responses:
+ *       201:
+ *         description: Files uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     uploadedFiles:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/MultimediaContent'
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           filename:
+ *                             type: string
+ *                           errors:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *       400:
+ *         description: No files uploaded or invalid request
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - educator or admin role required
+ *       404:
+ *         description: Case not found (if caseId provided)
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/upload',
   requireAnyRole(['educator', 'admin']),
@@ -108,9 +181,60 @@ router.post('/upload',
 );
 
 /**
- * @route GET /api/multimedia/case/:caseId
- * @desc Get multimedia content for a case
- * @access Private
+ * @swagger
+ * /multimedia/case/{caseId}:
+ *   get:
+ *     summary: Get multimedia content for a case
+ *     description: Retrieves all multimedia content associated with a specific case, with optional filtering by type and category.
+ *     tags: [Multimedia]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to retrieve multimedia for
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [image, video, audio, document, other]
+ *         description: Filter by file type
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [reference_material, teaching_aid, patient_data, diagnostic_image, procedure_video, audio_recording, document]
+ *         description: Filter by content category
+ *     responses:
+ *       200:
+ *         description: Multimedia content retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     caseId:
+ *                       type: string
+ *                     multimediaContent:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/MultimediaContent'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - access to case denied
+ *       404:
+ *         description: Case not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/case/:caseId', async (req, res) => {
   try {
@@ -169,9 +293,62 @@ router.get('/case/:caseId', async (req, res) => {
 });
 
 /**
- * @route PUT /api/multimedia/:fileId
- * @desc Update multimedia content metadata
- * @access Private (Educator, Admin)
+ * @swagger
+ * /multimedia/{fileId}:
+ *   put:
+ *     summary: Update multimedia content metadata
+ *     description: Updates the metadata (description, tags, category) for a specific multimedia file.
+ *     tags: [Multimedia]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the multimedia file to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 description: New description for the multimedia content
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of tags for the content
+ *               category:
+ *                 type: string
+ *                 enum: [reference_material, teaching_aid, patient_data, diagnostic_image, procedure_video, audio_recording, document]
+ *                 description: New category for the content
+ *     responses:
+ *       200:
+ *         description: Multimedia content updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/MultimediaContent'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - educator or admin role required, or not owner of content
+ *       404:
+ *         description: Multimedia content not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.put('/:fileId',
   requireAnyRole(['educator', 'admin']),
@@ -228,9 +405,41 @@ router.put('/:fileId',
 );
 
 /**
- * @route DELETE /api/multimedia/:fileId
- * @desc Delete multimedia content
- * @access Private (Educator, Admin)
+ * @swagger
+ * /multimedia/{fileId}:
+ *   delete:
+ *     summary: Delete multimedia content
+ *     description: Permanently deletes a multimedia file and removes it from associated cases.
+ *     tags: [Multimedia]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the multimedia file to delete
+ *     responses:
+ *       200:
+ *         description: Multimedia content deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - educator or admin role required, or not owner of content
+ *       404:
+ *         description: Multimedia content not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/:fileId',
   requireAnyRole(['educator', 'admin']),
@@ -292,9 +501,49 @@ router.delete('/:fileId',
 );
 
 /**
- * @route GET /api/multimedia/stats
- * @desc Get multimedia usage statistics
- * @access Private (Admin)
+ * @swagger
+ * /multimedia/stats:
+ *   get:
+ *     summary: Get multimedia usage statistics (Admin only)
+ *     description: Retrieves aggregated statistics about multimedia usage across all cases in the system.
+ *     tags: [Multimedia]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalCases:
+ *                       type: integer
+ *                       description: Number of cases with multimedia content
+ *                     totalFiles:
+ *                       type: integer
+ *                       description: Total number of multimedia files
+ *                     filesByType:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       description: Count of files by type (image, video, audio, document, other)
+ *                     filesByCategory:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       description: Count of files by category
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin access required
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/stats',
   requireAnyRole(['admin']),

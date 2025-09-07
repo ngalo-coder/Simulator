@@ -15,8 +15,81 @@ const router = express.Router();
  */
 
 /**
- * Register a new user
- * POST /api/users/register
+ * @swagger
+ * /api/users/register:
+ *   post:
+ *     summary: Register new user
+ *     description: Create a new user account with basic registration information
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *               - primaryRole
+ *               - discipline
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: 'johndoe'
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: 'john.doe@example.com'
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: 'password123'
+ *               primaryRole:
+ *                 type: string
+ *                 enum: [student, educator, admin]
+ *                 example: 'student'
+ *               discipline:
+ *                 type: string
+ *                 enum: [medicine, nursing, radiology, pharmacy, laboratory]
+ *                 example: 'medicine'
+ *               firstName:
+ *                 type: string
+ *                 example: 'John'
+ *               lastName:
+ *                 type: string
+ *                 example: 'Doe'
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'User registered successfully'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 verificationRequired:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid input or user already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/register', async (req, res) => {
   try {
@@ -44,8 +117,103 @@ router.post('/register', async (req, res) => {
 });
 
 /**
- * Complete user profile after registration
- * POST /api/users/:userId/complete-profile
+ * @swagger
+ * /api/users/{userId}/complete-profile:
+ *   post:
+ *     summary: Complete user profile after registration
+ *     description: Finalize user profile with additional information after initial registration
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: 'John'
+ *               lastName:
+ *                 type: string
+ *                 example: 'Doe'
+ *               institution:
+ *                 type: string
+ *                 example: 'Medical University'
+ *               specialization:
+ *                 type: string
+ *                 example: 'Cardiology'
+ *               yearOfStudy:
+ *                 type: number
+ *                 example: 3
+ *               licenseNumber:
+ *                 type: string
+ *                 example: 'MD123456'
+ *               competencyLevel:
+ *                 type: string
+ *                 enum: [novice, advanced_beginner, competent, proficient, expert]
+ *                 example: 'competent'
+ *               learningStyle:
+ *                 type: string
+ *                 enum: [visual, auditory, kinesthetic, reading]
+ *                 example: 'visual'
+ *               difficultyPreference:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced, adaptive]
+ *                 example: 'intermediate'
+ *               notifications:
+ *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: boolean
+ *                     example: true
+ *                   push:
+ *                     type: boolean
+ *                     example: false
+ *     responses:
+ *       200:
+ *         description: Profile completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Profile completed successfully'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/:userId/complete-profile',
   populateUser(),
@@ -74,8 +242,51 @@ router.post('/:userId/complete-profile',
 );
 
 /**
- * Get user profile
- * GET /api/users/:userId/profile
+ * @swagger
+ * /api/users/{userId}/profile:
+ *   get:
+ *     summary: Get user profile
+ *     description: Retrieve complete user profile information
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 profileComplete:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/:userId/profile',
   populateUser(),
@@ -104,8 +315,86 @@ router.get('/:userId/profile',
 );
 
 /**
- * Update user profile
- * PUT /api/users/:userId/profile
+ * @swagger
+ * /api/users/{userId}/profile:
+ *   put:
+ *     summary: Update user profile
+ *     description: Update user profile information
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: 'John'
+ *               lastName:
+ *                 type: string
+ *                 example: 'Doe'
+ *               institution:
+ *                 type: string
+ *                 example: 'Medical University'
+ *               specialization:
+ *                 type: string
+ *                 example: 'Cardiology'
+ *               yearOfStudy:
+ *                 type: number
+ *                 example: 3
+ *               licenseNumber:
+ *                 type: string
+ *                 example: 'MD123456'
+ *               competencyLevel:
+ *                 type: string
+ *                 enum: [novice, advanced_beginner, competent, proficient, expert]
+ *                 example: 'competent'
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Profile updated successfully'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/:userId/profile',
   populateUser(),
@@ -141,8 +430,81 @@ router.put('/:userId/profile',
 );
 
 /**
- * Update user preferences
- * PUT /api/users/:userId/preferences
+ * @swagger
+ * /api/users/{userId}/preferences:
+ *   put:
+ *     summary: Update user preferences
+ *     description: Update user learning preferences and notification settings
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               learningStyle:
+ *                 type: string
+ *                 enum: [visual, auditory, kinesthetic, reading]
+ *                 example: 'visual'
+ *               difficultyPreference:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced, adaptive]
+ *                 example: 'intermediate'
+ *               notifications:
+ *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: boolean
+ *                     example: true
+ *                   push:
+ *                     type: boolean
+ *                     example: false
+ *     responses:
+ *       200:
+ *         description: Preferences updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Preferences updated successfully'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/:userId/preferences',
   populateUser(),
@@ -178,8 +540,73 @@ router.put('/:userId/preferences',
 );
 
 /**
- * Change user password
- * PUT /api/users/:userId/password
+ * @swagger
+ * /api/users/{userId}/password:
+ *   put:
+ *     summary: Change user password
+ *     description: Update user's password with current password verification
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: 'current123'
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: 'newPassword456'
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Password changed successfully'
+ *       400:
+ *         description: Invalid input or current password incorrect
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/:userId/password',
   populateUser(),
@@ -239,8 +666,40 @@ router.put('/:userId/password',
  */
 
 /**
- * Get available healthcare disciplines
- * GET /api/users/disciplines
+ * @swagger
+ * /api/users/disciplines:
+ *   get:
+ *     summary: Get available healthcare disciplines
+ *     description: Retrieve list of all available healthcare disciplines with descriptions
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: List of healthcare disciplines retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 disciplines:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       value:
+ *                         type: string
+ *                         example: 'medicine'
+ *                       label:
+ *                         type: string
+ *                         example: 'Medicine'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/disciplines', (req, res) => {
   const disciplines = Object.values(HealthcareDiscipline).map(discipline => ({
@@ -255,8 +714,40 @@ router.get('/disciplines', (req, res) => {
 });
 
 /**
- * Get available user roles
- * GET /api/users/roles
+ * @swagger
+ * /api/users/roles:
+ *   get:
+ *     summary: Get available user roles
+ *     description: Retrieve list of all available user roles with descriptions
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: List of user roles retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       value:
+ *                         type: string
+ *                         example: 'student'
+ *                       label:
+ *                         type: string
+ *                         example: 'Student'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/roles', (req, res) => {
   const roles = Object.values(UserRole).map(role => ({
@@ -271,8 +762,102 @@ router.get('/roles', (req, res) => {
 });
 
 /**
- * Get registration form configuration
- * GET /api/users/registration-config
+ * @swagger
+ * /api/users/registration-config:
+ *   get:
+ *     summary: Get registration form configuration
+ *     description: Retrieve complete configuration for user registration form including disciplines, roles, competency levels, learning styles, and difficulty preferences
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Registration configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 config:
+ *                   type: object
+ *                   properties:
+ *                     disciplines:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'medicine'
+ *                           label:
+ *                             type: string
+ *                             example: 'Medicine'
+ *                           description:
+ *                             type: string
+ *                             example: 'Medical practice, diagnosis, and treatment'
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'student'
+ *                           label:
+ *                             type: string
+ *                             example: 'Student'
+ *                           description:
+ *                             type: string
+ *                             example: 'Learning healthcare skills and knowledge'
+ *                     competencyLevels:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'novice'
+ *                           label:
+ *                             type: string
+ *                             example: 'Novice'
+ *                           description:
+ *                             type: string
+ *                             example: 'Beginning level with limited experience'
+ *                     learningStyles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'visual'
+ *                           label:
+ *                             type: string
+ *                             example: 'Visual'
+ *                           description:
+ *                             type: string
+ *                             example: 'Learn best through images and diagrams'
+ *                     difficultyPreferences:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'beginner'
+ *                           label:
+ *                             type: string
+ *                             example: 'Beginner'
+ *                           description:
+ *                             type: string
+ *                             example: 'Start with basic concepts'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/registration-config', (req, res) => {
   const config = {
@@ -318,8 +903,58 @@ router.get('/registration-config', (req, res) => {
  */
 
 /**
- * Get registration statistics (Admin only)
- * GET /api/users/admin/stats
+ * @swagger
+ * /api/users/admin/stats:
+ *   get:
+ *     summary: Get registration statistics (Admin only)
+ *     description: Retrieve registration statistics including user counts by role and discipline (Admin access required)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Registration statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalUsers:
+ *                       type: number
+ *                       example: 150
+ *                     usersByRole:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: number
+ *                         example: 100
+ *                     usersByDiscipline:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: number
+ *                         example: 50
+ *                     registrationsThisMonth:
+ *                       type: number
+ *                       example: 25
+ *                     profileCompletionRate:
+ *                       type: number
+ *                       format: float
+ *                       example: 85.5
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/admin/stats',
   populateUser(),
@@ -348,8 +983,75 @@ router.get('/admin/stats',
  */
 
 /**
- * Get profile completion steps
- * GET /api/users/:userId/profile-wizard
+ * @swagger
+ * /api/users/{userId}/profile-wizard:
+ *   get:
+ *     summary: Get profile completion steps
+ *     description: Retrieve profile wizard steps with completion status for guided profile setup
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user
+ *     responses:
+ *       200:
+ *         description: Profile wizard steps retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 steps:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: 'basic-info'
+ *                       title:
+ *                         type: string
+ *                         example: 'Basic Information'
+ *                       description:
+ *                         type: string
+ *                         example: 'Complete your basic profile information'
+ *                       completed:
+ *                         type: boolean
+ *                         example: true
+ *                       fields:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         example: ['firstName', 'lastName', 'institution']
+ *                 overallProgress:
+ *                   type: number
+ *                   format: float
+ *                   example: 75.0
+ *                 profileComplete:
+ *                   type: boolean
+ *                   example: false
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/:userId/profile-wizard',
   populateUser(),

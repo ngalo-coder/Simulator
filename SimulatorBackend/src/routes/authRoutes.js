@@ -17,8 +17,43 @@ const router = express.Router();
  */
 
 /**
- * User Login
- * POST /api/auth/login
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: User login
+ *     description: Authenticate user with username/email and password
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       400:
+ *         description: Missing credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Invalid credentials or inactive account
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', 
   rateLimiter(10, 15), // 10 attempts per 15 minutes
@@ -171,8 +206,40 @@ router.post('/login',
 );
 
 /**
- * User Logout
- * POST /api/auth/logout
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: User logout
+ *     description: Log out the current user and invalidate the session
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Logout successful'
+ *       401:
+ *         description: Unauthorized - token missing or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/logout', requireAuth, async (req, res) => {
   try {
@@ -210,8 +277,33 @@ router.post('/logout', requireAuth, async (req, res) => {
 });
 
 /**
- * Refresh Token
- * POST /api/auth/refresh
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh authentication token
+ *     description: Generate a new JWT token with updated user data
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       401:
+ *         description: Unauthorized - token missing, invalid, or user inactive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/refresh', requireAuth, async (req, res) => {
   try {
@@ -283,8 +375,55 @@ router.post('/refresh', requireAuth, async (req, res) => {
 });
 
 /**
- * Verify Token
- * GET /api/auth/verify
+ * @swagger
+ * /api/auth/verify:
+ *   get:
+ *     summary: Verify authentication token
+ *     description: Check if the current JWT token is valid and return user data
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Token is valid'
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 tokenPayload:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     primaryRole:
+ *                       type: string
+ *                     discipline:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized - token missing or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/verify', requireAuth, async (req, res) => {
   try {
@@ -309,8 +448,45 @@ router.get('/verify', requireAuth, async (req, res) => {
 });
 
 /**
- * Get Current User Profile
- * GET /api/auth/me
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     description: Retrieve the profile information of the currently authenticated user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - token missing or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/me', requireAuth, async (req, res) => {
   try {
@@ -342,8 +518,64 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 /**
- * Change Password
- * POST /api/auth/change-password
+ * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     summary: Change user password
+ *     description: Update the password for the currently authenticated user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: 'oldpassword123'
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: 'newpassword456'
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Password changed successfully'
+ *       400:
+ *         description: Invalid input or current password incorrect
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - token missing or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/change-password', 
   requireAuth,
@@ -562,8 +794,47 @@ router.get('/admin/export-logs', requireAdmin, async (req, res) => {
 });
 
 /**
- * Cleanup Old Logs (Admin only)
- * POST /api/auth/admin/cleanup-logs
+ * @swagger
+ * /api/auth/admin/cleanup-logs:
+ *   post:
+ *     summary: Cleanup old logs (Admin only)
+ *     description: Permanently delete audit logs older than specified days
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               maxAgeDays:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 365
+ *                 default: 90
+ *                 description: Maximum age in days to retain logs
+ *     responses:
+ *       200:
+ *         description: Logs cleaned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 deletedCount:
+ *                   type: integer
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.post('/admin/cleanup-logs', requireAdmin, async (req, res) => {
   try {

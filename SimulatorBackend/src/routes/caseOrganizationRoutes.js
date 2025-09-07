@@ -10,9 +10,69 @@ const router = express.Router();
 router.use(authenticateToken);
 
 /**
- * @route POST /api/case-organization/categories
- * @desc Create a new case category
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/categories:
+ *   post:
+ *     summary: Create a new case category
+ *     description: Create a new category for organizing cases. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - description
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the category
+ *                 example: "Cardiology"
+ *               description:
+ *                 type: string
+ *                 description: Description of the category
+ *                 example: "Cases related to heart diseases and conditions"
+ *               parentCategory:
+ *                 type: string
+ *                 description: ID of parent category if this is a subcategory
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the category is active
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Category created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Category created successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/categories',
   requireAnyRole(['educator', 'admin']),
@@ -36,9 +96,42 @@ router.post('/categories',
 );
 
 /**
- * @route GET /api/case-organization/categories
- * @desc Get all case categories
- * @access Private
+ * @swagger
+ * /api/case-organization/categories:
+ *   get:
+ *     summary: Get all case categories
+ *     description: Retrieve all case categories with optional filtering for inactive categories and parent-only categories.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: includeInactive
+ *         schema:
+ *           type: boolean
+ *         description: Whether to include inactive categories
+ *       - in: query
+ *         name: parentOnly
+ *         schema:
+ *           type: boolean
+ *         description: Whether to return only parent categories (no subcategories)
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/categories', async (req, res) => {
   try {
@@ -63,9 +156,70 @@ router.get('/categories', async (req, res) => {
 });
 
 /**
- * @route PUT /api/case-organization/categories/:categoryId
- * @desc Update a case category
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/categories/{categoryId}:
+ *   put:
+ *     summary: Update a case category
+ *     description: Update an existing case category. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the category to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the category
+ *               description:
+ *                 type: string
+ *                 description: Description of the category
+ *               parentCategory:
+ *                 type: string
+ *                 description: ID of parent category if this is a subcategory
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the category is active
+ *     responses:
+ *       200:
+ *         description: Category updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Category updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Invalid input data or category not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.put('/categories/:categoryId',
   requireAnyRole(['educator', 'admin']),
@@ -90,9 +244,49 @@ router.put('/categories/:categoryId',
 );
 
 /**
- * @route DELETE /api/case-organization/categories/:categoryId
- * @desc Delete a case category
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/categories/{categoryId}:
+ *   delete:
+ *     summary: Delete a case category
+ *     description: Delete a case category. Requires educator or admin role. Categories with associated cases cannot be deleted.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the category to delete
+ *     responses:
+ *       200:
+ *         description: Category deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Category deleted successfully"
+ *       400:
+ *         description: Cannot delete category with associated cases or invalid category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/categories/:categoryId',
   requireAnyRole(['educator', 'admin']),
@@ -116,9 +310,66 @@ router.delete('/categories/:categoryId',
 );
 
 /**
- * @route POST /api/case-organization/cases/:caseId/categories
- * @desc Add categories to a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/cases/{caseId}/categories:
+ *   post:
+ *     summary: Add categories to a case
+ *     description: Add one or more categories to a specific case. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to modify
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoryIds
+ *             properties:
+ *               categoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of category IDs to add to the case
+ *                 example: ["category1", "category2"]
+ *     responses:
+ *       200:
+ *         description: Categories added to case successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Categories added to case successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data or case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/categories',
   requireAnyRole(['educator', 'admin']),
@@ -152,9 +403,66 @@ router.post('/cases/:caseId/categories',
 );
 
 /**
- * @route DELETE /api/case-organization/cases/:caseId/categories
- * @desc Remove categories from a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/cases/{caseId}/categories:
+ *   delete:
+ *     summary: Remove categories from a case
+ *     description: Remove one or more categories from a specific case. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to modify
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoryIds
+ *             properties:
+ *               categoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of category IDs to remove from the case
+ *                 example: ["category1", "category2"]
+ *     responses:
+ *       200:
+ *         description: Categories removed from case successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Categories removed from case successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data or case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/cases/:caseId/categories',
   requireAnyRole(['educator', 'admin']),
@@ -188,9 +496,66 @@ router.delete('/cases/:caseId/categories',
 );
 
 /**
- * @route POST /api/case-organization/cases/:caseId/tags
- * @desc Add tags to a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/cases/{caseId}/tags:
+ *   post:
+ *     summary: Add tags to a case
+ *     description: Add one or more tags to a specific case. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to modify
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tags
+ *             properties:
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of tags to add to the case
+ *                 example: ["urgent", "pediatric"]
+ *     responses:
+ *       200:
+ *         description: Tags added to case successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Tags added to case successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data or case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/tags',
   requireAnyRole(['educator', 'admin']),
@@ -224,9 +589,66 @@ router.post('/cases/:caseId/tags',
 );
 
 /**
- * @route DELETE /api/case-organization/cases/:caseId/tags
- * @desc Remove tags from a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-organization/cases/{caseId}/tags:
+ *   delete:
+ *     summary: Remove tags from a case
+ *     description: Remove one or more tags from a specific case. Requires educator or admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to modify
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tags
+ *             properties:
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of tags to remove from the case
+ *                 example: ["urgent", "pediatric"]
+ *     responses:
+ *       200:
+ *         description: Tags removed from case successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Tags removed from case successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data or case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/cases/:caseId/tags',
   requireAnyRole(['educator', 'admin']),
@@ -260,9 +682,79 @@ router.delete('/cases/:caseId/tags',
 );
 
 /**
- * @route GET /api/case-organization/search
- * @desc Search cases by categories and tags
- * @access Private
+ * @swagger
+ * /api/case-organization/search:
+ *   get:
+ *     summary: Search cases by categories and tags
+ *     description: Search for cases using category and tag filters with additional options for specialty, difficulty, status, and pagination.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: categories
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of category IDs
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of tags
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Case specialty filter
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *         description: Case difficulty level
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Case status filter
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Field to sort by (e.g., 'title', 'createdAt')
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (asc or desc)
+ *     responses:
+ *       200:
+ *         description: Successful search operation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/SearchResults'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/search', async (req, res) => {
   try {
@@ -307,9 +799,57 @@ router.get('/search', async (req, res) => {
 });
 
 /**
- * @route GET /api/case-organization/categories/stats
- * @desc Get category statistics
- * @access Private (Admin)
+ * @swagger
+ * /api/case-organization/categories/stats:
+ *   get:
+ *     summary: Get category statistics
+ *     description: Retrieve statistics about case categories, including case counts per category. Requires admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of category statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalCategories:
+ *                       type: integer
+ *                       description: Total number of categories
+ *                     activeCategories:
+ *                       type: integer
+ *                       description: Number of active categories
+ *                     casesPerCategory:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           categoryId:
+ *                             type: string
+ *                           categoryName:
+ *                             type: string
+ *                           caseCount:
+ *                             type: integer
+ *                     averageCasesPerCategory:
+ *                       type: number
+ *                       format: float
+ *                       description: Average number of cases per category
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/categories/stats',
   requireAnyRole(['admin']),
@@ -332,9 +872,40 @@ router.get('/categories/stats',
 );
 
 /**
- * @route POST /api/case-organization/categories/initialize-default
- * @desc Initialize default categories
- * @access Private (Admin)
+ * @swagger
+ * /api/case-organization/categories/initialize-default:
+ *   post:
+ *     summary: Initialize default categories
+ *     description: Create a set of default categories for the system. Requires admin role.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Default categories initialized successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "5 default categories created successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/categories/initialize-default',
   requireAnyRole(['admin']),
@@ -358,9 +929,82 @@ router.post('/categories/initialize-default',
 );
 
 /**
- * @route GET /api/case-organization/cases/:caseId/organization
- * @desc Get case organization details (categories, tags, etc.)
- * @access Private
+ * @swagger
+ * /api/case-organization/cases/{caseId}/organization:
+ *   get:
+ *     summary: Get case organization details
+ *     description: Retrieve organization details for a specific case including categories, tags, specialty, difficulty, status, and usage statistics.
+ *     tags: [Case Organization]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to retrieve organization data for
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of case organization data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     caseId:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     categories:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Category'
+ *                     tags:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     specialty:
+ *                       type: string
+ *                     difficulty:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     multimediaCount:
+ *                       type: integer
+ *                     collaborators:
+ *                       type: integer
+ *                     usageCount:
+ *                       type: integer
+ *                     lastAccessedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     lastModifiedAt:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - insufficient permissions to access this case
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/cases/:caseId/organization', async (req, res) => {
   try {

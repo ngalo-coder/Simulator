@@ -9,9 +9,59 @@ const router = express.Router();
 router.use(requireAuth);
 
 /**
- * @route GET /api/analytics/case-usage
- * @desc Get comprehensive case usage analytics
- * @access Private (Admin, Educator)
+ * @swagger
+ * /api/analytics/case-usage:
+ *   get:
+ *     summary: Get comprehensive case usage analytics
+ *     description: Retrieve detailed analytics about case usage including access patterns, completion rates, and user engagement metrics. Requires admin or educator role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           default: 30d
+ *         description: Time range for analytics (e.g., 7d, 30d, 90d, 1y)
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by medical specialty
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *         description: Filter by case difficulty level
+ *       - in: query
+ *         name: programArea
+ *         schema:
+ *           type: string
+ *         description: Filter by program area
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of case usage analytics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/CaseUsageAnalytics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin or educator role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/case-usage', requireAnyRole(['admin', 'educator']), async (req, res) => {
   try {
@@ -45,9 +95,43 @@ router.get('/case-usage', requireAnyRole(['admin', 'educator']), async (req, res
 });
 
 /**
- * @route GET /api/analytics/case-effectiveness
- * @desc Get case effectiveness metrics
- * @access Private (Admin, Educator)
+ * @swagger
+ * /api/analytics/case-effectiveness:
+ *   get:
+ *     summary: Get case effectiveness metrics
+ *     description: Retrieve metrics measuring the effectiveness of cases including learning outcomes, user performance, and educational impact. Requires admin or educator role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: caseId
+ *         schema:
+ *           type: string
+ *         description: Optional case ID to get metrics for a specific case
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of case effectiveness metrics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/CaseEffectivenessMetrics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin or educator role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/case-effectiveness', requireAnyRole(['admin', 'educator']), async (req, res) => {
   try {
@@ -69,9 +153,48 @@ router.get('/case-effectiveness', requireAnyRole(['admin', 'educator']), async (
 });
 
 /**
- * @route GET /api/analytics/difficulty-analysis
- * @desc Get difficulty analysis for cases
- * @access Private (Admin, Educator)
+ * @swagger
+ * /api/analytics/difficulty-analysis:
+ *   get:
+ *     summary: Get difficulty analysis for cases
+ *     description: Analyze case difficulty patterns and user performance across different difficulty levels. Requires admin or educator role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by medical specialty
+ *       - in: query
+ *         name: programArea
+ *         schema:
+ *           type: string
+ *         description: Filter by program area
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of difficulty analysis
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/DifficultyAnalysis'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin or educator role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/difficulty-analysis', requireAnyRole(['admin', 'educator']), async (req, res) => {
   try {
@@ -96,9 +219,50 @@ router.get('/difficulty-analysis', requireAnyRole(['admin', 'educator']), async 
 });
 
 /**
- * @route GET /api/analytics/performance-trends
- * @desc Get performance trends over time
- * @access Private (Admin, Educator)
+ * @swagger
+ * /api/analytics/performance-trends:
+ *   get:
+ *     summary: Get performance trends over time
+ *     description: Track performance trends across users and cases over specified time periods with configurable intervals. Requires admin or educator role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           default: 90d
+ *         description: Time range for trend analysis (e.g., 30d, 90d, 1y)
+ *       - in: query
+ *         name: interval
+ *         schema:
+ *           type: string
+ *           default: week
+ *         description: Time interval for data points (e.g., day, week, month)
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of performance trends
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PerformanceTrends'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin or educator role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/performance-trends', requireAnyRole(['admin', 'educator']), async (req, res) => {
   try {
@@ -120,9 +284,37 @@ router.get('/performance-trends', requireAnyRole(['admin', 'educator']), async (
 });
 
 /**
- * @route GET /api/analytics/contributor-analytics
- * @desc Get contributor performance analytics
- * @access Private (Admin)
+ * @swagger
+ * /api/analytics/contributor-analytics:
+ *   get:
+ *     summary: Get contributor performance analytics
+ *     description: Analyze performance metrics for case contributors including case quality, review efficiency, and overall impact. Requires admin role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of contributor analytics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ContributorAnalytics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/contributor-analytics', requireAnyRole(['admin']), async (req, res) => {
   try {
@@ -142,9 +334,49 @@ router.get('/contributor-analytics', requireAnyRole(['admin']), async (req, res)
 });
 
 /**
- * @route GET /api/analytics/review-quality
- * @desc Get review quality metrics
- * @access Private (Admin)
+ * @swagger
+ * /api/analytics/review-quality:
+ *   get:
+ *     summary: Get review quality metrics
+ *     description: Retrieve metrics assessing the quality and consistency of case reviews, including reviewer performance and decision accuracy. Requires admin role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           default: 30d
+ *         description: Time range for review quality analysis
+ *       - in: query
+ *         name: reviewerId
+ *         schema:
+ *           type: string
+ *         description: Optional reviewer ID to filter by specific reviewer
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of review quality metrics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ReviewQualityMetrics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/review-quality', requireAnyRole(['admin']), async (req, res) => {
   try {
@@ -169,9 +401,38 @@ router.get('/review-quality', requireAnyRole(['admin']), async (req, res) => {
 });
 
 /**
- * @route POST /api/analytics/clear-cache
- * @desc Clear analytics cache
- * @access Private (Admin)
+ * @swagger
+ * /api/analytics/clear-cache:
+ *   post:
+ *     summary: Clear analytics cache
+ *     description: Clear cached analytics data to force refresh of all analytics metrics. Requires admin role.
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Analytics cache cleared successfully"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/clear-cache', requireAnyRole(['admin']), async (req, res) => {
   try {

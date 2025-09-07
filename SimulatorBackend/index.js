@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import logger from './src/config/logger.js';
 import corsOptions from './src/config/corsConfig.js';
 import connectDB from './src/config/db.js';
+import { swaggerSpec, swaggerUi, swaggerUiOptions } from './src/config/swagger.js';
 
 // Route imports
 import authRoutes from './src/routes/authRoutes.js';
@@ -53,25 +54,10 @@ const initializeDatabase = async () => {
       if (process.env.NODE_ENV === 'production') {
         process.exit(1);
       }
+      throw error; // Re-throw to handle in startup
     }
   }
 };
-
-// Database connection middleware
-app.use(async (req, res, next) => {
-  if (!dbConnected) {
-    try {
-      await initializeDatabase();
-    } catch (error) {
-      console.error('Database connection failed:', error);
-      return res.status(500).json({ 
-        error: 'Database connection failed',
-        message: 'Service temporarily unavailable'
-      });
-    }
-  }
-  next();
-});
 
 // Middleware
 app.use(pinoHttp({ logger }));
@@ -105,8 +91,8 @@ app.get('/', (_, res) =>
 
 app.get('/health', async (req, res) => {
   try {
-    // Check database connection
-    const dbStatus = dbConnected ? 'connected' : 'disconnected';
+    // Check database connection using mongoose's readyState
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     
     res.json({
       status: 'healthy',
@@ -128,6 +114,9 @@ app.get('/health', async (req, res) => {
 
 // Legacy redirect
 app.use('/auth/login', (_, res) => res.redirect(307, '/api/auth/login'));
+
+// Swagger API documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -164,10 +153,24 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server (for both local and production)
-app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-});
+// Start server with database connection established first
+const startServer = async () => {
+  try {
+    // Initialize database before starting server
+    await initializeDatabase();
+    
+    // Start server
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
 
 // Export for serverless platforms
 export default app;

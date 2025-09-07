@@ -97,9 +97,48 @@ router.get('/drafts/:draftId', async (req, res) => {
 });
 
 /**
- * @route PUT /api/case-workflow/drafts/:draftId/steps/:stepId
- * @desc Update workflow step
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-workflow/drafts/{draftId}/steps/{stepId}:
+ *   put:
+ *     summary: Update workflow step
+ *     description: Update content and metadata for a specific workflow step
+ *     tags: [Case Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: draftId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the draft
+ *       - in: path
+ *         name: stepId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the workflow step
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkflowStep'
+ *     responses:
+ *       200:
+ *         description: Step updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StepValidationResult'
+ *       400:
+ *         description: Validation failed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Draft or step not found
+ *       500:
+ *         description: Server error
  */
 router.put('/drafts/:draftId/steps/:stepId', async (req, res) => {
   try {
@@ -419,9 +458,45 @@ router.get('/templates', async (req, res) => {
 });
 
 /**
- * @route POST /api/case-workflow/templates/:templateId/use
- * @desc Create a new case from a template
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-workflow/templates/{templateId}/use:
+ *   post:
+ *     summary: Use case template
+ *     description: Create a new case from a template
+ *     tags: [Case Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: templateId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of template to use
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Title for new case
+ *               description:
+ *                 type: string
+ *                 description: Description for new case
+ *     responses:
+ *       201:
+ *         description: Case created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Case'
+ *       404:
+ *         description: Template not found
+ *       500:
+ *         description: Server error
  */
 router.post('/templates/:templateId/use', async (req, res) => {
   try {

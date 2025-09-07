@@ -45,15 +45,17 @@
     "pino": "8.16.0",
     "pino-http": "8.5.1",
     "pino-pretty": "10.2.3",
+    "swagger-jsdoc": "6.2.8",
+    "swagger-ui-express": "5.0.1",
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "nodemon": "3.0.2",
-    "jest": "^29.7.0",
-    "@jest/globals": "^29.7.0",
-    "supertest": "^6.3.3",
-    "babel-jest": "^29.7.0",
     "@babel/core": "^7.23.0",
-    "@babel/preset-env": "^7.23.0"
+    "@babel/preset-env": "^7.23.0",
+    "@jest/globals": "^29.7.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "nodemon": "3.0.2",
+    "supertest": "^6.3.3"
   }
 }

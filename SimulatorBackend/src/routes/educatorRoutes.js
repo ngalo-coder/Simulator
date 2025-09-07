@@ -14,9 +14,36 @@ router.use(authenticateToken);
 router.use(requireAnyRole(['educator', 'admin']));
 
 /**
- * @route GET /api/educator/dashboard
- * @desc Get educator dashboard overview
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/dashboard:
+ *   get:
+ *     summary: Get educator dashboard overview
+ *     description: Retrieves comprehensive dashboard data for educators including metrics, statistics, and recent activity
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/EducatorDashboard'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/dashboard', async (req, res) => {
   try {
@@ -36,9 +63,83 @@ router.get('/dashboard', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/students
- * @desc Get assigned students with filtering and pagination
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/students:
+ *   get:
+ *     summary: Get assigned students with filtering and pagination
+ *     description: Retrieves a paginated list of students assigned to the educator with filtering options
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Number of students per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [profile.lastName, profile.firstName, createdAt, lastActivity]
+ *           default: profile.lastName
+ *         description: Field to sort students by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order (ascending or descending)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for student name or email
+ *       - in: query
+ *         name: discipline
+ *         schema:
+ *           type: string
+ *         description: Filter by medical discipline
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, active, inactive]
+ *           default: all
+ *         description: Filter by student status
+ *     responses:
+ *       200:
+ *         description: Students retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/PaginatedStudents'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/students', async (req, res) => {
   try {
@@ -68,9 +169,50 @@ router.get('/students', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/students/:studentId/progress
- * @desc Get detailed progress for a specific student
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/students/{studentId}/progress:
+ *   get:
+ *     summary: Get detailed progress for a specific student
+ *     description: Retrieves comprehensive progress data for a specific student including case completion, scores, and learning patterns
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the student to get progress for
+ *     responses:
+ *       200:
+ *         description: Student progress retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/StudentProgress'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Student not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/students/:studentId/progress', async (req, res) => {
   try {
@@ -91,9 +233,78 @@ router.get('/students/:studentId/progress', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/cases
- * @desc Get educator's cases with management interface data
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases:
+ *   get:
+ *     summary: Get educator's cases with management interface data
+ *     description: Retrieves a paginated list of cases managed by the educator with filtering and sorting options
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 20
+ *         description: Number of cases per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [updatedAt, createdAt, title, difficulty, status]
+ *           default: updatedAt
+ *         description: Field to sort cases by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, draft, review, approved, published, archived]
+ *           default: all
+ *         description: Filter by case status
+ *       - in: query
+ *         name: discipline
+ *         schema:
+ *           type: string
+ *         description: Filter by medical discipline
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/PaginatedCases'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/cases', async (req, res) => {
   try {
@@ -122,9 +333,50 @@ router.get('/cases', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/cases
- * @desc Create a new case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases:
+ *   post:
+ *     summary: Create a new case
+ *     description: Creates a new medical simulation case with the provided data
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CaseInput'
+ *     responses:
+ *       201:
+ *         description: Case created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases', async (req, res) => {
   try {
@@ -146,9 +398,64 @@ router.post('/cases', async (req, res) => {
 });
 
 /**
- * @route PUT /api/educator/cases/:caseId
- * @desc Update an existing case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}:
+ *   put:
+ *     summary: Update an existing case
+ *     description: Updates an existing medical simulation case with the provided data
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CaseInput'
+ *     responses:
+ *       200:
+ *         description: Case updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.put('/cases/:caseId', async (req, res) => {
   try {
@@ -172,9 +479,56 @@ router.put('/cases/:caseId', async (req, res) => {
 });
 
 /**
- * @route DELETE /api/educator/cases/:caseId
- * @desc Delete (archive) a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}:
+ *   delete:
+ *     summary: Delete (archive) a case
+ *     description: Archives a case, making it inaccessible but preserving data for analytics
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to archive
+ *     responses:
+ *       200:
+ *         description: Case archived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid case ID or cannot archive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/cases/:caseId', async (req, res) => {
   try {
@@ -195,9 +549,58 @@ router.delete('/cases/:caseId', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/cases/:caseId/submit-review
- * @desc Submit case for review
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/submit-review:
+ *   post:
+ *     summary: Submit case for review
+ *     description: Submits a case for formal review by administrators or other educators
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to submit for review
+ *     responses:
+ *       200:
+ *         description: Case submitted for review successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Case cannot be submitted for review
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/submit-review', async (req, res) => {
   try {
@@ -219,9 +622,74 @@ router.post('/cases/:caseId/submit-review', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/cases/:caseId/review
- * @desc Review and approve/reject a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/review:
+ *   post:
+ *     summary: Review and approve/reject a case
+ *     description: Reviews a case by approving or rejecting it with optional comments
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to review
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [approve, reject]
+ *                 description: Action to take on the case
+ *               comments:
+ *                 type: string
+ *                 description: Optional comments for the review
+ *     responses:
+ *       200:
+ *         description: Case reviewed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid review data or action
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/review', async (req, res) => {
   try {
@@ -245,9 +713,58 @@ router.post('/cases/:caseId/review', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/cases/:caseId/publish
- * @desc Publish an approved case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/publish:
+ *   post:
+ *     summary: Publish an approved case
+ *     description: Publishes an approved case to make it available for students to access and use
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to publish
+ *     responses:
+ *       200:
+ *         description: Case published successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Case cannot be published (not approved or invalid state)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/publish', async (req, res) => {
   try {
@@ -269,9 +786,50 @@ router.post('/cases/:caseId/publish', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/cases/:caseId/analytics
- * @desc Get detailed analytics for a specific case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/analytics:
+ *   get:
+ *     summary: Get detailed analytics for a specific case
+ *     description: Retrieves comprehensive analytics data for a specific case including completion rates, scores, and student performance metrics
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to get analytics for
+ *     responses:
+ *       200:
+ *         description: Case analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/CaseAnalytics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/cases/:caseId/analytics', async (req, res) => {
   try {
@@ -292,9 +850,77 @@ router.get('/cases/:caseId/analytics', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/cases/:caseId/collaborators
- * @desc Add collaborator to a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/collaborators:
+ *   post:
+ *     summary: Add collaborator to a case
+ *     description: Adds another educator as a collaborator to a case, allowing them to edit and manage the case
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to add collaborator to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - collaboratorId
+ *             properties:
+ *               collaboratorId:
+ *                 type: string
+ *                 format: objectid
+ *                 description: ID of the user to add as collaborator
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [edit, view, manage]
+ *                 description: Permissions to grant to the collaborator
+ *     responses:
+ *       200:
+ *         description: Collaborator added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid collaborator data or user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/cases/:caseId/collaborators', async (req, res) => {
   try {
@@ -318,9 +944,65 @@ router.post('/cases/:caseId/collaborators', async (req, res) => {
 });
 
 /**
- * @route DELETE /api/educator/cases/:caseId/collaborators/:collaboratorId
- * @desc Remove collaborator from a case
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/cases/{caseId}/collaborators/{collaboratorId}:
+ *   delete:
+ *     summary: Remove collaborator from a case
+ *     description: Removes a collaborator from a case, revoking their access and permissions
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to remove collaborator from
+ *       - in: path
+ *         name: collaboratorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the collaborator to remove
+ *     responses:
+ *       200:
+ *         description: Collaborator removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid request or cannot remove collaborator
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case or collaborator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.delete('/cases/:caseId/collaborators/:collaboratorId', async (req, res) => {
   try {
@@ -343,9 +1025,43 @@ router.delete('/cases/:caseId/collaborators/:collaboratorId', async (req, res) =
 });
 
 /**
- * @route GET /api/educator/analytics
- * @desc Get comprehensive analytics for educator
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/analytics:
+ *   get:
+ *     summary: Get comprehensive analytics for educator
+ *     description: Retrieves comprehensive analytics data including performance metrics, case statistics, and student statistics
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     performanceMetrics:
+ *                       $ref: '#/components/schemas/PerformanceMetrics'
+ *                     caseStatistics:
+ *                       $ref: '#/components/schemas/CaseStatistics'
+ *                     studentStatistics:
+ *                       $ref: '#/components/schemas/StudentStatistics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/analytics', async (req, res) => {
   try {
@@ -377,9 +1093,65 @@ router.get('/analytics', async (req, res) => {
 });
 
 /**
- * @route POST /api/educator/classes
- * @desc Create a new class/group
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/classes:
+ *   post:
+ *     summary: Create a new class/group
+ *     description: Creates a new class or group for organizing students and assigning cases
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the class
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the class
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: objectid
+ *                 description: Array of student IDs to add to the class
+ *     responses:
+ *       201:
+ *         description: Class created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Class'
+ *       400:
+ *         description: Invalid class data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/classes', async (req, res) => {
   try {
@@ -401,9 +1173,38 @@ router.post('/classes', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/classes
- * @desc Get educator's classes
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/classes:
+ *   get:
+ *     summary: Get educator's classes
+ *     description: Retrieves all classes/groups created by the educator
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Classes retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Class'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/classes', async (req, res) => {
   try {
@@ -423,9 +1224,36 @@ router.get('/classes', async (req, res) => {
 });
 
 /**
- * @route GET /api/educator/statistics
- * @desc Get case statistics for educator
- * @access Private (Educator, Admin)
+ * @swagger
+ * /educator/statistics:
+ *   get:
+ *     summary: Get case statistics for educator
+ *     description: Retrieves statistics about cases managed by the educator including counts by status and usage metrics
+ *     tags: [Educator]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/CaseStatistics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/statistics', async (req, res) => {
   try {

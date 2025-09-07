@@ -6,7 +6,54 @@ import { protect as requireAuth, optionalAuth as extractUserInfo } from '../midd
 
 const router = express.Router();
 
-// Get case contribution form data (specialties, modules, etc.)
+/**
+ * @swagger
+ * /contribute/form-data:
+ *   get:
+ *     summary: Get case contribution form data
+ *     description: Retrieves available options for case contribution including specialties, modules, program areas, difficulties, locations, genders, and emotional tones
+ *     tags: [Case Contribution]
+ *     responses:
+ *       200:
+ *         description: Form data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 specialties:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 modules:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                 programAreas:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 difficulties:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 locations:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 genders:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 emotionalTones:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/form-data', async (req, res) => {
   try {
     // Get available specialties and modules from existing cases
@@ -55,7 +102,60 @@ router.get('/form-data', async (req, res) => {
   }
 });
 
-// Save case as draft (requires auth and eligibility check)
+/**
+ * @swagger
+ * /contribute/draft:
+ *   post:
+ *     summary: Save case as draft
+ *     description: Saves a case contribution as a draft for later submission. Requires authentication and contributor eligibility.
+ *     tags: [Case Contribution]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - caseData
+ *             properties:
+ *               caseData:
+ *                 $ref: '#/components/schemas/ContributedCaseInput'
+ *     responses:
+ *       201:
+ *         description: Case draft saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 caseId:
+ *                   type: string
+ *                   format: objectid
+ *                   description: ID of the saved draft case
+ *                 generatedCaseId:
+ *                   type: string
+ *                   description: Generated case ID for reference
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Contributor not eligible or access denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.post('/draft', extractUserInfo, requireAuth, checkContributorEligibility, async (req, res) => {
   try {
     const { caseData } = req.body;
@@ -82,7 +182,67 @@ router.post('/draft', extractUserInfo, requireAuth, checkContributorEligibility,
   }
 });
 
-// Submit case for review (requires auth and eligibility check)
+/**
+ * @swagger
+ * /contribute/submit:
+ *   post:
+ *     summary: Submit case for review
+ *     description: Submits a case contribution for formal review. Validates required fields and requires authentication and contributor eligibility.
+ *     tags: [Case Contribution]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - caseData
+ *             properties:
+ *               caseData:
+ *                 $ref: '#/components/schemas/ContributedCaseInput'
+ *     responses:
+ *       201:
+ *         description: Case submitted successfully for review
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 caseId:
+ *                   type: string
+ *                   format: objectid
+ *                   description: ID of the submitted case
+ *                 generatedCaseId:
+ *                   type: string
+ *                   description: Generated case ID for reference
+ *       400:
+ *         description: Missing required fields or invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                 missingFields:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Contributor not eligible or access denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.post('/submit', extractUserInfo, requireAuth, checkContributorEligibility, async (req, res) => {
   try {
     const { caseData } = req.body;
@@ -145,7 +305,56 @@ router.post('/submit', extractUserInfo, requireAuth, checkContributorEligibility
   }
 });
 
-// Get contributor's cases (requires auth)
+/**
+ * @swagger
+ * /contribute/my-cases:
+ *   get:
+ *     summary: Get contributor's cases
+ *     description: Retrieves all cases contributed by the authenticated user
+ *     tags: [Case Contribution]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Contributor's cases retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     format: objectid
+ *                   status:
+ *                     type: string
+ *                     enum: [draft, submitted, under_review, approved, rejected, needs_revision]
+ *                   caseData:
+ *                     type: object
+ *                     properties:
+ *                       case_metadata:
+ *                         type: object
+ *                         properties:
+ *                           title:
+ *                             type: string
+ *                           specialty:
+ *                             type: string
+ *                           case_id:
+ *                             type: string
+ *                   submittedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   reviewComments:
+ *                     type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/my-cases', extractUserInfo, requireAuth, async (req, res) => {
   try {
     const contributorId = req.user.id;
@@ -161,7 +370,43 @@ router.get('/my-cases', extractUserInfo, requireAuth, async (req, res) => {
   }
 });
 
-// Get case for editing
+/**
+ * @swagger
+ * /contribute/edit/{caseId}:
+ *   get:
+ *     summary: Get case for editing
+ *     description: Retrieves a contributed case for editing. Only draft or needs_revision cases can be edited.
+ *     tags: [Case Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to edit
+ *     responses:
+ *       200:
+ *         description: Case retrieved successfully for editing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ContributedCase'
+ *       403:
+ *         description: Case cannot be edited in current status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/edit/:caseId', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -184,7 +429,60 @@ router.get('/edit/:caseId', async (req, res) => {
   }
 });
 
-// Update case
+/**
+ * @swagger
+ * /contribute/update/{caseId}:
+ *   put:
+ *     summary: Update case
+ *     description: Updates a contributed case. Only draft or needs_revision cases can be updated.
+ *     tags: [Case Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the case to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - caseData
+ *             properties:
+ *               caseData:
+ *                 $ref: '#/components/schemas/ContributedCaseInput'
+ *     responses:
+ *       200:
+ *         description: Case updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 caseId:
+ *                   type: string
+ *                   format: objectid
+ *       403:
+ *         description: Case cannot be updated in current status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.put('/update/:caseId', async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -216,7 +514,46 @@ router.put('/update/:caseId', async (req, res) => {
   }
 });
 
-// Delete draft case
+/**
+ * @swagger
+ * /contribute/delete/{caseId}:
+ *   delete:
+ *     summary: Delete draft case
+ *     description: Deletes a draft case. Only draft cases can be deleted.
+ *     tags: [Case Contribution]
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the draft case to delete
+ *     responses:
+ *       200:
+ *         description: Case deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Only draft cases can be deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.delete('/delete/:caseId', async (req, res) => {
   try {
     const { caseId } = req.params;

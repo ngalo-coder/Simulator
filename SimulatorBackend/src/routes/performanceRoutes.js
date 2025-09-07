@@ -9,7 +9,108 @@ const router = express.Router();
 // Add authentication middleware to all routes
 router.use(protect);
 
-// Record evaluation result and update performance
+/**
+ * @swagger
+ * /performance/record-evaluation:
+ *   post:
+ *     summary: Record evaluation result and update performance
+ *     description: Records a case evaluation result and updates clinician performance metrics
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - userEmail
+ *               - userName
+ *               - sessionId
+ *               - caseId
+ *               - caseTitle
+ *               - specialty
+ *               - overallRating
+ *               - totalScore
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: ID of the user being evaluated
+ *               userEmail:
+ *                 type: string
+ *                 format: email
+ *                 description: Email of the user
+ *               userName:
+ *                 type: string
+ *                 description: Name of the user
+ *               sessionId:
+ *                 type: string
+ *                 description: ID of the simulation session
+ *               caseId:
+ *                 type: string
+ *                 description: ID of the case
+ *               caseTitle:
+ *                 type: string
+ *                 description: Title of the case
+ *               specialty:
+ *                 type: string
+ *                 description: Medical specialty of the case
+ *               module:
+ *                 type: string
+ *                 description: Module or category of the case
+ *               programArea:
+ *                 type: string
+ *                 description: Program area or curriculum
+ *               overallRating:
+ *                 type: string
+ *                 enum: [Excellent, Good, Needs Improvement]
+ *                 description: Overall rating of the performance
+ *               criteriaScores:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: number
+ *                 description: Scores for individual evaluation criteria
+ *               totalScore:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 description: Total score out of 100
+ *               duration:
+ *                 type: number
+ *                 description: Duration of the session in seconds
+ *               messagesExchanged:
+ *                 type: number
+ *                 description: Number of messages exchanged during the session
+ *     responses:
+ *       200:
+ *         description: Evaluation recorded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 contributorEligible:
+ *                   type: boolean
+ *                   description: Whether the user is eligible to contribute cases
+ *                 eligibleSpecialties:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 specialtyStats:
+ *                   type: object
+ *                   additionalProperties:
+ *                     $ref: '#/components/schemas/SpecialtyStats'
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.post('/record-evaluation', async (req, res) => {
   try {
     const {
@@ -80,7 +181,102 @@ router.post('/record-evaluation', async (req, res) => {
   }
 });
 
-// Get clinician's performance summary
+/**
+ * @swagger
+ * /performance/summary/{userId}:
+ *   get:
+ *     summary: Get clinician's performance summary
+ *     description: Retrieves a comprehensive performance summary for a clinician, including overall stats, specialty stats, and recent evaluations
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to get performance summary for
+ *     responses:
+ *       200:
+ *         description: Performance summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 overallStats:
+ *                   type: object
+ *                   properties:
+ *                     totalEvaluations:
+ *                       type: number
+ *                     excellentCount:
+ *                       type: number
+ *                     goodCount:
+ *                       type: number
+ *                     needsImprovementCount:
+ *                       type: number
+ *                     excellentRate:
+ *                       type: number
+ *                       format: float
+ *                 specialtyStats:
+ *                   type: object
+ *                   additionalProperties:
+ *                     $ref: '#/components/schemas/SpecialtyStats'
+ *                 contributorStatus:
+ *                   type: object
+ *                   properties:
+ *                     isEligible:
+ *                       type: boolean
+ *                     eligibleSpecialties:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     qualificationDate:
+ *                       type: string
+ *                       format: date-time
+ *                     eligibilityCriteria:
+ *                       type: object
+ *                 contributionStats:
+ *                   type: object
+ *                   properties:
+ *                     totalSubmissions:
+ *                       type: number
+ *                     approvedSubmissions:
+ *                       type: number
+ *                     rejectedSubmissions:
+ *                       type: number
+ *                     pendingSubmissions:
+ *                       type: number
+ *                 recentEvaluations:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       caseTitle:
+ *                         type: string
+ *                       specialty:
+ *                         type: string
+ *                       rating:
+ *                         type: string
+ *                       score:
+ *                         type: number
+ *                       completedAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         description: Performance record not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/summary/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -224,7 +420,67 @@ router.get('/summary/:userId', async (req, res) => {
   }
 });
 
-// Check contributor eligibility for specific specialty
+/**
+ * @swagger
+ * /performance/eligibility/{userId}/{specialty}:
+ *   get:
+ *     summary: Check contributor eligibility for specific specialty
+ *     description: Checks if a user is eligible to contribute cases for a specific medical specialty
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user to check eligibility for
+ *       - in: path
+ *         name: specialty
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical specialty to check eligibility for
+ *     responses:
+ *       200:
+ *         description: Eligibility check completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 eligible:
+ *                   type: boolean
+ *                 specialty:
+ *                   type: string
+ *                 criteria:
+ *                   type: object
+ *                   properties:
+ *                     excellentCount:
+ *                       type: number
+ *                     recentExcellent:
+ *                       type: boolean
+ *                     consistentPerformance:
+ *                       type: boolean
+ *                     qualificationMet:
+ *                       type: boolean
+ *                 requirements:
+ *                   type: object
+ *                   properties:
+ *                     excellentRatingsNeeded:
+ *                       type: number
+ *                     needsRecentExcellent:
+ *                       type: boolean
+ *                     needsConsistentPerformance:
+ *                       type: boolean
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         description: Performance record not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/eligibility/:userId/:specialty', async (req, res) => {
   try {
     const { userId, specialty } = req.params;
@@ -263,7 +519,60 @@ router.get('/eligibility/:userId/:specialty', async (req, res) => {
   }
 });
 
-// Get leaderboard of top performers
+/**
+ * @swagger
+ * /performance/leaderboard:
+ *   get:
+ *     summary: Get leaderboard of top performers
+ *     description: Retrieves a leaderboard of top performers based on excellence rate and total cases
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter leaderboard by medical specialty (optional)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Maximum number of leaders to return
+ *     responses:
+ *       200:
+ *         description: Leaderboard retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   totalCases:
+ *                     type: number
+ *                   excellentCount:
+ *                     type: number
+ *                   excellentRate:
+ *                     type: number
+ *                     format: float
+ *                   averageScore:
+ *                     type: number
+ *                     format: float
+ *                   isContributor:
+ *                     type: boolean
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/leaderboard', async (req, res) => {
   try {
     const { specialty, limit = 10 } = req.query;
@@ -310,7 +619,63 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
-// Update contribution stats when case is approved/rejected
+/**
+ * @swagger
+ * /performance/update-contribution/{userId}:
+ *   post:
+ *     summary: Update contribution stats when case is approved/rejected
+ *     description: Updates contribution statistics when a user's case submission is approved or rejected
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user whose contribution stats to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [approved, rejected]
+ *                 description: The status of the case submission
+ *     responses:
+ *       200:
+ *         description: Contribution stats updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 contributionStats:
+ *                   type: object
+ *                   properties:
+ *                     totalSubmissions:
+ *                       type: number
+ *                     approvedSubmissions:
+ *                       type: number
+ *                     rejectedSubmissions:
+ *                       type: number
+ *                     pendingSubmissions:
+ *                       type: number
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         description: Performance record not found
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.post('/update-contribution/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -336,7 +701,61 @@ router.post('/update-contribution/:userId', async (req, res) => {
   }
 });
 
-// Bulk eligibility check (for admin)
+/**
+ * @swagger
+ * /performance/eligible-contributors/{specialty}:
+ *   get:
+ *     summary: Bulk eligibility check (for admin)
+ *     description: Retrieves a list of all users eligible to contribute cases for a specific specialty (admin only)
+ *     tags: [Performance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: specialty
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical specialty to check eligibility for
+ *     responses:
+ *       200:
+ *         description: List of eligible contributors retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   userId:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   qualificationDate:
+ *                     type: string
+ *                     format: date-time
+ *                   specialtyStats:
+ *                     $ref: '#/components/schemas/SpecialtyStats'
+ *                   contributionStats:
+ *                     type: object
+ *                     properties:
+ *                       totalSubmissions:
+ *                         type: number
+ *                       approvedSubmissions:
+ *                         type: number
+ *                       rejectedSubmissions:
+ *                         type: number
+ *                       pendingSubmissions:
+ *                         type: number
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin access required
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
 router.get('/eligible-contributors/:specialty', async (req, res) => {
   try {
     const { specialty } = req.params;

@@ -9,9 +9,33 @@ const router = express.Router();
 router.use(authenticateToken);
 
 /**
- * @route GET /api/case-templates
- * @desc Get all available case templates
- * @access Private (All authenticated users)
+ * @swagger
+ * /api/case-templates:
+ *   get:
+ *     summary: Get all available case templates
+ *     description: Retrieve all available case templates organized by medical discipline. Accessible to all authenticated users.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of all case templates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CaseTemplate'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/', async (req, res) => {
   try {
@@ -31,9 +55,44 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * @route GET /api/case-templates/:discipline
- * @desc Get template for specific discipline
- * @access Private (All authenticated users)
+ * @swagger
+ * /api/case-templates/{discipline}:
+ *   get:
+ *     summary: Get template for specific discipline
+ *     description: Retrieve the case template for a specific medical discipline. Accessible to all authenticated users.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: discipline
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical discipline name (e.g., cardiology, neurology, pediatrics)
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of discipline template
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/CaseTemplate'
+ *       404:
+ *         description: Template not found for the specified discipline
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/:discipline', async (req, res) => {
   try {
@@ -54,9 +113,51 @@ router.get('/:discipline', async (req, res) => {
 });
 
 /**
- * @route GET /api/case-templates/:discipline/fields
- * @desc Get template field structure for a discipline
- * @access Private (All authenticated users)
+ * @swagger
+ * /api/case-templates/{discipline}/fields:
+ *   get:
+ *     summary: Get template field structure for a discipline
+ *     description: Retrieve the field structure and schema for a specific medical discipline template. Accessible to all authenticated users.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: discipline
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical discipline name
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of template fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     discipline:
+ *                       type: string
+ *                     fields:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/TemplateField'
+ *       404:
+ *         description: Template not found for the specified discipline
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/:discipline/fields', async (req, res) => {
   try {
@@ -80,9 +181,62 @@ router.get('/:discipline/fields', async (req, res) => {
 });
 
 /**
- * @route POST /api/case-templates/:discipline/validate
- * @desc Validate case data against template
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-templates/{discipline}/validate:
+ *   post:
+ *     summary: Validate case data against template
+ *     description: Validate case data against the template schema for a specific discipline. Requires educator or admin role.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: discipline
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical discipline name
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Case'
+ *     responses:
+ *       200:
+ *         description: Validation completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ValidationResult'
+ *       400:
+ *         description: Validation failed with errors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - educator or admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Template not found for the specified discipline
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/:discipline/validate', requireAnyRole(['educator', 'admin']), async (req, res) => {
   try {
@@ -105,9 +259,66 @@ router.post('/:discipline/validate', requireAnyRole(['educator', 'admin']), asyn
 });
 
 /**
- * @route POST /api/case-templates/:discipline/create
- * @desc Create case from template
- * @access Private (Educator, Admin)
+ * @swagger
+ * /api/case-templates/{discipline}/create:
+ *   post:
+ *     summary: Create case from template
+ *     description: Create a new case using a specific discipline template with custom data. Requires educator or admin role.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: discipline
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Medical discipline name
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Custom data for the case creation
+ *     responses:
+ *       201:
+ *         description: Case created from template successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Case created from template successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Invalid input data or validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - educator or admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Template not found for the specified discipline
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/:discipline/create', requireAnyRole(['educator', 'admin']), async (req, res) => {
   try {
@@ -131,9 +342,37 @@ router.post('/:discipline/create', requireAnyRole(['educator', 'admin']), async 
 });
 
 /**
- * @route GET /api/case-templates/statistics
- * @desc Get template usage statistics
- * @access Private (Admin)
+ * @swagger
+ * /api/case-templates/admin/statistics:
+ *   get:
+ *     summary: Get template usage statistics
+ *     description: Retrieve statistics about template usage across the system. Requires admin role.
+ *     tags: [Case Templates]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of template statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/TemplateStatistics'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden - admin role required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/admin/statistics', requireAnyRole(['admin']), async (req, res) => {
   try {

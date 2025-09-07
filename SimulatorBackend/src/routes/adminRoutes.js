@@ -333,7 +333,65 @@ router.put('/users/:userId/role', protect, isAdmin, async (req, res) => {
   }
 });
 
-// Update case metadata
+/**
+ * @swagger
+ * /api/admin/cases/{caseId}:
+ *   put:
+ *     summary: Update case metadata
+ *     description: Update case metadata including program area and specialty
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               programArea:
+ *                 type: string
+ *                 example: 'Internal Medicine'
+ *               specialty:
+ *                 type: string
+ *                 example: 'Cardiology'
+ *     responses:
+ *       200:
+ *         description: Case updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Case updated successfully'
+ *                 case:
+ *                   $ref: '#/components/schemas/Case'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put('/cases/:caseId', protect, isAdmin, async (req, res) => {
   try {
     const { caseId } = req.params;
@@ -364,7 +422,63 @@ router.put('/cases/:caseId', protect, isAdmin, async (req, res) => {
   }
 });
 
-// Get users with their performance scores
+/**
+ * @swagger
+ * /api/admin/users/scores:
+ *   get:
+ *     summary: Get users with their performance scores
+ *     description: Retrieve all users with aggregated performance metrics and scores
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Users with scores retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   username:
+ *                     type: string
+ *                     example: 'johndoe'
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     example: 'john@example.com'
+ *                   role:
+ *                     type: string
+ *                     example: 'student'
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   totalCases:
+ *                     type: integer
+ *                     example: 25
+ *                   averageScore:
+ *                     type: number
+ *                     format: float
+ *                     example: 85.5
+ *                   excellentCount:
+ *                     type: integer
+ *                     example: 15
+ *                   excellentRate:
+ *                     type: number
+ *                     format: float
+ *                     example: 60.0
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/users/scores', protect, isAdmin, async (req, res) => {
   try {
     const usersWithScores = await User.aggregate([

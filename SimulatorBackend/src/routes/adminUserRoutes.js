@@ -228,8 +228,70 @@ router.delete('/users/:userId', async (req, res) => {
 });
 
 /**
- * Reset user password
- * POST /api/admin/users/:userId/reset-password
+ * @swagger
+ * /api/admin/users/{userId}/reset-password:
+ *   post:
+ *     summary: Reset user password
+ *     description: Reset a user's password to a new value (admin action)
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the user whose password to reset
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: 'newSecurePassword123'
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Password reset successfully'
+ *       400:
+ *         description: New password is required or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/users/:userId/reset-password', async (req, res) => {
   try {
@@ -282,8 +344,68 @@ router.post('/users/:userId/reset-password', async (req, res) => {
  */
 
 /**
- * Bulk activate/deactivate users
- * POST /api/admin/users/bulk/status
+ * @swagger
+ * /api/admin/users/bulk/status:
+ *   post:
+ *     summary: Bulk activate/deactivate users
+ *     description: Activate or deactivate multiple users in bulk operation
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userIds
+ *               - isActive
+ *             properties:
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012']
+ *               isActive:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: User status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Updated status for 2 users'
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *                 failedCount:
+ *                   type: integer
+ *                   example: 0
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/users/bulk/status', async (req, res) => {
   try {
@@ -321,8 +443,74 @@ router.post('/users/bulk/status', async (req, res) => {
 });
 
 /**
- * Bulk role assignment
- * POST /api/admin/users/bulk/roles
+ * @swagger
+ * /api/admin/users/bulk/roles:
+ *   post:
+ *     summary: Bulk role assignment
+ *     description: Add or remove roles from multiple users in bulk operation
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userIds
+ *               - role
+ *               - operation
+ *             properties:
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012']
+ *               role:
+ *                 type: string
+ *                 enum: [student, educator, admin]
+ *                 example: 'admin'
+ *               operation:
+ *                 type: string
+ *                 enum: [add, remove]
+ *                 example: 'add'
+ *     responses:
+ *       200:
+ *         description: Roles updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Added admin role to 2 users'
+ *                 updatedCount:
+ *                   type: integer
+ *                   example: 2
+ *                 failedCount:
+ *                   type: integer
+ *                   example: 0
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/users/bulk/roles', async (req, res) => {
   try {
@@ -372,8 +560,75 @@ router.post('/users/bulk/roles', async (req, res) => {
  */
 
 /**
- * Export users to CSV
- * GET /api/admin/users/export
+ * @swagger
+ * /api/admin/users/export:
+ *   get:
+ *     summary: Export users to CSV
+ *     description: Export users data to CSV file with filtering options
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [student, educator, admin]
+ *         style: form
+ *         explode: false
+ *         description: Filter by user role(s)
+ *       - in: query
+ *         name: discipline
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [medicine, nursing, radiology, pharmacy, laboratory]
+ *         style: form
+ *         explode: false
+ *         description: Filter by healthcare discipline(s)
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *       - in: query
+ *         name: emailVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by email verification status
+ *       - in: query
+ *         name: createdAfter
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter users created after this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: createdBefore
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter users created before this date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: CSV export generated successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               example: "username,email,role,discipline,isActive\njohndoe,john@example.com,student,medicine,true"
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/users/export', async (req, res) => {
   try {
@@ -410,8 +665,78 @@ router.get('/users/export', async (req, res) => {
 });
 
 /**
- * Import users from CSV
- * POST /api/admin/users/import
+ * @swagger
+ * /api/admin/users/import:
+ *   post:
+ *     summary: Import users from CSV
+ *     description: Import users from CSV file with validation and error handling
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               csvFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file containing user data
+ *     responses:
+ *       200:
+ *         description: Users imported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Import completed'
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     totalProcessed:
+ *                       type: integer
+ *                       example: 10
+ *                     successful:
+ *                       type: integer
+ *                       example: 8
+ *                     failed:
+ *                       type: integer
+ *                       example: 2
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           row:
+ *                             type: integer
+ *                             example: 3
+ *                           error:
+ *                             type: string
+ *                             example: 'Invalid email format'
+ *       400:
+ *         description: CSV file is required or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/users/import', upload.single('csvFile'), async (req, res) => {
   try {
@@ -444,8 +769,63 @@ router.post('/users/import', upload.single('csvFile'), async (req, res) => {
  */
 
 /**
- * Get user statistics
- * GET /api/admin/users/statistics
+ * @swagger
+ * /api/admin/users/statistics:
+ *   get:
+ *     summary: Get user statistics
+ *     description: Retrieve comprehensive user statistics including counts by role, discipline, and activity
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statistics:
+ *                   type: object
+ *                   properties:
+ *                     totalUsers:
+ *                       type: integer
+ *                       example: 150
+ *                     usersByRole:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                         example: 100
+ *                     usersByDiscipline:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                         example: 50
+ *                     activeUsers:
+ *                       type: integer
+ *                       example: 120
+ *                     verifiedUsers:
+ *                       type: integer
+ *                       example: 130
+ *                     newUsersThisWeek:
+ *                       type: integer
+ *                       example: 15
+ *                     newUsersThisMonth:
+ *                       type: integer
+ *                       example: 45
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/users/statistics', async (req, res) => {
   try {
@@ -470,8 +850,126 @@ router.get('/users/statistics', async (req, res) => {
  */
 
 /**
- * Get available roles and disciplines for forms
- * GET /api/admin/users/config
+ * @swagger
+ * /api/admin/users/config:
+ *   get:
+ *     summary: Get configuration for user forms
+ *     description: Retrieve available roles, disciplines, competency levels, and filter options for admin forms
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 config:
+ *                   type: object
+ *                   properties:
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'student'
+ *                           label:
+ *                             type: string
+ *                             example: 'Student'
+ *                           description:
+ *                             type: string
+ *                             example: 'Learning healthcare skills and knowledge through simulations'
+ *                     disciplines:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'medicine'
+ *                           label:
+ *                             type: string
+ *                             example: 'Medicine'
+ *                           description:
+ *                             type: string
+ *                             example: 'Medical practice, diagnosis, and treatment'
+ *                     competencyLevels:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'novice'
+ *                           label:
+ *                             type: string
+ *                             example: 'Novice'
+ *                           description:
+ *                             type: string
+ *                             example: 'Beginning level with limited experience'
+ *                     sortOptions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           value:
+ *                             type: string
+ *                             example: 'createdAt'
+ *                           label:
+ *                             type: string
+ *                             example: 'Created Date'
+ *                     filterOptions:
+ *                       type: object
+ *                       properties:
+ *                         roles:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                             example: 'student'
+ *                         disciplines:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                             example: 'medicine'
+ *                         activeStatus:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               value:
+ *                                 type: boolean
+ *                                 example: true
+ *                               label:
+ *                                 type: string
+ *                                 example: 'Active'
+ *                         verificationStatus:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               value:
+ *                                 type: boolean
+ *                                 example: true
+ *                               label:
+ *                                 type: string
+ *                                 example: 'Verified'
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/users/config', (req, res) => {
   try {
@@ -529,8 +1027,32 @@ router.get('/users/config', (req, res) => {
 });
 
 /**
- * Get CSV template for import
- * GET /api/admin/users/import-template
+ * @swagger
+ * /api/admin/users/import-template:
+ *   get:
+ *     summary: Get CSV template for import
+ *     description: Download a CSV template with proper headers for user import
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: CSV template generated successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               example: "username,email,password,primaryRole,secondaryRoles,discipline,firstName,lastName,institution,specialization,yearOfStudy,licenseNumber,competencyLevel,isActive,emailVerified"
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/users/import-template', (req, res) => {
   try {

@@ -15,9 +15,52 @@ router.use(authenticateToken);
 router.use(requireAnyRole(['student', 'admin']));
 
 /**
- * @route GET /api/student/dashboard
- * @desc Get student dashboard overview
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/dashboard:
+ *   get:
+ *     summary: Get student dashboard overview
+ *     description: Retrieve comprehensive dashboard overview including progress, recommendations, and recent activity
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     progress:
+ *                       $ref: '#/components/schemas/ProgressSummary'
+ *                     recommendations:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Case'
+ *                     recentActivity:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Activity'
+ *                     achievements:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Achievement'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/dashboard', async (req, res) => {
   try {
@@ -37,9 +80,92 @@ router.get('/dashboard', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/cases
- * @desc Get available cases for student with filtering and pagination
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/cases:
+ *   get:
+ *     summary: Get available cases with filtering and pagination
+ *     description: Retrieve paginated list of available cases with filtering options by difficulty and case type
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [beginner, intermediate, advanced]
+ *         style: form
+ *         explode: false
+ *         description: Filter by difficulty levels (comma-separated)
+ *       - in: query
+ *         name: caseType
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [clinical, procedural, diagnostic, emergency]
+ *         style: form
+ *         explode: false
+ *         description: Filter by case types (comma-separated)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 12
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, difficulty, title, popularity]
+ *           default: 'createdAt'
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: 'desc'
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for case titles and descriptions
+ *     responses:
+ *       200:
+ *         description: Cases retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/cases', async (req, res) => {
   try {
@@ -72,9 +198,48 @@ router.get('/cases', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/recommendations
- * @desc Get personalized case recommendations
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/recommendations:
+ *   get:
+ *     summary: Get personalized case recommendations
+ *     description: Retrieve personalized case recommendations based on student's progress, preferences, and learning history
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 20
+ *           default: 6
+ *         description: Maximum number of recommendations to return
+ *     responses:
+ *       200:
+ *         description: Recommendations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Case'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/recommendations', async (req, res) => {
   try {
@@ -95,9 +260,37 @@ router.get('/recommendations', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/progress
- * @desc Get detailed progress information
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/progress:
+ *   get:
+ *     summary: Get detailed progress information
+ *     description: Retrieve comprehensive progress summary including competency levels, case completion, and performance metrics
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Progress data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ProgressSummary'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/progress', async (req, res) => {
   try {
@@ -117,9 +310,39 @@ router.get('/progress', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/achievements
- * @desc Get student achievements and badges
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/achievements:
+ *   get:
+ *     summary: Get student achievements and badges
+ *     description: Retrieve earned achievements, badges, and progress towards next achievements
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Achievements retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Achievement'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/achievements', async (req, res) => {
   try {
@@ -139,9 +362,37 @@ router.get('/achievements', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/learning-path
- * @desc Get personalized learning path
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/learning-path:
+ *   get:
+ *     summary: Get personalized learning path
+ *     description: Retrieve personalized learning path with recommended cases and competencies based on student's progress
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Learning path retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/LearningPath'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/learning-path', async (req, res) => {
   try {
@@ -161,9 +412,48 @@ router.get('/learning-path', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/activity
- * @desc Get recent activity history
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/activity:
+ *   get:
+ *     summary: Get recent activity history
+ *     description: Retrieve recent student activity including case attempts, completions, and other interactions
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Activity history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Activity'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/activity', async (req, res) => {
   try {
@@ -184,9 +474,61 @@ router.get('/activity', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/discipline-config
- * @desc Get discipline-specific configuration
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/discipline-config:
+ *   get:
+ *     summary: Get discipline-specific configuration
+ *     description: Retrieve configuration and settings specific to the student's healthcare discipline
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Discipline configuration retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     discipline:
+ *                       type: string
+ *                       example: 'medicine'
+ *                     config:
+ *                       type: object
+ *                       properties:
+ *                         caseTypes:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         competencies:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                         defaultDifficulty:
+ *                           type: string
+ *                           example: 'intermediate'
+ *       404:
+ *         description: Discipline configuration not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/discipline-config', async (req, res) => {
   try {
@@ -217,9 +559,54 @@ router.get('/discipline-config', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/help/contextual
- * @desc Get contextual help based on current page/context
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/help/contextual:
+ *   get:
+ *     summary: Get contextual help
+ *     description: Retrieve contextual help content based on current page, case, or difficulty level
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: string
+ *         description: Current page context (e.g., 'dashboard', 'case-view')
+ *       - in: query
+ *         name: caseId
+ *         schema:
+ *           type: string
+ *         description: ID of the current case for context-specific help
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [beginner, intermediate, advanced]
+ *         description: Difficulty level for context-specific help
+ *     responses:
+ *       200:
+ *         description: Contextual help retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/HelpContent'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/help/contextual', async (req, res) => {
   try {
@@ -245,9 +632,52 @@ router.get('/help/contextual', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/help/search
- * @desc Search help content
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/help/search:
+ *   get:
+ *     summary: Search help content
+ *     description: Search through help articles, tutorials, and guidance content
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query term
+ *     responses:
+ *       200:
+ *         description: Search results retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/HelpContent'
+ *       400:
+ *         description: Search query is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/help/search', async (req, res) => {
   try {
@@ -275,9 +705,39 @@ router.get('/help/search', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/help/categories
- * @desc Get all help categories
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/help/categories:
+ *   get:
+ *     summary: Get all help categories
+ *     description: Retrieve list of all available help categories for browsing help content
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Help categories retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/HelpCategory'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/help/categories', async (req, res) => {
   try {
@@ -297,9 +757,50 @@ router.get('/help/categories', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/help/categories/:categoryId
- * @desc Get help content by category
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/help/categories/{categoryId}:
+ *   get:
+ *     summary: Get help content by category
+ *     description: Retrieve all help content belonging to a specific category
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the help category
+ *     responses:
+ *       200:
+ *         description: Category help content retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/HelpCategoryContent'
+ *       404:
+ *         description: Category not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/help/categories/:categoryId', async (req, res) => {
   try {
@@ -320,9 +821,50 @@ router.get('/help/categories/:categoryId', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/help/tutorials/:tutorialId
- * @desc Get tutorial by ID
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/help/tutorials/{tutorialId}:
+ *   get:
+ *     summary: Get tutorial by ID
+ *     description: Retrieve detailed tutorial content by its unique identifier
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tutorialId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the tutorial
+ *     responses:
+ *       200:
+ *         description: Tutorial retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Tutorial'
+ *       404:
+ *         description: Tutorial not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/help/tutorials/:tutorialId', async (req, res) => {
   try {
@@ -343,9 +885,37 @@ router.get('/help/tutorials/:tutorialId', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/guidance
- * @desc Get personalized guidance based on student progress
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/guidance:
+ *   get:
+ *     summary: Get personalized guidance
+ *     description: Receive personalized learning guidance and recommendations based on current progress and performance
+ *     tags: [Student Help]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Personalized guidance retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Guidance'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/guidance', async (req, res) => {
   try {
@@ -365,9 +935,51 @@ router.get('/guidance', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/learning-style
- * @desc Assess student's learning style
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/learning-style:
+ *   get:
+ *     summary: Assess student's learning style
+ *     description: Assess and retrieve the student's preferred learning style based on interaction patterns
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Learning style assessed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     learningStyle:
+ *                       type: string
+ *                       enum: [visual, auditory, kinesthetic, reading]
+ *                       example: 'visual'
+ *                     confidence:
+ *                       type: number
+ *                       format: float
+ *                       example: 0.85
+ *                     recommendations:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: 'Use more visual aids in cases'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/learning-style', async (req, res) => {
   try {
@@ -387,9 +999,76 @@ router.get('/learning-style', async (req, res) => {
 });
 
 /**
- * @route POST /api/student/adjust-difficulty
- * @desc Adjust case difficulty based on performance
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/adjust-difficulty:
+ *   post:
+ *     summary: Adjust case difficulty based on performance
+ *     description: Adjust the difficulty level of cases based on student performance metrics
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - caseId
+ *               - performanceScore
+ *             properties:
+ *               caseId:
+ *                 type: string
+ *                 example: '507f1f77bcf86cd799439011'
+ *               performanceScore:
+ *                 type: number
+ *                 format: float
+ *                 minimum: 0
+ *                 maximum: 1
+ *                 example: 0.75
+ *     responses:
+ *       200:
+ *         description: Difficulty adjusted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     newDifficulty:
+ *                       type: string
+ *                       enum: [beginner, intermediate, advanced]
+ *                       example: 'intermediate'
+ *                     adjustmentReason:
+ *                       type: string
+ *                       example: 'Performance indicates readiness for higher difficulty'
+ *       400:
+ *         description: Invalid input - Case ID and performance score are required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Case not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/adjust-difficulty', async (req, res) => {
   try {
@@ -426,9 +1105,73 @@ router.post('/adjust-difficulty', async (req, res) => {
 });
 
 /**
- * @route POST /api/student/schedule-repetition
- * @desc Schedule spaced repetition for competency review
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/schedule-repetition:
+ *   post:
+ *     summary: Schedule spaced repetition for competency review
+ *     description: Schedule spaced repetition sessions for competency reinforcement based on performance
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - competency
+ *               - performanceScore
+ *             properties:
+ *               competency:
+ *                 type: string
+ *                 example: 'patient_assessment'
+ *               performanceScore:
+ *                 type: number
+ *                 format: float
+ *                 minimum: 0
+ *                 maximum: 1
+ *                 example: 0.6
+ *     responses:
+ *       200:
+ *         description: Repetition scheduled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     nextReviewDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: '2025-09-08T10:00:00Z'
+ *                     intervalDays:
+ *                       type: integer
+ *                       example: 3
+ *                     competency:
+ *                       type: string
+ *                       example: 'patient_assessment'
+ *       400:
+ *         description: Invalid input - Competency and performance score are required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/schedule-repetition', async (req, res) => {
   try {
@@ -457,9 +1200,55 @@ router.post('/schedule-repetition', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/learning-efficiency
- * @desc Optimize learning efficiency
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/learning-efficiency:
+ *   get:
+ *     summary: Optimize learning efficiency
+ *     description: Retrieve optimized learning efficiency recommendations based on student performance patterns
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Learning efficiency optimized successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     optimalStudyTimes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: 'morning'
+ *                     recommendedDuration:
+ *                       type: integer
+ *                       example: 45
+ *                     efficiencyScore:
+ *                       type: number
+ *                       format: float
+ *                       example: 0.92
+ *                     suggestions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: 'Take breaks every 45 minutes'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/learning-efficiency', async (req, res) => {
   try {
@@ -479,9 +1268,37 @@ router.get('/learning-efficiency', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/preferences
- * @desc Get user preferences
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences:
+ *   get:
+ *     summary: Get user preferences
+ *     description: Retrieve all user preferences including theme, layout, font size, and notification settings
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/preferences', async (req, res) => {
   try {
@@ -501,9 +1318,82 @@ router.get('/preferences', async (req, res) => {
 });
 
 /**
- * @route PUT /api/student/preferences
- * @desc Update user preferences
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences:
+ *   put:
+ *     summary: Update user preferences
+ *     description: Update multiple user preferences at once with validation
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               theme:
+ *                 type: string
+ *                 enum: [light, dark, system]
+ *                 example: 'dark'
+ *               layout:
+ *                 type: string
+ *                 enum: [compact, spacious, standard]
+ *                 example: 'standard'
+ *               fontSize:
+ *                 type: string
+ *                 enum: [small, medium, large, x-large]
+ *                 example: 'medium'
+ *               notifications:
+ *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: boolean
+ *                     example: true
+ *                   push:
+ *                     type: boolean
+ *                     example: false
+ *     responses:
+ *       200:
+ *         description: Preferences updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *       400:
+ *         description: Invalid preference updates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: 'Invalid preference updates'
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/preferences', async (req, res) => {
   try {
@@ -534,9 +1424,40 @@ router.put('/preferences', async (req, res) => {
 });
 
 /**
- * @route DELETE /api/student/preferences
- * @desc Reset user preferences to defaults
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences:
+ *   delete:
+ *     summary: Reset user preferences to defaults
+ *     description: Reset all user preferences to system default values
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *                 message:
+ *                   type: string
+ *                   example: 'Preferences reset to defaults'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.delete('/preferences', async (req, res) => {
   try {
@@ -557,9 +1478,56 @@ router.delete('/preferences', async (req, res) => {
 });
 
 /**
- * @route PUT /api/student/preferences/theme
- * @desc Update theme preference
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences/theme:
+ *   put:
+ *     summary: Update theme preference
+ *     description: Update the user's theme preference (light, dark, or system)
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - theme
+ *             properties:
+ *               theme:
+ *                 type: string
+ *                 enum: [light, dark, system]
+ *                 example: 'dark'
+ *     responses:
+ *       200:
+ *         description: Theme preference updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *       400:
+ *         description: Theme is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/preferences/theme', async (req, res) => {
   try {
@@ -588,9 +1556,56 @@ router.put('/preferences/theme', async (req, res) => {
 });
 
 /**
- * @route PUT /api/student/preferences/layout
- * @desc Update layout preference
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences/layout:
+ *   put:
+ *     summary: Update layout preference
+ *     description: Update the user's layout preference (compact, spacious, or standard)
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - layout
+ *             properties:
+ *               layout:
+ *                 type: string
+ *                 enum: [compact, spacious, standard]
+ *                 example: 'standard'
+ *     responses:
+ *       200:
+ *         description: Layout preference updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *       400:
+ *         description: Layout is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/preferences/layout', async (req, res) => {
   try {
@@ -619,9 +1634,56 @@ router.put('/preferences/layout', async (req, res) => {
 });
 
 /**
- * @route PUT /api/student/preferences/font-size
- * @desc Update font size preference
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences/font-size:
+ *   put:
+ *     summary: Update font size preference
+ *     description: Update the user's font size preference (small, medium, large, or x-large)
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fontSize
+ *             properties:
+ *               fontSize:
+ *                 type: string
+ *                 enum: [small, medium, large, x-large]
+ *                 example: 'medium'
+ *     responses:
+ *       200:
+ *         description: Font size preference updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserPreferences'
+ *       400:
+ *         description: Font size is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/preferences/font-size', async (req, res) => {
   try {
@@ -650,9 +1712,32 @@ router.put('/preferences/font-size', async (req, res) => {
 });
 
 /**
- * @route GET /api/student/preferences/css
- * @desc Get CSS custom properties for user theme
- * @access Private (Student, Admin)
+ * @swagger
+ * /api/student/preferences/css:
+ *   get:
+ *     summary: Get CSS custom properties for user theme
+ *     description: Retrieve generated CSS custom properties based on the user's theme preferences
+ *     tags: [Student Preferences]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: CSS generated successfully
+ *         content:
+ *           text/css:
+ *             schema:
+ *               type: string
+ *               example: ":root { --primary-color: #007bff; --background-color: #ffffff; }"
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/preferences/css', async (req, res) => {
   try {

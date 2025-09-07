@@ -11,9 +11,57 @@ const router = express.Router();
 router.use(requireAuth);
 
 /**
- * @route POST /api/interaction-tracking/track
- * @desc Track a user interaction
- * @access Private (All authenticated users)
+ * @swagger
+ * /interaction-tracking/track:
+ *   post:
+ *     summary: Track a user interaction
+ *     description: Records a single user interaction event for analytics and engagement tracking
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - interactionType
+ *             properties:
+ *               interactionType:
+ *                 type: string
+ *                 enum: [case_start, case_complete, case_pause, case_resume, case_abandon, help_request, feedback_submit, content_view, search, navigation]
+ *               caseId:
+ *                 type: string
+ *                 format: objectid
+ *                 description: ID of the case if interaction is case-related
+ *               metadata:
+ *                 type: object
+ *                 description: Additional metadata about the interaction
+ *     responses:
+ *       201:
+ *         description: Interaction tracked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Interaction'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/track', requireAnyRole(['student', 'educator', 'admin']), async (req, res) => {
   try {
@@ -47,9 +95,66 @@ router.post('/track', requireAnyRole(['student', 'educator', 'admin']), async (r
 });
 
 /**
- * @route POST /api/interaction-tracking/track-bulk
- * @desc Track multiple user interactions in bulk
- * @access Private (All authenticated users)
+ * @swagger
+ * /interaction-tracking/track-bulk:
+ *   post:
+ *     summary: Track multiple user interactions in bulk
+ *     description: Records multiple user interaction events in a single request for efficient analytics tracking
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - interactions
+ *             properties:
+ *               interactions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - interactionType
+ *                   properties:
+ *                     interactionType:
+ *                       type: string
+ *                       enum: [case_start, case_complete, case_pause, case_resume, case_abandon, help_request, feedback_submit, content_view, search, navigation]
+ *                     caseId:
+ *                       type: string
+ *                       format: objectid
+ *                       description: ID of the case if interaction is case-related
+ *                     metadata:
+ *                       type: object
+ *                       description: Additional metadata about the interaction
+ *     responses:
+ *       201:
+ *         description: Bulk interactions tracked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Interaction'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/track-bulk', requireAnyRole(['student', 'educator', 'admin']), async (req, res) => {
   try {
@@ -85,9 +190,58 @@ router.post('/track-bulk', requireAnyRole(['student', 'educator', 'admin']), asy
 });
 
 /**
- * @route GET /api/interaction-tracking/engagement/:userId
- * @desc Get user engagement analytics
- * @access Private (Student, Educator, Admin)
+ * @swagger
+ * /interaction-tracking/engagement/{userId}:
+ *   get:
+ *     summary: Get user engagement analytics
+ *     description: Retrieves detailed engagement analytics for a specific user, including activity patterns and metrics
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the user to get engagement data for
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [7d, 30d, 90d, 180d, 365d]
+ *           default: 30d
+ *         description: Time range for analytics data
+ *       - in: query
+ *         name: granularity
+ *         schema:
+ *           type: string
+ *           enum: [hour, day, week, month]
+ *           default: day
+ *         description: Granularity of the data points
+ *     responses:
+ *       200:
+ *         description: Engagement analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/EngagementAnalytics'
+ *       403:
+ *         description: Access denied - students can only view their own data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/engagement/:userId', requireAnyRole(['student', 'educator', 'admin']), validateObjectId('userId'), async (req, res) => {
   try {
@@ -123,9 +277,55 @@ router.get('/engagement/:userId', requireAnyRole(['student', 'educator', 'admin'
 });
 
 /**
- * @route GET /api/interaction-tracking/global-patterns
- * @desc Get global engagement patterns
- * @access Private (Educator, Admin)
+ * @swagger
+ * /interaction-tracking/global-patterns:
+ *   get:
+ *     summary: Get global engagement patterns
+ *     description: Retrieves aggregated engagement patterns across all users for analytics and insights
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [7d, 30d, 90d, 180d, 365d]
+ *           default: 30d
+ *         description: Time range for analytics data
+ *       - in: query
+ *         name: specialty
+ *         schema:
+ *           type: string
+ *         description: Filter by medical specialty
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [beginner, intermediate, advanced]
+ *         description: Filter by case difficulty level
+ *     responses:
+ *       200:
+ *         description: Global engagement patterns retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/GlobalEngagementPatterns'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires educator or admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/global-patterns', requireAnyRole(['educator', 'admin']), async (req, res) => {
   try {
@@ -153,9 +353,51 @@ router.get('/global-patterns', requireAnyRole(['educator', 'admin']), async (req
 });
 
 /**
- * @route GET /api/interaction-tracking/learning-insights/:userId
- * @desc Get learning behavior insights for a user
- * @access Private (Student, Educator, Admin)
+ * @swagger
+ * /interaction-tracking/learning-insights/{userId}:
+ *   get:
+ *     summary: Get learning behavior insights for a user
+ *     description: Retrieves detailed learning behavior insights and patterns for a specific user
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the user to get learning insights for
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [7d, 30d, 90d, 180d, 365d]
+ *           default: 90d
+ *         description: Time range for learning insights data
+ *     responses:
+ *       200:
+ *         description: Learning insights retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/LearningInsights'
+ *       403:
+ *         description: Access denied - students can only view their own data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/learning-insights/:userId', requireAnyRole(['student', 'educator', 'admin']), validateObjectId('userId'), async (req, res) => {
   try {
@@ -190,9 +432,59 @@ router.get('/learning-insights/:userId', requireAnyRole(['student', 'educator', 
 });
 
 /**
- * @route GET /api/interaction-tracking/recommendations/:userId
- * @desc Get personalized learning recommendations
- * @access Private (Student, Educator, Admin)
+ * @swagger
+ * /interaction-tracking/recommendations/{userId}:
+ *   get:
+ *     summary: Get personalized learning recommendations
+ *     description: Retrieves personalized learning recommendations based on user's interaction history and behavior
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the user to get recommendations for
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [7d, 30d, 90d, 180d, 365d]
+ *           default: 30d
+ *         description: Time range for recommendation data
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 20
+ *           default: 5
+ *         description: Maximum number of recommendations to return
+ *     responses:
+ *       200:
+ *         description: Personalized recommendations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Recommendations'
+ *       403:
+ *         description: Access denied - students can only view their own data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/recommendations/:userId', requireAnyRole(['student', 'educator', 'admin']), validateObjectId('userId'), async (req, res) => {
   try {
@@ -228,9 +520,70 @@ router.get('/recommendations/:userId', requireAnyRole(['student', 'educator', 'a
 });
 
 /**
- * @route GET /api/interaction-tracking/history/:userId
- * @desc Get user interaction history
- * @access Private (Student, Educator, Admin)
+ * @swagger
+ * /interaction-tracking/history/{userId}:
+ *   get:
+ *     summary: Get user interaction history
+ *     description: Retrieves paginated interaction history for a specific user, including all tracked events and activities
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: objectid
+ *         description: ID of the user to get interaction history for
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 500
+ *           default: 100
+ *         description: Number of interactions to return per page
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *     responses:
+ *       200:
+ *         description: Interaction history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Interaction'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *       403:
+ *         description: Access denied - students can only view their own data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.get('/history/:userId', requireAnyRole(['student', 'educator', 'admin']), validateObjectId('userId'), async (req, res) => {
   try {
@@ -270,9 +623,36 @@ router.get('/history/:userId', requireAnyRole(['student', 'educator', 'admin']),
 });
 
 /**
- * @route POST /api/interaction-tracking/clear-cache
- * @desc Clear interaction tracking cache (admin only)
- * @access Private (Admin)
+ * @swagger
+ * /interaction-tracking/clear-cache:
+ *   post:
+ *     summary: Clear interaction tracking cache
+ *     description: Clears all cached interaction tracking data (admin only operation)
+ *     tags: [Interaction Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Access denied - requires admin role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/responses/Error'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
  */
 router.post('/clear-cache', requireAnyRole(['admin']), async (req, res) => {
   try {
