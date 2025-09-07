@@ -19,8 +19,12 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: process.env.API_BASE_URL || 'http://localhost:5003',
-      description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+      url: 'http://localhost:5003',
+      description: 'Local development server'
+    },
+    {
+      url: 'https://simulator-l9qx.onrender.com',
+      description: 'Production server on Render'
     }
   ],
   tags: [
