@@ -15,6 +15,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5003',
+  'https://simulator-l9qx.onrender.com',
   // Additional origins from environment
   ...(process.env.ADDITIONAL_ORIGINS?.split(',').filter(Boolean) || [])
 ];
