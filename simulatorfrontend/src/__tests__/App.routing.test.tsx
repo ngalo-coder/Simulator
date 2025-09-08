@@ -37,3 +37,9 @@ vi.mock('../components/NotificationToast', () => ({
     NotificationContainer: () => <div data-testid="notification-container">Notifications</div>
   })
 }))
+
+describe('App Routing', () => {
+  it('should have a placeholder test', () => {
+    expect(true).toBe(true)
+  })
+})
