@@ -25,32 +25,33 @@ const Navbar: React.FC = () => {
   };
 
   const getLinkClasses = (path: string) => {
-    const baseClasses = "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200";
-    const activeClasses = "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300";
-    const inactiveClasses = "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700";
+    const baseClasses = "px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ease-in-out";
+    const activeClasses = "bg-blue-600 text-white shadow-md hover:bg-blue-700";
+    const inactiveClasses = "text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/50";
     
     return `${baseClasses} ${isActivePath(path) ? activeClasses : inactiveClasses}`;
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50 transition-colors duration-200">
+    <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center justify-between h-16">
           {/* Logo and Specialty Context */}
-          <div className="flex-shrink-0 flex items-center space-x-4">
-            <Link to="/" className="flex items-center">
-              <div className="text-xl font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-                🏥 Simuatech
+          <div className="flex items-center space-x-4">
+            <Link to="/" className="flex items-center space-x-2 group">
+              <div className="text-2xl">🏥</div>
+              <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-300">
+                Simuatech
               </div>
             </Link>
             
             {/* Current Specialty Indicator */}
             {currentSpecialty && (
-              <div className="hidden lg:flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm">
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-300 uppercase tracking-wide">
                   Current:
                 </span>
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-200">
                   {currentSpecialty}
                 </span>
               </div>
@@ -58,8 +59,8 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
+          <div className="hidden md:flex items-center justify-center flex-1 max-w-2xl mx-8" data-testid="desktop-nav">
+            <div className="flex items-center space-x-1">
               {user ? (
                 <>
                   <Link to="/dashboard" className={getLinkClasses('/dashboard')}>
@@ -90,7 +91,7 @@ const Navbar: React.FC = () => {
                   </Link>
                   <Link 
                     to="/register" 
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
                   </Link>
@@ -100,22 +101,23 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* User Menu (Desktop) */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             <ThemeToggle />
             {user && (
               <div className="flex items-center space-x-3">
-                <div className="text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Welcome,</span>
-                  <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{user.username}</span>
-                  {user.role === 'admin' && (
-                    <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded-full">
-                      Admin
-                    </span>
-                  )}
+                <div className="text-sm text-right">
+                  <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                    <span>Welcome, {user.username}</span>
+                    {user.role === 'admin' && (
+                      <span className="px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full font-bold uppercase tracking-wide">
+                        Admin
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-red-700 transition-colors duration-200"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Logout
                 </button>
@@ -124,19 +126,19 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="md:hidden flex items-center space-x-3">
             <ThemeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="bg-gray-100 dark:bg-gray-700 inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-200"
+              className="inline-flex items-center justify-center p-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             >
               <span className="sr-only">Open main menu</span>
               {!isMobileMenuOpen ? (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               ) : (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               )}
@@ -148,40 +150,40 @@ const Navbar: React.FC = () => {
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 transition-colors duration-200">
+          <div className="px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-inner transition-all duration-300">
             {user ? (
               <>
                 <Link 
                   to="/dashboard" 
-                  className={`${getLinkClasses('/dashboard')} block`}
+                  className={`${getLinkClasses('/dashboard')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Dashboard
                 </Link>
                 <Link 
                   to="/browse-cases" 
-                  className={`${getLinkClasses('/browse-cases')} block`}
+                  className={`${getLinkClasses('/browse-cases')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Browse Cases
                 </Link>
                 <Link 
                   to="/simulation" 
-                  className={`${getLinkClasses('/simulation')} block`}
+                  className={`${getLinkClasses('/simulation')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   All Cases
                 </Link>
                 <Link 
                   to="/progress" 
-                  className={`${getLinkClasses('/progress')} block`}
+                  className={`${getLinkClasses('/progress')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Progress
                 </Link>
                 <Link 
                   to="/leaderboard" 
-                  className={`${getLinkClasses('/leaderboard')} block`}
+                  className={`${getLinkClasses('/leaderboard')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Leaderboard
@@ -189,17 +191,17 @@ const Navbar: React.FC = () => {
                 {user.role === 'admin' && (
                   <Link 
                     to="/admin" 
-                    className={`${getLinkClasses('/admin')} block`}
+                    className={`${getLinkClasses('/admin')} block text-center`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Admin
                   </Link>
                 )}
                 <div className="border-t border-gray-200 dark:border-gray-600 pt-4 pb-3">
-                  <div className="flex items-center px-3">
-                    <div className="text-sm">
+                  <div className="flex items-center justify-center px-3">
+                    <div className="text-sm text-center">
                       <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
-                      <div className="text-gray-500 dark:text-gray-400">{user.role}</div>
+                      <div className="text-gray-500 dark:text-gray-400 capitalize">{user.role}</div>
                     </div>
                   </div>
                   <div className="mt-3 px-3">
@@ -208,7 +210,7 @@ const Navbar: React.FC = () => {
                         handleLogout();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors duration-200"
+                      className="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       Logout
                     </button>
@@ -219,14 +221,14 @@ const Navbar: React.FC = () => {
               <>
                 <Link 
                   to="/login" 
-                  className={`${getLinkClasses('/login')} block`}
+                  className={`${getLinkClasses('/login')} block text-center`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign In
                 </Link>
                 <Link 
                   to="/register" 
-                  className="block bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
+                  className="block px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-center"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign Up
