@@ -243,17 +243,23 @@ export async function endSession(sessionId, user) {
         
         if (session.sessionEnded && session.evaluation) {
             await dbSession.commitTransaction();
+            dbSession.endSession();
             return { sessionEnded: true, evaluation: session.evaluation, history: session.history };
         }
 
         const caseData = session.case_ref.toObject();
         
-        // Use nursing evaluation for nursing cases, standard evaluation for others
         let evaluationResult;
-        if (caseData.nursing_diagnoses && caseData.nursing_diagnoses.length > 0) {
-            evaluationResult = await getNursingEvaluation(caseData, session.history);
-        } else {
-            evaluationResult = await getEvaluation(caseData, session.history);
+        try {
+            // Use nursing evaluation for nursing cases, standard evaluation for others
+            if (caseData.nursing_diagnoses && caseData.nursing_diagnoses.length > 0) {
+                evaluationResult = await getNursingEvaluation(caseData, session.history);
+            } else {
+                evaluationResult = await getEvaluation(caseData, session.history);
+            }
+        } catch (aiError) {
+            console.error('AI evaluation failed, using fallback evaluation:', aiError);
+            evaluationResult = generateFallbackEvaluation(caseData, session.history);
         }
         
         const { evaluationText, extractedMetrics } = evaluationResult;
@@ -276,16 +282,40 @@ export async function endSession(sessionId, user) {
         ]);
 
         await dbSession.commitTransaction();
+        dbSession.endSession(); // End session immediately after commit
 
-        // Update progress after transaction commits
+        // Update progress after transaction commits and session ends
         const userId = user?.id || user?._id;
         if (userId) {
             try {
                 const { updateProgressAfterCase } = await import('./clinicianProgressService.js');
                 await updateProgressAfterCase(userId, session.case_ref._id, performanceRecord._id);
             } catch (progressError) {
-                console.error('Progress update failed:', progressError);
+                console.error('Clinician progress update failed:', progressError);
                 // Don't fail the session end if progress update fails
+            }
+
+            // Also update student progress
+            try {
+                const { recordCaseAttempt } = await import('./StudentProgressService.js');
+                const caseDetails = await Case.findById(session.case_ref._id);
+                const attemptData = {
+                    caseId: session.case_ref._id,
+                    caseTitle: caseDetails?.case_metadata?.title || 'Unknown Case',
+                    attemptNumber: session.retake_attempt_number || 1,
+                    startTime: session.createdAt,
+                    endTime: new Date(),
+                    duration: Math.floor((new Date() - session.createdAt) / 1000), // in seconds
+                    score: performanceRecord.metrics.overall_score || 0,
+                    status: 'completed',
+                    detailedMetrics: performanceRecord.metrics,
+                    feedback: performanceRecord.evaluation_summary,
+                    sessionId: session._id
+                };
+                await recordCaseAttempt(userId, attemptData);
+            } catch (studentProgressError) {
+                console.error('Student progress update failed:', studentProgressError);
+                // Don't fail the session end if student progress update fails
             }
         }
 
@@ -296,10 +326,25 @@ export async function endSession(sessionId, user) {
         };
     } catch (error) {
         await dbSession.abortTransaction();
+        dbSession.endSession(); // End session on error too
         throw error;
-    } finally {
-        dbSession.endSession();
     }
+}
+
+function generateFallbackEvaluation(caseData, history) {
+    const evaluationText = `Session completed. AI evaluation service is currently unavailable. Please check your API keys or try again later. For now, your progress has been saved, and you can review the conversation history.`;
+    const extractedMetrics = {
+        history_taking_rating: 'Fair',
+        risk_factor_assessment_rating: 'Fair',
+        differential_diagnosis_questioning_rating: 'Fair',
+        communication_and_empathy_rating: 'Fair',
+        clinical_urgency_rating: 'Fair',
+        overall_diagnosis_accuracy: 'Undetermined',
+        evaluation_summary: 'AI service unavailable - using fallback evaluation',
+        overall_score: null,
+        performance_label: 'Fair',
+    };
+    return { evaluationText, extractedMetrics };
 }
 
 export const getCaseCategories = CaseService.getCaseCategories.bind(CaseService);

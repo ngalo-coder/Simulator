@@ -245,15 +245,15 @@ export async function getPatientResponseStream(
 
 function parseEvaluationMetrics(evaluationText, log) {
   const metrics = {
-    history_taking_rating: 'Not Available',
-    risk_factor_assessment_rating: 'Not Available',
-    differential_diagnosis_questioning_rating: 'Not Available',
-    communication_and_empathy_rating: 'Not Available',
-    clinical_urgency_rating: 'Not Available',
-    overall_diagnosis_accuracy: 'Not Available',
-    evaluation_summary: 'Not Available',
+    history_taking_rating: 'Fair',
+    risk_factor_assessment_rating: 'Fair',
+    differential_diagnosis_questioning_rating: 'Fair',
+    communication_and_empathy_rating: 'Fair',
+    clinical_urgency_rating: 'Fair',
+    overall_diagnosis_accuracy: 'Undetermined',
+    evaluation_summary: 'Evaluation could not be parsed from AI response.',
     overall_score: null,
-    performance_label: 'Not Available',
+    performance_label: 'Fair',
   };
 
   if (!evaluationText || typeof evaluationText !== 'string') {

@@ -34,6 +34,8 @@ import interactionTrackingRoutes from './src/routes/interactionTrackingRoutes.js
 import learningGoalRoutes from './src/routes/learningGoalRoutes.js';
 import learningPathRoutes from './src/routes/learningPathRoutes.js';
 import competencyAssessmentRoutes from './src/routes/competencyAssessmentRoutes.js';
+import Competency from './src/models/CompetencyModel.js'; // Import to register Competency model
+import LearningModule from './src/models/LearningModuleModel.js'; // Import to register LearningModule model
 
 dotenv.config();
 
