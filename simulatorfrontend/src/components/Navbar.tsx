@@ -38,11 +38,8 @@ const Navbar: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Specialty Context */}
           <div className="flex items-center space-x-4">
-            <Link to="/" className="flex items-center space-x-2 group">
+            <Link to="/" className="flex items-center group">
               <img src="/logo.png" alt="Simuatech Logo" className="h-8 w-auto" />
-              <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all duration-300">
-                Simuatech
-              </div>
             </Link>
             
             {/* Current Specialty Indicator */}
