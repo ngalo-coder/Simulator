@@ -1025,7 +1025,7 @@ export const api = {
       const queryParams = new URLSearchParams();
       if (filters) {
         Object.keys(filters).forEach(key => {
-          if (filters[key] !== undefined && filters[key] !== null) {
+          if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
             queryParams.append(key, filters[key].toString());
           }
         });

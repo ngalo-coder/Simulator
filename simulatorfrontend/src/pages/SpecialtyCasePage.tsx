@@ -1,9 +1,14 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
+import {
+  INTERNAL_MEDICINE_SUB_CATEGORIES,
+  getSubCategoriesWithCounts,
+  SubCategoryWithCount
+} from '../utils/internalMedicineCategories';
 
 interface Case {
   id: string;
@@ -39,6 +44,17 @@ const SpecialtyCasePage: React.FC = memo(() => {
   // State for UI
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [retryCount, setRetryCount] = React.useState(0);
+
+  // Check if this is Internal Medicine specialty
+  const isInternalMedicine = useMemo(() => {
+    return specialtyName.toLowerCase() === 'internal medicine';
+  }, [specialtyName]);
+
+  // Get sub-categories with case counts for Internal Medicine
+  const subCategoriesWithCounts = useMemo((): SubCategoryWithCount[] => {
+    if (!isInternalMedicine || !cases.length) return [];
+    return getSubCategoriesWithCounts(cases);
+  }, [isInternalMedicine, cases]);
 
 
 
@@ -143,6 +159,44 @@ const SpecialtyCasePage: React.FC = memo(() => {
         className="mb-8"
       />
 
+      {/* Internal Medicine Sub-Category Tabs */}
+      {isInternalMedicine && subCategoriesWithCounts.length > 0 && (
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sub-Specialties</h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleFilterChange({ sub_category: '', page: 1 })}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                !filters.sub_category
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Internal Medicine ({casesResponse.totalCases})
+            </button>
+            {subCategoriesWithCounts
+              .filter(cat => cat.count > 0)
+              .map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleFilterChange({
+                    sub_category: category.id,
+                    page: 1
+                  })}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    filters.sub_category === category.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={category.description}
+                >
+                  {category.name} ({category.count})
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Search and Filtering */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
         {/* Basic Search */}
@@ -159,8 +213,8 @@ const SpecialtyCasePage: React.FC = memo(() => {
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              showAdvancedFilters 
-                ? 'bg-blue-600 text-white' 
+              showAdvancedFilters
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -251,6 +305,11 @@ const SpecialtyCasePage: React.FC = memo(() => {
                     {(filters.patient_age_min !== undefined || filters.patient_age_max !== undefined) && (
                       <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
                         Age: {filters.patient_age_min || 0}-{filters.patient_age_max || '∞'}
+                      </span>
+                    )}
+                    {filters.sub_category && (
+                      <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                        Sub-Specialty: {INTERNAL_MEDICINE_SUB_CATEGORIES.find(cat => cat.id === filters.sub_category)?.name || filters.sub_category}
                       </span>
                     )}
                   </div>

@@ -26,6 +26,7 @@ interface CaseFilters {
   patient_age_min?: number;
   patient_age_max?: number;
   patient_gender?: string;
+  sub_category?: string;
   page: number;
   limit: number;
 }
@@ -98,6 +99,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
     patient_age_min: undefined,
     patient_age_max: undefined,
     patient_gender: '',
+    sub_category: '',
     page: 1,
     limit: 12
   });
@@ -135,6 +137,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
       patient_age_min: undefined,
       patient_age_max: undefined,
       patient_gender: '',
+      sub_category: '',
       page: 1,
       limit: 12
     });
@@ -142,11 +145,12 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
 
   // Memoized active filters check
   const hasActiveFilters = useCallback((): boolean => {
-    return !!(filters.search || 
-             filters.patient_age_min !== undefined || 
-             filters.patient_age_max !== undefined || 
-             filters.patient_gender);
-  }, [filters.search, filters.patient_age_min, filters.patient_age_max, filters.patient_gender]);
+    return !!(filters.search ||
+             filters.patient_age_min !== undefined ||
+             filters.patient_age_max !== undefined ||
+             filters.patient_gender ||
+             filters.sub_category);
+  }, [filters.search, filters.patient_age_min, filters.patient_age_max, filters.patient_gender, filters.sub_category]);
 
   // Optimized fetch function with request deduplication
   const fetchSpecialtyCases = useCallback(async (showNotification: boolean = true) => {
@@ -179,6 +183,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
         patient_age_min: filters.patient_age_min,
         patient_age_max: filters.patient_age_max,
         patient_gender: filters.patient_gender,
+        sub_category: filters.sub_category,
         page: filters.page,
         limit: filters.limit
       };
