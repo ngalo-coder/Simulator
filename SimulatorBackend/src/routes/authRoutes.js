@@ -55,7 +55,14 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', 
+router.post('/login',
+  // Explicitly handle OPTIONS requests first
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
   rateLimiter(10, 15), // 10 attempts per 15 minutes
   async (req, res) => {
     try {
@@ -241,7 +248,15 @@ router.post('/login',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/logout', requireAuth, async (req, res) => {
+router.post('/logout',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAuth,
+  async (req, res) => {
   try {
     // Log logout event
     await auditLogger.logAuthEvent({
@@ -305,7 +320,15 @@ router.post('/logout', requireAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/refresh', requireAuth, async (req, res) => {
+router.post('/refresh',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAuth,
+  async (req, res) => {
   try {
     // Generate new token with updated user data
     const user = await User.findById(req.user._id);
@@ -425,7 +448,15 @@ router.post('/refresh', requireAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/verify', requireAuth, async (req, res) => {
+router.get('/verify',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAuth,
+  async (req, res) => {
   try {
     // Return current user data if token is valid
     const userResponse = req.user.toObject();
@@ -488,7 +519,15 @@ router.get('/verify', requireAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAuth,
+  async (req, res) => {
   try {
     // Get fresh user data from database
     const user = await User.findById(req.user._id);
@@ -577,7 +616,13 @@ router.get('/me', requireAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/change-password', 
+router.post('/change-password',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
   requireAuth,
   rateLimiter(5, 15), // 5 attempts per 15 minutes
   async (req, res) => {
@@ -670,7 +715,15 @@ router.post('/change-password',
  * Get Audit Logs (Admin only)
  * GET /api/auth/admin/audit-logs
  */
-router.get('/admin/audit-logs', requireAdmin, async (req, res) => {
+router.get('/admin/audit-logs',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAdmin,
+  async (req, res) => {
   try {
     const {
       page = 1,
@@ -717,7 +770,15 @@ router.get('/admin/audit-logs', requireAdmin, async (req, res) => {
  * Get Audit Statistics (Admin only)
  * GET /api/auth/admin/audit-stats
  */
-router.get('/admin/audit-stats', requireAdmin, async (req, res) => {
+router.get('/admin/audit-stats',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAdmin,
+  async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
@@ -745,7 +806,15 @@ router.get('/admin/audit-stats', requireAdmin, async (req, res) => {
  * Export Audit Logs (Admin only)
  * GET /api/auth/admin/export-logs
  */
-router.get('/admin/export-logs', requireAdmin, async (req, res) => {
+router.get('/admin/export-logs',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAdmin,
+  async (req, res) => {
   try {
     const { startDate, endDate, format = 'json' } = req.query;
 
@@ -836,7 +905,15 @@ router.get('/admin/export-logs', requireAdmin, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/admin/cleanup-logs', requireAdmin, async (req, res) => {
+router.post('/admin/cleanup-logs',
+  (req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  requireAdmin,
+  async (req, res) => {
   try {
     const { maxAgeDays = 90 } = req.body;
 

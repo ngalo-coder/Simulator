@@ -64,7 +64,14 @@ const initializeDatabase = async () => {
 
 // Middleware
 app.use(pinoHttp({ logger }));
-app.use(cors(corsOptions));
+// Configure CORS with preflight continuation
+app.use(cors({
+  ...corsOptions,
+  preflightContinue: false // Let CORS middleware handle preflight
+}));
+
+// Explicitly handle OPTIONS requests for all routes
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
