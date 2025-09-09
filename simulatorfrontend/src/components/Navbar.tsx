@@ -81,26 +81,14 @@ const Navbar: React.FC = () => {
                     </Link>
                   )}
                 </>
-              ) : (
-                <>
-                  <Link to="/login" className={getLinkClasses('/login')}>
-                    Sign In
-                  </Link>
-                  <Link 
-                    to="/register" 
-                    className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
+              ) : null}
             </div>
           </div>
 
           {/* User Menu (Desktop) */}
           <div className="hidden md:flex items-center space-x-3">
             <ThemeToggle />
-            {user && (
+            {user ? (
               <div className="flex items-center space-x-3">
                 <div className="text-sm text-right">
                   <div className="font-medium text-white flex items-center space-x-2">
@@ -118,6 +106,18 @@ const Navbar: React.FC = () => {
                 >
                   Logout
                 </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link to="/login" className={getLinkClasses('/login')}>
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Sign Up
+                </Link>
               </div>
             )}
           </div>
