@@ -159,3 +159,4 @@ router.get('/learning-pathway/:pathway', async (req, res) => {
 5. **Implement spaced repetition** based on category performance
 
 This categorization system will significantly enhance the educational value of the Internal Medicine cases by providing structured, progressive learning experiences tailored to different competency levels and medical sub-specialties.
+This categorization system will significantly enhance the educational value of the Internal Medicine cases by providing structured, progressive learning experiences tailored to different competency levels and medical sub-specialties.
