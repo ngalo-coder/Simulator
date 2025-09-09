@@ -8,35 +8,7 @@ import AIEvaluationService from './AIEvaluationService.js';
 class ScoringService {
   constructor() {
     this.rubricCache = new Map();
-  }
-
-  // Get or create default rubrics for disciplines
-  async initializeDefaultRubrics(userId) {
-    try {
-      const defaultRubrics = this._getDefaultRubrics(userId);
-      const results = [];
-
-      for (const rubricData of defaultRubrics) {
-        // Check if rubric already exists
-        const existingRubric = await ScoringRubric.findOne({ 
-          rubricId: rubricData.rubricId 
-        });
-        
-        if (!existingRubric) {
-          const rubric = new ScoringRubric(rubricData);
-          await rubric.save();
-          results.push(rubric);
-          logger.info(`Created default rubric: ${rubricData.rubricId}`);
-        } else {
-          results.push(existingRubric);
-        }
-      }
-
-      return results;
-    } catch (error) {
-      logger.error({ error: error.message }, 'Error initializing default rubrics');
-      throw new Error(`Failed to initialize default rubrics: ${error.message}`);
-    }
+    this.unifiedRubric = this._getUnifiedRubric();
   }
 
   // Score a session using the appropriate rubric
@@ -51,7 +23,7 @@ class ScoringService {
       }
 
       // Get or determine the appropriate rubric
-      const rubric = await this._getRubricForSession(session, rubricId);
+      const rubric = this.unifiedRubric;
       if (!rubric) {
         throw new Error('No suitable scoring rubric found for this session');
       }
@@ -103,37 +75,6 @@ class ScoringService {
       logger.error({ sessionId, error: error.message }, 'Error scoring session');
       throw error;
     }
-  }
-
-  // Get rubric for a session based on case discipline and specialty
-  async _getRubricForSession(session, preferredRubricId = null) {
-    if (preferredRubricId) {
-      return await ScoringRubric.findOne({ 
-        rubricId: preferredRubricId, 
-        isActive: true 
-      });
-    }
-
-    const caseData = session.caseId;
-    const discipline = caseData.discipline || 'general';
-    const specialty = caseData.specialty;
-
-    // Try to find rubric with matching discipline and specialty
-    let rubric = await ScoringRubric.findOne({
-      discipline,
-      specialty,
-      isActive: true
-    }).sort({ version: -1 });
-
-    // Fallback to general discipline rubric
-    if (!rubric) {
-      rubric = await ScoringRubric.findOne({
-        discipline: 'general',
-        isActive: true
-      }).sort({ version: -1 });
-    }
-
-    return rubric;
   }
 
   // Calculate scores based on rubric criteria
@@ -197,7 +138,7 @@ class ScoringService {
         this._evaluateSafetyProtocols(performanceMetrics),
       
       // Default evaluation method
-      'default': () => Math.random() * 40 + 60 // 60-100 for demo
+      'default': () => 75
     };
 
     const evaluate = evaluationMethods[criterion.criterionId] || evaluationMethods.default;
@@ -290,197 +231,124 @@ class ScoringService {
     }
   }
 
-  // Get default rubrics configuration
-  _getDefaultRubrics(userId) {
-    return [
-      {
-        rubricId: 'MEDICAL-RUBRIC-2024',
-        name: 'Medical Case Scoring Rubric 2024',
-        discipline: 'medical',
-        description: 'Comprehensive scoring rubric for medical case simulations',
-        competencyAreas: [
-          {
-            area: 'clinical_skills',
-            weight: 0.4,
-            criteria: [
-              {
-                criterionId: 'history_taking_completeness',
-                description: 'Completeness and accuracy of history taking',
-                maxScore: 100,
-                weight: 0.3,
-                evaluationGuidelines: 'Assess thoroughness of patient history, including chief complaint, HPI, PMH, etc.',
-                evidenceRequirements: ['case_narrative', 'documentation']
-              },
-              {
-                criterionId: 'physical_exam_accuracy',
-                description: 'Accuracy of physical examination findings',
-                maxScore: 100,
-                weight: 0.3,
-                evaluationGuidelines: 'Evaluate appropriate physical exam techniques and accurate interpretation',
-                evidenceRequirements: ['exam_documentation', 'findings']
-              },
-              {
-                criterionId: 'diagnostic_accuracy',
-                description: 'Accuracy of diagnostic reasoning',
-                maxScore: 100,
-                weight: 0.4,
-                evaluationGuidelines: 'Assess appropriate differential diagnosis and diagnostic test selection',
-                evidenceRequirements: ['differential_diagnosis', 'test_ordering']
-              }
-            ]
-          },
-          {
-            area: 'communication',
-            weight: 0.3,
-            criteria: [
-              {
-                criterionId: 'patient_communication',
-                description: 'Effectiveness of patient communication',
-                maxScore: 100,
-                weight: 0.6,
-                evaluationGuidelines: 'Evaluate empathy, clarity, and patient-centered communication',
-                evidenceRequirements: ['patient_interactions', 'communication_quality']
-              },
-              {
-                criterionId: 'team_communication',
-                description: 'Effectiveness of team communication',
-                maxScore: 100,
-                weight: 0.4,
-                evaluationGuidelines: 'Assess clarity and appropriateness of team communication',
-                evidenceRequirements: ['team_interactions', 'consultation_requests']
-              }
-            ]
-          },
-          {
-            area: 'professionalism',
-            weight: 0.3,
-            criteria: [
-              {
-                criterionId: 'time_management',
-                description: 'Efficiency in time management',
-                maxScore: 100,
-                weight: 0.5,
-                evaluationGuidelines: 'Evaluate appropriate pacing and time utilization',
-                evidenceRequirements: ['time_metrics', 'decision_timing']
-              },
-              {
-                criterionId: 'safety_protocols',
-                description: 'Adherence to safety protocols',
-                maxScore: 100,
-                weight: 0.5,
-                evaluationGuidelines: 'Assess compliance with patient safety and infection control protocols',
-                evidenceRequirements: ['safety_checks', 'protocol_adherence']
-              }
-            ]
-          }
-        ],
-        passingScore: 70,
-        createdBy: userId,
-        metadata: {
-          caseTypes: ['acute_care', 'chronic_care', 'emergency'],
-          difficultyLevels: ['beginner', 'intermediate', 'advanced'],
-          applicablePrograms: ['medical_school', 'residency', 'fellowship']
+  _getUnifiedRubric() {
+    return {
+      rubricId: 'UNIFIED-RUBRIC-2024',
+      name: 'Unified Scoring Rubric 2024',
+      description: 'Comprehensive scoring rubric for all case simulations',
+      competencyAreas: [
+        {
+          area: 'clinical_skills',
+          weight: 0.4,
+          criteria: [
+            {
+              criterionId: 'history_taking_completeness',
+              description: 'Completeness and accuracy of history taking',
+              maxScore: 100,
+              weight: 0.3,
+              evaluationGuidelines: 'Assess thoroughness of patient history, including chief complaint, HPI, PMH, etc.',
+              evidenceRequirements: ['case_narrative', 'documentation']
+            },
+            {
+              criterionId: 'physical_exam_accuracy',
+              description: 'Accuracy of physical examination findings',
+              maxScore: 100,
+              weight: 0.3,
+              evaluationGuidelines: 'Evaluate appropriate physical exam techniques and accurate interpretation',
+              evidenceRequirements: ['exam_documentation', 'findings']
+            },
+            {
+              criterionId: 'diagnostic_accuracy',
+              description: 'Accuracy of diagnostic reasoning',
+              maxScore: 100,
+              weight: 0.4,
+              evaluationGuidelines: 'Assess appropriate differential diagnosis and diagnostic test selection',
+              evidenceRequirements: ['differential_diagnosis', 'test_ordering']
+            }
+          ]
+        },
+        {
+          area: 'communication',
+          weight: 0.3,
+          criteria: [
+            {
+              criterionId: 'patient_communication',
+              description: 'Effectiveness of patient communication',
+              maxScore: 100,
+              weight: 0.6,
+              evaluationGuidelines: 'Evaluate empathy, clarity, and patient-centered communication',
+              evidenceRequirements: ['patient_interactions', 'communication_quality']
+            },
+            {
+              criterionId: 'team_communication',
+              description: 'Effectiveness of team communication',
+              maxScore: 100,
+              weight: 0.4,
+              evaluationGuidelines: 'Assess clarity and appropriateness of team communication',
+              evidenceRequirements: ['team_interactions', 'consultation_requests']
+            }
+          ]
+        },
+        {
+          area: 'professionalism',
+          weight: 0.3,
+          criteria: [
+            {
+              criterionId: 'time_management',
+              description: 'Efficiency in time management',
+              maxScore: 100,
+              weight: 0.5,
+              evaluationGuidelines: 'Evaluate appropriate pacing and time utilization',
+              evidenceRequirements: ['time_metrics', 'decision_timing']
+            },
+            {
+              criterionId: 'safety_protocols',
+              description: 'Adherence to safety protocols',
+              maxScore: 100,
+              weight: 0.5,
+              evaluationGuidelines: 'Assess compliance with patient safety and infection control protocols',
+              evidenceRequirements: ['safety_checks', 'protocol_adherence']
+            }
+          ]
         }
+      ],
+      passingScore: 70,
+      determinePerformanceLevel: function(score) {
+        if (score >= 95) return 'expert';
+        if (score >= 85) return 'proficient';
+        if (score >= 75) return 'competent';
+        if (score >= 60) return 'advanced_beginner';
+        return 'novice';
       },
-      // Additional default rubrics for other disciplines would be added here
-      {
-        rubricId: 'NURSING-RUBRIC-2024',
-        name: 'Nursing Care Scoring Rubric 2024',
-        discipline: 'nursing',
-        description: 'Comprehensive scoring rubric for nursing care simulations',
-        competencyAreas: [
-          {
-            area: 'nursing_process',
-            weight: 0.5,
-            criteria: [
-              {
-                criterionId: 'assessment_completeness',
-                description: 'Completeness of nursing assessment',
-                maxScore: 100,
-                weight: 0.25,
-                evaluationGuidelines: 'Evaluate thoroughness of patient assessment',
-                evidenceRequirements: ['assessment_documentation']
-              },
-              {
-                criterionId: 'care_plan_appropriateness',
-                description: 'Appropriateness of nursing care plan',
-                maxScore: 100,
-                weight: 0.25,
-                evaluationGuidelines: 'Assess relevance and completeness of care plan',
-                evidenceRequirements: ['care_plan_documentation']
-              },
-              {
-                criterionId: 'intervention_effectiveness',
-                description: 'Effectiveness of nursing interventions',
-                maxScore: 100,
-                weight: 0.25,
-                evaluationGuidelines: 'Evaluate appropriateness and effectiveness of interventions',
-                evidenceRequirements: ['intervention_execution']
-              },
-              {
-                criterionId: 'evaluation_accuracy',
-                description: 'Accuracy of outcome evaluation',
-                maxScore: 100,
-                weight: 0.25,
-                evaluationGuidelines: 'Assess proper evaluation of intervention outcomes',
-                evidenceRequirements: ['outcome_documentation']
-              }
-            ]
-          },
-          {
-            area: 'patient_safety',
-            weight: 0.3,
-            criteria: [
-              {
-                criterionId: 'medication_safety',
-                description: 'Adherence to medication safety protocols',
-                maxScore: 100,
-                weight: 0.5,
-                evaluationGuidelines: 'Evaluate proper medication administration and safety checks',
-                evidenceRequirements: ['medication_documentation', 'safety_checks']
-              },
-              {
-                criterionId: 'infection_control',
-                description: 'Compliance with infection control protocols',
-                maxScore: 100,
-                weight: 0.5,
-                evaluationGuidelines: 'Assess proper use of PPE and infection prevention measures',
-                evidenceRequirements: ['ppe_usage', 'infection_control_actions']
-              }
-            ]
-          },
-          {
-            area: 'communication',
-            weight: 0.2,
-            criteria: [
-              {
-                criterionId: 'patient_education',
-                description: 'Effectiveness of patient education',
-                maxScore: 100,
-                weight: 0.6,
-                evaluationGuidelines: 'Evaluate clarity and appropriateness of patient education',
-                evidenceRequirements: ['education_provided', 'patient_understanding']
-              },
-              {
-                criterionId: 'documentation_quality',
-                description: 'Quality of nursing documentation',
-                maxScore: 100,
-                weight: 0.4,
-                evaluationGuidelines: 'Assess completeness and accuracy of documentation',
-                evidenceRequirements: ['charting_quality', 'documentation_timeliness']
-              }
-            ]
+      calculateScore: function(criteriaScores) {
+        let totalScore = 0;
+        let totalWeight = 0;
+
+        this.competencyAreas.forEach(area => {
+          const areaCriteriaScores = criteriaScores.filter(score =>
+            score.area === area.area
+          );
+
+          let areaScore = 0;
+          let areaWeight = 0;
+
+          area.criteria.forEach(criterion => {
+            const criterionScore = areaCriteriaScores.find(s => s.criterionId === criterion.criterionId);
+            if (criterionScore) {
+              areaScore += (criterionScore.score / criterion.maxScore) * criterion.weight;
+              areaWeight += criterion.weight;
+            }
+          });
+
+          if (areaWeight > 0) {
+            totalScore += (areaScore / areaWeight) * area.weight;
+            totalWeight += area.weight;
           }
-        ],
-        passingScore: 75,
-        createdBy: userId,
-        metadata: {
-          caseTypes: ['medical_surgical', 'critical_care', 'pediatric', 'geriatric'],
-          difficultyLevels: ['beginner', 'intermediate', 'advanced'],
-          applicablePrograms: ['nursing_school', 'rn_training', 'apn_training']
-        }
+        });
+
+        return totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
       }
-    ];
+    };
   }
 
   // Get scoring statistics and analytics
