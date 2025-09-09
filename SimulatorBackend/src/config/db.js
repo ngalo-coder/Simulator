@@ -4,9 +4,10 @@ import dotenv from 'dotenv';
 const connectDB = async () => {
   try {
     // Check if already connected
-    if (mongoose.connections[0].readyState === 1) {
-      console.log('Using existing MongoDB connection');
-      return;
+    // Serverless-optimized connection check
+    if (mongoose.connection?.readyState === 1) {
+      console.log('Reusing existing MongoDB connection');
+      return mongoose.connection;
     }
 
     // Validate MongoDB URI
@@ -14,12 +15,14 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI environment variable is not set');
     }
 
-    // Railway-optimized connection options
+    // Serverless-optimized connection options
     const options = {
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: false, // Disable mongoose buffering
+      maxPoolSize: 5, // Reduced for serverless environments
+      minPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+      waitQueueTimeoutMS: 5000,
+      bufferCommands: false,
     };
 
     console.log('Connecting to MongoDB...');
