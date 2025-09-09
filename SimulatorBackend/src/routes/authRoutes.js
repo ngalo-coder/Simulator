@@ -206,7 +206,8 @@ router.post('/login',
 
       res.status(500).json({
         success: false,
-        message: 'Login failed. Please try again.'
+        message: `Login failed: ${process.env.NODE_ENV === 'development' ? error.message : 'Please try again'}`,
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }
