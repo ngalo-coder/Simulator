@@ -104,6 +104,7 @@ export interface PerformanceMetrics {
 export interface ClinicianProgressResponse {
   userId: string;
   totalCasesCompleted: number;
+  totalCasesAttempted: number;
   overallAverageScore: number;
   specialtyProgress: Array<{
     specialty: string;

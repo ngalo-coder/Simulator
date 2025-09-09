@@ -34,14 +34,18 @@ export async function getClinicianProgress(userId) {
     return { progress, recentMetrics };
 }
 
-export async function updateProgressAfterCase(userId, caseId, performanceMetricsId) {
-    const dbSession = await mongoose.startSession();
-    dbSession.startTransaction();
+export async function updateProgressAfterCase(userId, caseId, performanceMetricsId, dbSession = null) {
+    const useExternalSession = !!dbSession;
+    const session = dbSession || await mongoose.startSession();
+    
+    if (!useExternalSession) {
+        session.startTransaction();
+    }
     
     try {
         const [caseDetails, metrics] = await Promise.all([
-            Case.findById(caseId).session(dbSession),
-            PerformanceMetrics.findById(performanceMetricsId).session(dbSession)
+            Case.findById(caseId).session(session),
+            PerformanceMetrics.findById(performanceMetricsId).session(session)
         ]);
 
         if (!caseDetails) throw { status: 404, message: 'Case not found' };
@@ -51,7 +55,7 @@ export async function updateProgressAfterCase(userId, caseId, performanceMetrics
         const score = metrics.metrics.overall_score || 0;
 
         // Get current progress or create new one
-        let progress = await ClinicianProgress.findOne({ userId }).session(dbSession);
+        let progress = await ClinicianProgress.findOne({ userId }).session(session);
         if (!progress) {
             progress = new ClinicianProgress({ userId });
         }
@@ -85,15 +89,21 @@ export async function updateProgressAfterCase(userId, caseId, performanceMetrics
         progress.currentProgressionLevel = calculateProgressionLevel(progress);
         progress.lastUpdatedAt = new Date();
 
-        await progress.save({ session: dbSession });
-        
-        await dbSession.commitTransaction();
+        await progress.save({ session });
+
+        if (!useExternalSession) {
+            await session.commitTransaction();
+        }
         return progress;
     } catch (error) {
-        await dbSession.abortTransaction();
+        if (!useExternalSession) {
+            await session.abortTransaction();
+        }
         throw error;
     } finally {
-        dbSession.endSession();
+        if (!useExternalSession) {
+            session.endSession();
+        }
     }
 }
 

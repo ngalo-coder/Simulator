@@ -5,17 +5,18 @@ import Case from '../models/CaseModel.js';
 
 class StudentProgressService {
   // Get or create student progress for a user
-  async getOrCreateStudentProgress(userId) {
+  async getOrCreateStudentProgress(userId, dbSession = null) {
     try {
       let progress = await StudentProgress.findOne({ userId })
         .populate('competencies.competencyId')
         .populate('caseAttempts.caseId')
         .populate('learningPaths.pathId')
-        .populate('learningPaths.currentModule');
+        .populate('learningPaths.currentModule')
+        .session(dbSession || null);
 
       if (!progress) {
         progress = new StudentProgress({ userId });
-        await progress.save();
+        await progress.save({ session: dbSession });
       }
 
       return progress;
@@ -25,12 +26,16 @@ class StudentProgressService {
   }
 
   // Record a case attempt with detailed metrics
-  async recordCaseAttempt(userId, attemptData) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async recordCaseAttempt(userId, attemptData, dbSession = null) {
+    const useExternalSession = !!dbSession;
+    const session = dbSession || await mongoose.startSession();
+    
+    if (!useExternalSession) {
+      session.startTransaction();
+    }
 
     try {
-      const progress = await this.getOrCreateStudentProgress(userId);
+      const progress = await this.getOrCreateStudentProgress(userId, session);
       
       // Add the case attempt
       const caseAttempt = {
@@ -70,13 +75,19 @@ class StudentProgressService {
 
       await progress.save({ session });
 
-      await session.commitTransaction();
+      if (!useExternalSession) {
+        await session.commitTransaction();
+      }
       return progress;
     } catch (error) {
-      await session.abortTransaction();
+      if (!useExternalSession) {
+        await session.abortTransaction();
+      }
       throw new Error(`Error recording case attempt: ${error.message}`);
     } finally {
-      session.endSession();
+      if (!useExternalSession) {
+        session.endSession();
+      }
     }
   }
 

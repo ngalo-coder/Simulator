@@ -19,8 +19,23 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const data = await api.getStudentDashboard();
-        setProgressData(data);
+        const progressData = await api.getUserProgress();
+        // Transform progress data to match dashboard structure
+        const dashboardData = {
+          progress: {
+            totalCasesCompleted: progressData.totalCasesCompleted,
+            totalCasesAttempted: progressData.totalCasesAttempted,
+            overallAverageScore: progressData.overallAverageScore
+          },
+          recentActivity: progressData.recentPerformance?.map((perf: { caseTitle: string; caseId: string; score: number; completedAt: Date }) => ({
+            title: perf.caseTitle,
+            caseId: perf.caseId,
+            score: perf.score,
+            endTime: perf.completedAt,
+            status: 'completed'
+          })) || []
+        };
+        setProgressData(dashboardData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -191,44 +206,44 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {progressData?.recentMetrics?.length || 0}
+                {progressData?.recentActivity?.length || 0}
               </div>
               <div className="text-sm text-gray-600">Recent Cases</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {progressData?.progress?.totalCasesCompleted || 0}
+                {progressData?.progress?.totalCasesAttempted || 0}
               </div>
-              <div className="text-sm text-gray-600">Total Cases</div>
+              <div className="text-sm text-gray-600">Total Cases Attempted</div>
             </div>
           </div>
         )}
       </div>
 
       {/* Recent Activity Section */}
-      {progressData?.recentMetrics && progressData.recentMetrics.length > 0 && (
+      {progressData?.recentActivity && progressData.recentActivity.length > 0 && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {progressData.recentMetrics.slice(0, 5).map((metric: any, index: number) => (
+            {progressData.recentActivity.slice(0, 5).map((activity: any, index: number) => (
               <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                 <div>
-                  <h4 className="font-medium">{metric.case_ref?.case_metadata?.title || 'Unknown Case'}</h4>
-                  {metric.case_ref?.case_metadata?.specialty && (
+                  <h4 className="font-medium">{activity.title || 'Unknown Case'}</h4>
+                  {activity.caseId && (
                     <button
-                      onClick={() => handleSpecialtyNavigation(metric.case_ref.case_metadata.specialty)}
+                      onClick={() => handleSpecialtyNavigation(activity.specialty || 'medicine')}
                       className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                     >
-                      {metric.case_ref.case_metadata.specialty}
+                      {activity.specialty || 'General Medicine'}
                     </button>
                   )}
                   <p className="text-sm text-gray-600">
-                    Completed on {new Date(metric.evaluated_at).toLocaleDateString()}
+                    {activity.status === 'completed' ? 'Completed' : 'Attempted'} on {new Date(activity.endTime || activity.startTime).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className={`font-bold ${metric.metrics?.overall_score >= 90 ? 'text-green-600' : metric.metrics?.overall_score >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {Math.round(metric.metrics?.overall_score || 0)}%
+                  <div className={`font-bold ${activity.score >= 90 ? 'text-green-600' : activity.score >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {Math.round(activity.score || 0)}%
                   </div>
                 </div>
               </div>
@@ -241,7 +256,7 @@ const DashboardPage: React.FC = () => {
       {progressData?.progress && (
         <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold mb-4">Overall Progress</h3>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             <div className="p-4 border border-gray-200 rounded-lg">
               <h4 className="font-medium text-gray-900">Total Cases Completed</h4>
               <div className="mt-2 text-2xl font-bold text-blue-600">
@@ -250,12 +265,19 @@ const DashboardPage: React.FC = () => {
               <p className="text-sm text-gray-600 mt-1">Cases across all specialties</p>
             </div>
             <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-medium text-gray-900">Total Cases Attempted</h4>
+              <div className="mt-2 text-2xl font-bold text-orange-600">
+                {progressData.progress.totalCasesAttempted}
+              </div>
+              <p className="text-sm text-gray-600 mt-1">All case attempts</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
               <h4 className="font-medium text-gray-900">Overall Average Score</h4>
               <div className="mt-2 text-2xl font-bold text-green-600">
                 {Math.round(progressData.progress.overallAverageScore)}%
               </div>
               <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className={`h-2 rounded-full ${progressData.progress.overallAverageScore >= 90 ? 'bg-green-500' : progressData.progress.overallAverageScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
                   style={{ width: `${Math.min(progressData.progress.overallAverageScore, 100)}%` }}
                 ></div>

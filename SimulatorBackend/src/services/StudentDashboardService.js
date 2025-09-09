@@ -137,9 +137,9 @@ class StudentDashboardService {
       const nextMilestone = await this.getNextMilestone(student, progressSummary.overallProgress.overallScore);
 
       return {
-        totalAttempts: progressSummary.overallProgress.totalCasesAttempted,
-        completedCases: progressSummary.overallProgress.totalCasesCompleted,
-        averageScore: progressSummary.overallProgress.overallScore,
+        totalCasesAttempted: progressSummary.overallProgress.totalCasesAttempted,
+        totalCasesCompleted: progressSummary.overallProgress.totalCasesCompleted,
+        overallAverageScore: progressSummary.overallProgress.overallScore,
         overallProgress: progressSummary.progressPercentage,
         competencyScores: this.formatCompetencyScores(progressSummary.competencies),
         recentTrend,

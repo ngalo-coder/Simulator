@@ -105,12 +105,19 @@ const ProgressPage: React.FC = () => {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
+      <div className="grid md:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="text-2xl font-bold text-blue-600 mb-1">
             {progressData?.totalCasesCompleted || 0}
           </div>
           <div className="text-sm text-gray-600">Cases Completed</div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="text-2xl font-bold text-green-600 mb-1">
+            {progressData?.totalCasesAttempted || 0}
+          </div>
+          <div className="text-sm text-gray-600">Cases Attempted</div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">

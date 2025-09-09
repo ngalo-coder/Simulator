@@ -8,6 +8,8 @@ import CaseService from './caseService.js';
 import LaboratorySimulationService from './LaboratorySimulationService.js';
 import RadiologySimulationService from './RadiologySimulationService.js';
 import PharmacySimulationService from './PharmacySimulationService.js';
+import { updateProgressAfterCase } from './clinicianProgressService.js';
+import StudentProgressService from './StudentProgressService.js';
 
 export const getCases = CaseService.getCases.bind(CaseService);
 
@@ -229,7 +231,9 @@ export async function handleAsk(sessionId, question, res) {
 }
 
 export async function endSession(sessionId, user) {
+    console.log(`endSession called with sessionId: ${sessionId}, user: ${JSON.stringify(user)}`);
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+        console.error('Invalid session ID:', sessionId);
         throw { status: 400, message: 'Invalid session ID' };
     }
 
@@ -237,32 +241,44 @@ export async function endSession(sessionId, user) {
     dbSession.startTransaction();
     
     try {
+        console.log('Transaction started, finding session...');
         const session = await Session.findById(sessionId).populate('case_ref').session(dbSession);
-        if (!session) throw { status: 404, message: 'Session not found' };
-        if (!session.case_ref) throw { status: 500, message: 'Case data missing' };
+        if (!session) {
+            console.error('Session not found for ID:', sessionId);
+            throw { status: 404, message: 'Session not found' };
+        }
+        if (!session.case_ref) {
+            console.error('Case data missing for session:', sessionId);
+            throw { status: 500, message: 'Case data missing' };
+        }
         
         if (session.sessionEnded && session.evaluation) {
+            console.log('Session already ended, returning existing evaluation.');
             await dbSession.commitTransaction();
             dbSession.endSession();
             return { sessionEnded: true, evaluation: session.evaluation, history: session.history };
         }
 
         const caseData = session.case_ref.toObject();
+        console.log('Case data loaded:', caseData.case_metadata?.case_id);
         
         let evaluationResult;
         try {
+            console.log('Starting evaluation...');
             // Use nursing evaluation for nursing cases, standard evaluation for others
             if (caseData.nursing_diagnoses && caseData.nursing_diagnoses.length > 0) {
                 evaluationResult = await getNursingEvaluation(caseData, session.history);
             } else {
                 evaluationResult = await getEvaluation(caseData, session.history);
             }
+            console.log('Evaluation completed successfully.');
         } catch (aiError) {
             console.error('AI evaluation failed, using fallback evaluation:', aiError);
             evaluationResult = generateFallbackEvaluation(caseData, session.history);
         }
         
         const { evaluationText, extractedMetrics } = evaluationResult;
+        console.log('Evaluation result extracted.');
 
         const performanceRecord = new PerformanceMetrics({
             session_ref: session._id,
@@ -272,6 +288,7 @@ export async function endSession(sessionId, user) {
             evaluation_summary: extractedMetrics.evaluation_summary,
             raw_evaluation_text: evaluationText,
         });
+        console.log('Performance record created.');
 
         session.evaluation = evaluationText;
         session.sessionEnded = true;
@@ -280,44 +297,38 @@ export async function endSession(sessionId, user) {
             session.save({ session: dbSession }),
             performanceRecord.save({ session: dbSession })
         ]);
+        console.log('Session and performance record saved.');
+
+        // Update progress within the same transaction
+        const userId = user?.id || user?._id;
+        if (userId) {
+            console.log('Updating clinician progress...');
+            await updateProgressAfterCase(userId, session.case_ref._id, performanceRecord._id, dbSession);
+            console.log('Clinician progress updated.');
+
+            // Also update student progress within the same transaction
+            console.log('Updating student progress...');
+            const caseDetails = await Case.findById(session.case_ref._id).session(dbSession);
+            const attemptData = {
+                caseId: session.case_ref._id,
+                caseTitle: caseDetails?.case_metadata?.title || 'Unknown Case',
+                attemptNumber: session.retake_attempt_number || 1,
+                startTime: session.createdAt,
+                endTime: new Date(),
+                duration: Math.floor((new Date() - session.createdAt) / 1000), // in seconds
+                score: performanceRecord.metrics.overall_score || 0,
+                status: 'completed',
+                detailedMetrics: performanceRecord.metrics,
+                feedback: performanceRecord.evaluation_summary,
+                sessionId: session._id
+            };
+            await StudentProgressService.recordCaseAttempt(userId, attemptData, dbSession);
+            console.log('Student progress updated.');
+        }
 
         await dbSession.commitTransaction();
         dbSession.endSession(); // End session immediately after commit
-
-        // Update progress after transaction commits and session ends
-        const userId = user?.id || user?._id;
-        if (userId) {
-            try {
-                const { updateProgressAfterCase } = await import('./clinicianProgressService.js');
-                await updateProgressAfterCase(userId, session.case_ref._id, performanceRecord._id);
-            } catch (progressError) {
-                console.error('Clinician progress update failed:', progressError);
-                // Don't fail the session end if progress update fails
-            }
-
-            // Also update student progress
-            try {
-                const { recordCaseAttempt } = await import('./StudentProgressService.js');
-                const caseDetails = await Case.findById(session.case_ref._id);
-                const attemptData = {
-                    caseId: session.case_ref._id,
-                    caseTitle: caseDetails?.case_metadata?.title || 'Unknown Case',
-                    attemptNumber: session.retake_attempt_number || 1,
-                    startTime: session.createdAt,
-                    endTime: new Date(),
-                    duration: Math.floor((new Date() - session.createdAt) / 1000), // in seconds
-                    score: performanceRecord.metrics.overall_score || 0,
-                    status: 'completed',
-                    detailedMetrics: performanceRecord.metrics,
-                    feedback: performanceRecord.evaluation_summary,
-                    sessionId: session._id
-                };
-                await recordCaseAttempt(userId, attemptData);
-            } catch (studentProgressError) {
-                console.error('Student progress update failed:', studentProgressError);
-                // Don't fail the session end if student progress update fails
-            }
-        }
+        console.log('Transaction committed and session ended.');
 
         return {
             sessionEnded: true,
@@ -325,6 +336,7 @@ export async function endSession(sessionId, user) {
             history: session.history
         };
     } catch (error) {
+        console.error('Error in endSession:', error);
         await dbSession.abortTransaction();
         dbSession.endSession(); // End session on error too
         throw error;
