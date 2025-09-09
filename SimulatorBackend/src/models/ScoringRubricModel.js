@@ -47,16 +47,6 @@ const ScoringRubricSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  discipline: {
-    type: String,
-    required: true,
-    enum: ['medical', 'nursing', 'laboratory', 'radiology', 'pharmacy', 'general'],
-    index: true
-  },
-  specialty: {
-    type: String,
-    trim: true
-  },
   version: {
     type: String,
     default: '1.0'
@@ -123,38 +113,18 @@ const ScoringRubricSchema = new mongoose.Schema({
 });
 
 // Indexes for efficient queries
-ScoringRubricSchema.index({ discipline: 1, specialty: 1 });
 ScoringRubricSchema.index({ rubricId: 1 });
 ScoringRubricSchema.index({ isActive: 1 });
 
 // Method to calculate total score based on criteria scores
 ScoringRubricSchema.methods.calculateScore = function(criteriaScores) {
   let totalScore = 0;
-  let totalWeight = 0;
 
-  this.competencyAreas.forEach(area => {
-    const areaCriteriaScores = criteriaScores.filter(score => 
-      score.area === area.area
-    );
-    
-    let areaScore = 0;
-    let areaWeight = 0;
-    
-    area.criteria.forEach(criterion => {
-      const criterionScore = areaCriteriaScores.find(s => s.criterionId === criterion.criterionId);
-      if (criterionScore) {
-        areaScore += (criterionScore.score / criterion.maxScore) * criterion.weight;
-        areaWeight += criterion.weight;
-      }
-    });
-    
-    if (areaWeight > 0) {
-      totalScore += (areaScore / areaWeight) * area.weight;
-      totalWeight += area.weight;
-    }
+  criteriaScores.forEach(score => {
+    totalScore += score.score * score.weight;
   });
 
-  return totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
+  return Math.round(totalScore);
 };
 
 // Method to determine performance level based on score
@@ -165,15 +135,6 @@ ScoringRubricSchema.methods.determinePerformanceLevel = function(score) {
     }
   }
   return 'novice';
-};
-
-// Static method to find active rubrics by discipline
-ScoringRubricSchema.statics.findActiveByDiscipline = function(discipline, specialty = null) {
-  const query = { discipline, isActive: true };
-  if (specialty) {
-    query.specialty = specialty;
-  }
-  return this.find(query).sort({ version: -1 });
 };
 
 // Pre-save hook to validate weights sum to 1
