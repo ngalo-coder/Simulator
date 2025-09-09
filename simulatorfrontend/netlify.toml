@@ -11,10 +11,10 @@
   status = 200
 
 [context.production.environment]
-  VITE_API_URL = "https://simulatorbackend.onrender.com"
+  VITE_API_URL = "https://simulator-gamma-six.vercel.app"
 
 [context.deploy-preview.environment]
-  VITE_API_URL = "https://simulatorbackend.onrender.com"
+  VITE_API_URL = "https://simulator-gamma-six.vercel.app"
 
 [context.branch-deploy.environment]
-  VITE_API_URL = "https://simulatorbackend.onrender.com"
+  VITE_API_URL = "https://simulator-gamma-six.vercel.app"
