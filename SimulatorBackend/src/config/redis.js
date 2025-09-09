@@ -1,6 +1,7 @@
 import redis from 'redis';
 import cache from 'express-redis-cache';
 import logger from './logger.js';
+import dotenv from 'dotenv';
 
 const redisClient = redis.createClient({
   host: process.env.REDIS_HOST || 'localhost',
