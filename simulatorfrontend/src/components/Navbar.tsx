@@ -26,14 +26,14 @@ const Navbar: React.FC = () => {
 
   const getLinkClasses = (path: string) => {
     const baseClasses = "px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ease-in-out";
-    const activeClasses = "bg-blue-600 text-white shadow-md hover:bg-blue-700";
-    const inactiveClasses = "text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700/50";
+    const activeClasses = "bg-primary-700 text-white shadow-md";
+    const inactiveClasses = "text-primary-100 hover:bg-primary-500 dark:hover:bg-primary-600";
     
     return `${baseClasses} ${isActivePath(path) ? activeClasses : inactiveClasses}`;
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-300">
+    <nav className="bg-primary-600 dark:bg-primary-700 text-white shadow-md sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Specialty Context */}
@@ -44,11 +44,11 @@ const Navbar: React.FC = () => {
             
             {/* Current Specialty Indicator */}
             {currentSpecialty && (
-              <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/40 rounded-lg border border-blue-200 dark:border-blue-700 shadow-sm">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-300 uppercase tracking-wide">
+              <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 bg-primary-500 dark:bg-primary-600 rounded-lg shadow-sm">
+                <span className="text-xs font-medium text-white uppercase tracking-wide">
                   Current:
                 </span>
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-200">
+                <span className="text-sm font-semibold text-white">
                   {currentSpecialty}
                 </span>
               </div>
@@ -88,7 +88,7 @@ const Navbar: React.FC = () => {
                   </Link>
                   <Link 
                     to="/register" 
-                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     Sign Up
                   </Link>
@@ -103,7 +103,7 @@ const Navbar: React.FC = () => {
             {user && (
               <div className="flex items-center space-x-3">
                 <div className="text-sm text-right">
-                  <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center space-x-2">
+                  <div className="font-medium text-white flex items-center space-x-2">
                     <span>Welcome, {user.username}</span>
                     {user.role === 'admin' && (
                       <span className="px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full font-bold uppercase tracking-wide">
@@ -127,7 +127,7 @@ const Navbar: React.FC = () => {
             <ThemeToggle />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              className="inline-flex items-center justify-center p-2.5 rounded-lg text-white hover:bg-primary-500 dark:hover:bg-primary-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-primary-700"
             >
               <span className="sr-only">Open main menu</span>
               {!isMobileMenuOpen ? (
@@ -147,7 +147,7 @@ const Navbar: React.FC = () => {
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
-          <div className="px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-inner transition-all duration-300">
+          <div className="px-4 pt-2 pb-4 space-y-2 bg-primary-600 dark:bg-primary-700 border-t border-primary-500 dark:border-primary-600 shadow-inner transition-all duration-300">
             {user ? (
               <>
                 <Link 
@@ -194,11 +194,11 @@ const Navbar: React.FC = () => {
                     Admin
                   </Link>
                 )}
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4 pb-3">
+                <div className="border-t border-primary-500 dark:border-primary-500 pt-4 pb-3">
                   <div className="flex items-center justify-center px-3">
                     <div className="text-sm text-center">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
-                      <div className="text-gray-500 dark:text-gray-400 capitalize">{user.role}</div>
+                      <div className="font-medium text-white">{user.username}</div>
+                      <div className="text-primary-200 capitalize">{user.role}</div>
                     </div>
                   </div>
                   <div className="mt-3 px-3">
