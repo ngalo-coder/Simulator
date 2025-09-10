@@ -3,6 +3,24 @@ import StudentProgress from '../models/StudentProgressModel.js';
 import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
 import Case from '../models/CaseModel.js';
 
+// Enhanced difficulty mapping to handle all variations
+const normalizeDifficulty = (difficulty) => {
+    if (!difficulty) return 'Beginner';
+    
+    const difficultyLower = difficulty.toLowerCase();
+    
+    if (difficultyLower.includes('easy') || difficultyLower.includes('beginner')) {
+        return 'Beginner';
+    } else if (difficultyLower.includes('intermediate') || difficultyLower.includes('medium')) {
+        return 'Intermediate';
+    } else if (difficultyLower.includes('hard') || difficultyLower.includes('advanced') || difficultyLower.includes('expert')) {
+        return 'Advanced';
+    }
+    
+    // Default to Beginner for unknown values
+    return 'Beginner';
+};
+
 class StudentProgressService {
   // Get or create student progress for a user
   async getOrCreateStudentProgress(userId, dbSession = null) {
@@ -36,6 +54,15 @@ class StudentProgressService {
 
     try {
       const progress = await this.getOrCreateStudentProgress(userId, session);
+      
+      // Validate score if provided
+      if (attemptData.score !== null && attemptData.score !== undefined) {
+        const score = Number(attemptData.score);
+        if (isNaN(score)) {
+          throw new Error('Invalid score provided');
+        }
+        attemptData.score = score;
+      }
       
       // Add the case attempt
       const caseAttempt = {

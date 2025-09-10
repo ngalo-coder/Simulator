@@ -3,6 +3,24 @@ import ClinicianProgress from '../models/ClinicianProgressModel.js';
 import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
 import Case from '../models/CaseModel.js';
 
+// Enhanced difficulty mapping to handle all variations
+const normalizeDifficulty = (difficulty) => {
+    if (!difficulty) return 'Beginner';
+    
+    const difficultyLower = difficulty.toLowerCase();
+    
+    if (difficultyLower.includes('easy') || difficultyLower.includes('beginner')) {
+        return 'Beginner';
+    } else if (difficultyLower.includes('intermediate') || difficultyLower.includes('medium')) {
+        return 'Intermediate';
+    } else if (difficultyLower.includes('hard') || difficultyLower.includes('advanced') || difficultyLower.includes('expert')) {
+        return 'Advanced';
+    }
+    
+    // Default to Beginner for unknown values
+    return 'Beginner';
+};
+
 const calculateProgressionLevel = (progress) => {
     if (progress.advancedCasesCompleted >= 10 && progress.advancedAverageScore > 80) {
         return 'Expert';
@@ -51,8 +69,13 @@ export async function updateProgressAfterCase(userId, caseId, performanceMetrics
         if (!caseDetails) throw { status: 404, message: 'Case not found' };
         if (!metrics) throw { status: 404, message: 'Performance metrics not found' };
 
-        const difficulty = caseDetails.case_metadata.difficulty;
+        const difficulty = normalizeDifficulty(caseDetails.case_metadata.difficulty);
         const score = metrics.metrics.overall_score || 0;
+
+        // Skip if score is invalid
+        if (score === null || score === undefined || isNaN(score)) {
+            throw { status: 400, message: 'Invalid score in performance metrics' };
+        }
 
         // Get current progress or create new one
         let progress = await ClinicianProgress.findOne({ userId }).session(session);
