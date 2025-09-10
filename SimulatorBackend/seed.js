@@ -44,17 +44,33 @@ async function pushCasesToMongoDB(cases, mongoUri, dbName, collectionName) {
 // Main function to execute the script
 (async () => {
     // Configuration
-    const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/simulator"  // Replace with your MongoDB URI
-    const DB_NAME="test"            // Replace with your database name
-    const COLLECTION_NAME = "cases"                // Replace with your collection name                        
-    const JSON_FILE_PATH = "cases/case_5.json"       // Replace with the path to your consolidated JSON file
+    const MONGO_URI = process.env.MONGODB_URI;
+    const DB_NAME = process.env.DB_NAME;
+    
+    if (!MONGO_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    if (!DB_NAME) {
+      throw new Error('DB_NAME environment variable is not set');
+    }
+    const COLLECTION_NAME = "cases"
+    const CASE_FILES = [
+      "cases/ophthalmology_cases.json",
+      "cases/nursing_cases.json",
+      "cases/radiology_cases.json",
+      "cases/laboratory_cases.json",
+      "cases/pharmacy_cases.json"
+    ];
 
     // Load cases from JSON
-    const cases = loadCasesFromJson(JSON_FILE_PATH);
+    let allCases = [];
+    for (const filePath of CASE_FILES) {
+      const cases = loadCasesFromJson(filePath);
+      if (cases) allCases = allCases.concat(cases);
+    }
 
-    if (cases) {
-        // Push cases to MongoDB
-        await pushCasesToMongoDB(cases, MONGO_URI, DB_NAME, COLLECTION_NAME);
+    if (allCases.length > 0) {
+        await pushCasesToMongoDB(allCases, MONGO_URI, DB_NAME, COLLECTION_NAME);
     }
 })();
 

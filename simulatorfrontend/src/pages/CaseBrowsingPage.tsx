@@ -51,7 +51,12 @@ const CaseBrowsingPage: React.FC = () => {
     'Emergency Medicine': 'Acute care scenarios requiring rapid assessment and intervention',
     'Cardiology': 'Heart and cardiovascular system cases',
     'Neurology': 'Neurological conditions and brain-related cases',
-    'Psychiatry': 'Mental health and psychiatric condition cases'
+    'Psychiatry': 'Mental health and psychiatric condition cases',
+    'Nursing': 'Nursing care cases focusing on patient assessment, intervention, and care planning',
+    'Laboratory': 'Laboratory medicine cases covering diagnostic testing and result interpretation',
+    'Pharmacy': 'Pharmacology cases focusing on medication management and pharmaceutical care',
+    'Radiology': 'Medical imaging cases covering interpretation of X-rays, CT scans, and other imaging modalities',
+    'Ophthalmology': 'Eye care cases covering vision assessment and ocular disease management'
   };
 
   useEffect(() => {

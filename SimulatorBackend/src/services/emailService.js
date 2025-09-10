@@ -7,7 +7,8 @@ import logger from '../config/logger.js';
 class EmailService {
   constructor() {
     this.enabled = process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true';
-    this.fromEmail = process.env.FROM_EMAIL || 'noreply@medicalsimulator.com';
+    this.fromEmail = process.env.FROM_EMAIL;
+    this.adminEmail = process.env.ADMIN_EMAIL;
   }
 
   async sendEmail(to, subject, htmlContent, textContent) {
@@ -52,8 +53,7 @@ class EmailService {
     `;
     const textContent = `New case submitted: ${caseTitle} by ${contributorName}. Please review in admin dashboard.`;
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@medicalsimulator.com';
-    return await this.sendEmail(adminEmail, subject, htmlContent, textContent);
+    return await this.sendEmail(this.adminEmail, subject, htmlContent, textContent);
   }
 
   // Case approved notification to contributor

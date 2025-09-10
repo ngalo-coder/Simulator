@@ -4,8 +4,10 @@ import logger from './logger.js';
 import dotenv from 'dotenv';
 
 const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD,
+  username: process.env.REDIS_USERNAME,
 });
 
 redisClient.on('error', (err) => {

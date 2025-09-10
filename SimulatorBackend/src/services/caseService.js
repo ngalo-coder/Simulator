@@ -1,4 +1,5 @@
 import Case from '../models/CaseModel.js';
+import Specialty from '../models/SpecialtyModel.js';
 
 export class CaseService {
   static CASE_FIELDS = [
@@ -8,6 +9,7 @@ export class CaseService {
     // 'case_metadata.difficulty', // Removed from API response but kept in DB for background grading
     // 'case_metadata.estimated_duration_min', // Removed from API response - duration is given in case data
     'case_metadata.program_area',
+    'case_metadata.specialty',
     'case_metadata.specialized_area',
     'patient_persona.age',
     'patient_persona.gender',
@@ -53,6 +55,7 @@ export class CaseService {
       category: meta?.specialized_area,
       // estimated_time removed - duration is provided within case data
       program_area: meta?.program_area,
+      specialty: meta?.specialty,
       specialized_area: meta?.specialized_area,
       patient_age: patient?.age,
       patient_gender: patient?.gender,
@@ -71,7 +74,7 @@ export class CaseService {
     const skip = (pageNum - 1) * limitNum;
 
     const [casesFromDB, totalCases] = await Promise.all([
-      Case.find(query).select(this.CASE_FIELDS).skip(skip).limit(limitNum).lean(),
+      Case.find(query).select(this.CASE_FIELDS).sort({ 'case_metadata.case_id': 1 }).skip(skip).limit(limitNum).lean(),
       Case.countDocuments(query)
     ]);
 
@@ -86,16 +89,28 @@ export class CaseService {
   static async getCaseCategories(program_area) {
     const baseQuery = program_area ? { 'case_metadata.program_area': program_area } : {};
     
-    const [programAreas, specialties, specializedAreas] = await Promise.all([
+    const [programAreas, caseSpecialties, specializedAreas, allSpecialties] = await Promise.all([
       Case.distinct('case_metadata.program_area'),
       Case.distinct('case_metadata.specialty', baseQuery),
-      Case.distinct('case_metadata.specialized_area')
+      Case.distinct('case_metadata.specialized_area'),
+      Specialty.find({ active: true }, 'name programArea').lean()
     ]);
 
+    // Filter specialties by program area if specified
+    let availableSpecialties;
+    if (program_area) {
+      availableSpecialties = allSpecialties
+        .filter(s => s.programArea === program_area)
+        .map(s => s.name)
+        .sort();
+    } else {
+      availableSpecialties = allSpecialties.map(s => s.name).sort();
+    }
+    
     // Get case counts for each specialty when program_area is specified
     let specialty_counts = {};
-    if (program_area && specialties.length > 0) {
-      const countPromises = specialties
+    if (program_area && caseSpecialties.length > 0) {
+      const countPromises = caseSpecialties
         .filter(s => s?.trim())
         .map(async (specialty) => {
           const count = await Case.countDocuments({
@@ -114,7 +129,7 @@ export class CaseService {
 
     return {
       program_areas: programAreas.sort(),
-      specialties: specialties.filter(s => s?.trim()).sort(),
+      specialties: availableSpecialties,
       specialized_areas: specializedAreas.filter(a => a?.trim()).sort(),
       specialty_counts
     };

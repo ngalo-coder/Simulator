@@ -60,21 +60,22 @@ async function initializeProgramAreasAndSpecialties() {
       console.log(`Program areas collection already exists with ${programAreasCount} entries`);
     }
     
-    // Create specialties collection if it doesn't exist
+    // Create or update specialties collection
     const specialtiesCount = await Specialty.countDocuments();
+    
+    // Get program areas from the database
+    const programAreas = await ProgramArea.find();
+    const programAreaMap = {};
+    programAreas.forEach(pa => {
+      programAreaMap[pa.name] = pa.name;
+    });
+    
+    // Default program area if none match
+    const defaultProgramArea = programAreas.length > 0 ?
+      programAreas[0].name : 'Basic Program';
+    
     if (specialtiesCount === 0) {
       console.log('Creating specialties collection...');
-      
-      // Get program areas from the database
-      const programAreas = await ProgramArea.find();
-      const programAreaMap = {};
-      programAreas.forEach(pa => {
-        programAreaMap[pa.name] = pa.name;
-      });
-      
-      // Default program area if none match
-      const defaultProgramArea = programAreas.length > 0 ? 
-        programAreas[0].name : 'Basic Program';
       
       const specialtiesToCreate = existingSpecialties
         .filter(specialty => specialty && specialty.trim() !== '')
@@ -94,6 +95,28 @@ async function initializeProgramAreasAndSpecialties() {
       }
     } else {
       console.log(`Specialties collection already exists with ${specialtiesCount} entries`);
+      
+      // Check for and add any new specialties that exist in cases but not in specialties collection
+      const existingSpecialtyNames = (await Specialty.find().select('name')).map(s => s.name);
+      const newSpecialties = existingSpecialties.filter(specialty =>
+        specialty && specialty.trim() !== '' && !existingSpecialtyNames.includes(specialty)
+      );
+      
+      if (newSpecialties.length > 0) {
+        console.log(`Found ${newSpecialties.length} new specialties to add:`, newSpecialties);
+        
+        const specialtiesToAdd = newSpecialties.map(specialty => ({
+          name: specialty,
+          programArea: determineMatchingProgramArea(specialty, programAreaMap) || defaultProgramArea,
+          description: `${specialty} specialty for medical training`,
+          active: true
+        }));
+        
+        await Specialty.insertMany(specialtiesToAdd);
+        console.log(`Added ${specialtiesToAdd.length} new specialties`);
+      } else {
+        console.log('No new specialties to add');
+      }
     }
     
     console.log('Initialization complete!');
@@ -127,7 +150,13 @@ function determineMatchingProgramArea(specialty, programAreaMap) {
     'Orthopedics': 'Specialty Program',
     'Radiology': 'Specialty Program',
     'Pathology': 'Specialty Program',
-    'Anesthesiology': 'Specialty Program'
+    'Anesthesiology': 'Specialty Program',
+    'Nursing': 'Basic Program',
+    'Pharmacy': 'Basic Program',
+    'Laboratory': 'Basic Program',
+    'Gastroenterology': 'Specialty Program',
+    'Oncology': 'Specialty Program',
+    'Reproductive Health': 'Specialty Program'
   };
   
   // Return the mapped program area if it exists in our database

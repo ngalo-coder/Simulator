@@ -8,7 +8,10 @@ dotenv.config();
 async function countInternalMedicineCases() {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/simulator');
+        if (!process.env.MONGODB_URI) {
+            throw new Error('MONGODB_URI environment variable is not set');
+        }
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to MongoDB');
 
         // Count cases with specialty "Internal Medicine"

@@ -146,6 +146,10 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     // If token is provided, validate it
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findById(decoded.userId);
