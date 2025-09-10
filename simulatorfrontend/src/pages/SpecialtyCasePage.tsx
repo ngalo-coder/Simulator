@@ -4,6 +4,7 @@ import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
+import { RetakeButton, RetakeModal } from '../components/retake';
 import {
   INTERNAL_MEDICINE_SUB_CATEGORIES,
   getSubCategoriesWithCounts,
@@ -18,6 +19,16 @@ interface Case {
   patient_age?: number;
   patient_gender?: string;
   chief_complaint?: string;
+  isCompleted?: boolean;
+  lastCompletedAt?: string;
+  bestScore?: number;
+}
+
+// Extended interface for cases with completion data
+interface ExtendedCase extends Case {
+  isCompleted?: boolean;
+  lastCompletedAt?: string;
+  bestScore?: number;
 }
 
 const SpecialtyCasePage: React.FC = memo(() => {
@@ -44,6 +55,10 @@ const SpecialtyCasePage: React.FC = memo(() => {
   // State for UI
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [retryCount, setRetryCount] = React.useState(0);
+  
+  // Retake functionality state
+  const [showRetakeModal, setShowRetakeModal] = React.useState(false);
+  const [selectedRetakeCase, setSelectedRetakeCase] = React.useState<Case | null>(null);
 
   // Check if this is Internal Medicine specialty
   const isInternalMedicine = useMemo(() => {
@@ -78,6 +93,26 @@ const SpecialtyCasePage: React.FC = memo(() => {
       console.error('Navigation error:', error);
     }
   }, [optimizedStartSimulation, navigate, specialtyName]);
+
+  const handleRetakeCase = React.useCallback((case_: Case) => {
+    setSelectedRetakeCase(case_);
+    setShowRetakeModal(true);
+  }, []);
+
+  const handleRetakeSuccess = React.useCallback((sessionId: string) => {
+    if (selectedRetakeCase) {
+      navigate(`/simulation/${selectedRetakeCase.id}/session/${sessionId}`, {
+        state: {
+          specialtyContext: {
+            specialty: specialtyName,
+            specialtySlug: specialtyName.toLowerCase().replace(/\s+/g, '_'),
+            returnUrl: `/${specialtyName.toLowerCase().replace(/\s+/g, '_')}`
+          },
+          isRetake: true
+        }
+      });
+    }
+  }, [selectedRetakeCase, navigate, specialtyName]);
 
   // Show skeleton loading state
   if (loading && !cases.length) {
@@ -466,51 +501,97 @@ const SpecialtyCasePage: React.FC = memo(() => {
           </div>
 
           {/* Cases grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cases.map((case_) => (
-              <div key={case_.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div className="mb-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                      {case_.title}
-                    </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {cases.map((case_) => {
+              const extendedCase = case_ as ExtendedCase;
+              return (
+              <div 
+                key={case_.id} 
+                className="group bg-gradient-to-br from-blue-50 via-white to-blue-50 rounded-xl shadow-md hover:shadow-xl border border-blue-100 hover:border-blue-200 p-4 sm:p-6 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden"
+              >
+                {/* Background Pattern */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-blue-100/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="mb-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-800 transition-colors duration-200">
+                        {case_.title}
+                      </h3>
+                      {extendedCase.isCompleted && (
+                        <div className="flex flex-col items-end ml-2 flex-shrink-0">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                            ✓ Completed
+                          </span>
+                          {extendedCase.bestScore && (
+                            <span className="text-xs text-blue-600 font-semibold mt-1 bg-blue-50 px-2 py-0.5 rounded-full">
+                              Best: {extendedCase.bestScore}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-600 text-sm line-clamp-3 mb-3 leading-relaxed">
+                      {case_.description}
+                    </p>
                   </div>
-                  <p className="text-gray-600 text-sm line-clamp-3 mb-3">
-                    {case_.description}
-                  </p>
+
+                  <div className="space-y-2 mb-4 text-sm">
+                    {case_.specialty && (
+                      <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <span className="text-blue-600 font-medium">Specialty:</span>
+                        <span className="text-blue-800 font-semibold bg-blue-100 px-2 py-1 rounded-md text-xs">{case_.specialty}</span>
+                      </div>
+                    )}
+
+                    {case_.patient_age && case_.patient_gender && (
+                      <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                        <span className="text-gray-600 font-medium">Patient:</span>
+                        <span className="text-gray-800 font-semibold">{case_.patient_age}y {case_.patient_gender}</span>
+                      </div>
+                    )}
+                    {case_.chief_complaint && (
+                      <div className="p-2 bg-amber-50 rounded-lg border border-amber-100">
+                        <span className="text-amber-700 font-medium text-xs block mb-1">Chief Complaint:</span>
+                        <span className="text-amber-800 font-semibold text-sm">{case_.chief_complaint}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleStartSimulation(case_)}
+                      disabled={startingSimulation}
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
+                    >
+                      {startingSimulation ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>Starting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🩺</span>
+                          <span>{extendedCase.isCompleted ? 'Start New Attempt' : 'Start Simulation'}</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    {extendedCase.isCompleted && (
+                      <button
+                        onClick={() => handleRetakeCase(case_)}
+                        disabled={startingSimulation}
+                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
+                      >
+                        <span>🔄</span>
+                        <span>Retake for Improvement</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                <div className="space-y-2 mb-4 text-sm">
-                  {case_.specialty && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Specialty:</span>
-                      <span className="text-gray-900">{case_.specialty}</span>
-                    </div>
-                  )}
-
-                  {case_.patient_age && case_.patient_gender && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Patient:</span>
-                      <span className="text-gray-900">{case_.patient_age}y {case_.patient_gender}</span>
-                    </div>
-                  )}
-                  {case_.chief_complaint && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Chief Complaint:</span>
-                      <span className="text-gray-900 text-right">{case_.chief_complaint}</span>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleStartSimulation(case_)}
-                  disabled={startingSimulation}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                >
-                  {startingSimulation ? 'Starting...' : 'Start Simulation'}
-                </button>
               </div>
-            ))}
+            );})}
           </div>
 
           {/* Pagination Controls */}
@@ -590,6 +671,18 @@ const SpecialtyCasePage: React.FC = memo(() => {
           </Link>
         </div>
       </div>
+      
+      {/* Retake Modal */}
+      <RetakeModal
+        isOpen={showRetakeModal}
+        onClose={() => {
+          setShowRetakeModal(false);
+          setSelectedRetakeCase(null);
+        }}
+        caseId={selectedRetakeCase?.id || ''}
+        caseTitle={selectedRetakeCase?.title || ''}
+        onRetakeSuccess={handleRetakeSuccess}
+      />
     </div>
   );
 });

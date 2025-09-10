@@ -1079,6 +1079,61 @@ export const api = {
     }
   },
 
+  // ==================== RETAKE FUNCTIONALITY ====================
+
+  startRetakeSimulation: async (caseId: string, previousSessionId?: string, retakeReason?: string, improvementFocusAreas?: string[]) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/simulation/retake/start`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          caseId, 
+          previousSessionId, 
+          retakeReason, 
+          improvementFocusAreas 
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to start retake simulation');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error starting retake simulation:', error);
+      throw error;
+    }
+  },
+
+  getCaseRetakeSessions: async (caseId: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/simulation/retake/sessions/${caseId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch retake sessions');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error fetching retake sessions:', error);
+      throw error;
+    }
+  },
+
+  calculateImprovementMetrics: async (originalSessionId: string, retakeSessionId: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/simulation/retake/calculate-improvement`, {
+        method: 'POST',
+        body: JSON.stringify({ originalSessionId, retakeSessionId }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to calculate improvement metrics');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error calculating improvement metrics:', error);
+      throw error;
+    }
+  },
+
   // ==================== PRIVACY & DATA MANAGEMENT ====================
 
   getPrivacySettings: async () => {
