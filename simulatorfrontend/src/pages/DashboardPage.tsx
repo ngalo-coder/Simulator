@@ -15,6 +15,8 @@ const DashboardPage: React.FC = () => {
   const [showDataExport, setShowDataExport] = useState(false);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number>>({});
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string>('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -79,6 +81,20 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      setDownloadingPDF(true);
+      setPdfError('');
+      await api.downloadProgressPDF();
+      // Success feedback could be added here if needed
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      setPdfError('Failed to download progress report. Please try again.');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
@@ -120,12 +136,38 @@ const DashboardPage: React.FC = () => {
           <p className="text-gray-600 mb-4">
             View your performance metrics and learning progress
           </p>
-          <Link 
-            to="/progress" 
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors inline-block"
-          >
-            View Progress
-          </Link>
+          {pdfError && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              {pdfError}
+            </div>
+          )}
+          <div className="flex flex-col space-y-2">
+            <Link 
+              to="/progress" 
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-center"
+            >
+              View Progress
+            </Link>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF || !progressData}
+              className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              {downloadingPDF ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Download PDF Report</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">

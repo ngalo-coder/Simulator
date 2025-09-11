@@ -5,6 +5,7 @@ import { requireAnyRole } from '../middleware/rbacMiddleware.js';
 import helpGuidanceService from '../services/HelpGuidanceService.js'; // Fixed import
 import adaptiveLearningService from '../services/AdaptiveLearningService.js';
 import userPreferencesService from '../services/UserPreferencesService.js';
+import ProgressPDFService from '../services/ProgressPDFService.js';
 
 const router = express.Router();
 
@@ -1750,6 +1751,100 @@ router.get('/preferences/css', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to generate theme CSS'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/student/progress/download-pdf:
+ *   get:
+ *     summary: Download progress report as PDF
+ *     description: Generate and download a comprehensive progress report in PDF format containing analytics, achievements, recommendations, and performance metrics
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [comprehensive, summary]
+ *           default: comprehensive
+ *         description: Report format type
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [30d, 90d, all]
+ *           default: 90d
+ *         description: Data time range for the report
+ *     responses:
+ *       200:
+ *         description: PDF report generated successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *         headers:
+ *           Content-Disposition:
+ *             description: Attachment filename
+ *             schema:
+ *               type: string
+ *               example: 'attachment; filename="progress-report-john-doe-2024-01-15.pdf"'
+ *           Content-Type:
+ *             description: PDF content type
+ *             schema:
+ *               type: string
+ *               example: 'application/pdf'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Student or Admin role required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/progress/download-pdf', async (req, res) => {
+  try {
+    const { format = 'comprehensive', timeRange = '90d' } = req.query;
+    
+    // Generate filename with user info and timestamp
+    const username = req.user.username || 'student';
+    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const filename = `progress-report-${username}-${timestamp}.pdf`;
+    
+    console.log(`Generating PDF progress report for user: ${req.user._id}`);
+    
+    // Generate PDF buffer
+    const pdfBuffer = await ProgressPDFService.generateProgressReport(req.user._id, {
+      format,
+      timeRange,
+      user: req.user
+    });
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    // Send PDF buffer
+    res.send(pdfBuffer);
+    
+    console.log(`PDF progress report generated successfully for user: ${req.user._id}`);
+    
+  } catch (error) {
+    console.error('Generate progress PDF error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate progress report'
     });
   }
 });

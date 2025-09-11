@@ -12,6 +12,7 @@ const ProgressPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [retakeStats, setRetakeStats] = useState<any>(null);
   const [showRetakeDetails, setShowRetakeDetails] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
 
   useEffect(() => {
     fetchProgressData();
@@ -126,6 +127,19 @@ const ProgressPage: React.FC = () => {
     return Math.round((progressData?.totalCasesCompleted || 0) * 20 / 60 * 10) / 10;
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      setDownloadingPDF(true);
+      await api.downloadProgressPDF();
+      // Success feedback could be added here if needed
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      setError('Failed to download progress report. Please try again.');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -164,9 +178,32 @@ const ProgressPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Progress</h1>
-        <p className="text-gray-600">Track your learning journey and performance metrics</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Progress</h1>
+          <p className="text-gray-600">Track your learning journey and performance metrics</p>
+        </div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <button
+            onClick={handleDownloadPDF}
+            disabled={downloadingPDF || !progressData}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {downloadingPDF ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Download PDF Report</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Overview Cards */}
