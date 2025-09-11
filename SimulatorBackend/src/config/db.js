@@ -15,19 +15,13 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI environment variable is not set');
     }
 
-    // Serverless-optimized connection options
+    // Modern MongoDB connection options
     const options = {
-      maxPoolSize: 3, // Reduced for serverless environments
-      minPoolSize: 1,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 30000,
-      waitQueueTimeoutMS: 5000,
-      bufferCommands: false,
-      bufferMaxEntries: 0,
-      // Additional serverless optimizations
-      maxIdleTimeMS: 30000,
-      keepAlive: true,
-      keepAliveInitialDelay: 0
+      maxPoolSize: 10, // Maximum number of connections in the pool
+      minPoolSize: 1,  // Minimum number of connections in the pool
+      serverSelectionTimeoutMS: 5000, // How long to try to connect
+      socketTimeoutMS: 45000, // How long a send or receive on a socket can take
+      maxIdleTimeMS: 30000 // Close connections after 30 seconds of inactivity
     };
 
     console.log('Connecting to MongoDB...');

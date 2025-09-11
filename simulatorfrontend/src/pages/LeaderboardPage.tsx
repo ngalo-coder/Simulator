@@ -21,6 +21,7 @@ const LeaderboardPage: React.FC = () => {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
@@ -29,6 +30,23 @@ const LeaderboardPage: React.FC = () => {
   useEffect(() => {
     fetchSpecialties();
     fetchLeaderboard();
+    
+    // Listen for privacy settings updates
+    const handlePrivacyUpdate = (event: any) => {
+      if (event.detail?.leaderboardChanged) {
+        console.log('Privacy settings updated, refreshing leaderboard...');
+        // Refresh leaderboard data to reflect privacy changes
+        setTimeout(() => {
+          fetchLeaderboard();
+        }, 500); // Small delay to ensure backend has processed the update
+      }
+    };
+    
+    window.addEventListener('privacySettingsUpdated', handlePrivacyUpdate);
+    
+    return () => {
+      window.removeEventListener('privacySettingsUpdated', handlePrivacyUpdate);
+    };
   }, [selectedSpecialty]);
 
   const fetchSpecialties = async () => {
@@ -43,31 +61,66 @@ const LeaderboardPage: React.FC = () => {
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
+      setError(null);
       // Fetch real leaderboard data from API
       const data = await api.getLeaderboard(selectedSpecialty, 20);
       
-      // Add rank numbers and privacy handling to the data
+      // Validate and process the data
+      if (!Array.isArray(data)) {
+        console.error('Invalid leaderboard data format:', data);
+        setError('Invalid data format received from server');
+        setLeaderboard([]);
+        return;
+      }
+      
+      // Add rank numbers and ensure proper data structure
       const rankedData = data.map((entry: any, index: number) => {
-        const isAnonymous = !entry.showRealName || entry.privacyLevel === 'private';
+        // Validate required fields with score validation per memory requirements
+        const totalCases = typeof entry.totalCases === 'number' ? entry.totalCases : 0;
+        const excellentCount = typeof entry.excellentCount === 'number' ? entry.excellentCount : 0;
+        const averageScore = entry.averageScore && entry.averageScore !== 'N/A' ? 
+          parseFloat(entry.averageScore) : 0;
+        const excellentRate = entry.excellentRate && entry.excellentRate !== 'N/A' ? 
+          parseFloat(entry.excellentRate) : 0;
+
+        // Handle user identification properly
+        const userId = entry.userId || entry.userId?._id || 'unknown';
+        const userName = entry.name || entry.displayName || 'Anonymous User';
+        
+        const isAnonymous = entry.isAnonymous || !entry.showRealName || entry.privacyLevel === 'private';
         const displayName = isAnonymous 
           ? `Student ${String.fromCharCode(65 + (index % 26))}${Math.floor(index / 26) + 1}` 
-          : (entry.name || entry.userId?.username || 'Anonymous User');
+          : userName;
         
         return {
           ...entry,
           rank: index + 1,
-          userId: entry.userId?._id || entry.userId,
-          name: entry.name || entry.userId?.username || 'Anonymous User',
+          userId: userId,
+          name: userName,
           displayName,
           isAnonymous,
+          totalCases,
+          excellentCount,
+          excellentRate: excellentRate.toFixed(1),
+          averageScore: averageScore.toFixed(1),
           privacyLevel: entry.privacyLevel || 'public'
         };
       });
 
       setLeaderboard(rankedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching leaderboard:', error);
-      // Fallback to empty array on error
+      // Following Frontend API Error Handling Standard from memory
+      // Display clear error message instead of falling back to mock data
+      if (error.message?.includes('Authentication')) {
+        setError('Please log in to view the leaderboard');
+      } else if (error.message?.includes('403')) {
+        setError('You do not have permission to view this leaderboard');
+      } else if (error.message?.includes('404')) {
+        setError('Leaderboard service is currently unavailable');
+      } else {
+        setError('Failed to load leaderboard data. Please try again later.');
+      }
       setLeaderboard([]);
     } finally {
       setLoading(false);
@@ -195,7 +248,24 @@ const LeaderboardPage: React.FC = () => {
           </h2>
         </div>
 
-        {leaderboard.length === 0 ? (
+        {error ? (
+          <div className="p-8 text-center text-red-600 bg-red-50 rounded-lg">
+            <div className="mb-2">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <p className="text-lg font-medium mb-2">Unable to Load Leaderboard</p>
+            <p className="text-sm mb-4">{error}</p>
+            <button
+              onClick={() => {
+                setError(null);
+                fetchLeaderboard();
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : leaderboard.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p className="text-lg mb-2">No leaderboard data available yet</p>
             <p className="text-sm">Complete some cases to see rankings appear!</p>

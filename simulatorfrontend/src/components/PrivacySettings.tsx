@@ -61,6 +61,19 @@ const PrivacySettingsModal: React.FC<PrivacySettingsProps> = ({ onClose }) => {
       await api.updatePrivacySettings(settings);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      
+      // Trigger leaderboard refresh if leaderboard settings changed
+      const leaderboardSettings = ['showInLeaderboard', 'showRealName', 'profileVisibility'];
+      const hasLeaderboardChanges = leaderboardSettings.some(key => 
+        typeof settings[key as keyof PrivacySettings] !== 'undefined'
+      );
+      
+      if (hasLeaderboardChanges) {
+        // Notify parent component to refresh leaderboard
+        window.dispatchEvent(new CustomEvent('privacySettingsUpdated', {
+          detail: { settings, leaderboardChanged: true }
+        }));
+      }
     } catch (error) {
       console.error('Error saving privacy settings:', error);
       alert('Failed to save privacy settings. Please try again.');

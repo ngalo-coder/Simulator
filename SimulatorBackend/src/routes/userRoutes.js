@@ -7,6 +7,8 @@ import {
   adminOnly 
 } from '../middleware/rbacMiddleware.js';
 import { UserRole, HealthcareDiscipline } from '../models/UserModel.js';
+import { protect } from '../middleware/jwtAuthMiddleware.js';
+import { getPrivacySettings, updatePrivacySettings, exportUserData, requestAccountDeletion } from '../controllers/privacyController.js';
 
 const router = express.Router();
 
@@ -1147,6 +1149,147 @@ router.get('/:userId/profile-wizard',
     }
   }
 );
+
+/**
+ * Privacy Settings Routes - Bridge to privacy functionality
+ */
+
+/**
+ * @swagger
+ * /api/users/privacy-settings:
+ *   get:
+ *     summary: Get user privacy settings
+ *     description: Retrieves the privacy settings for the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Privacy settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     showInLeaderboard:
+ *                       type: boolean
+ *                     showRealName:
+ *                       type: boolean
+ *                     shareProgressWithEducators:
+ *                       type: boolean
+ *                     allowAnonymousAnalytics:
+ *                       type: boolean
+ *                     dataRetentionPeriod:
+ *                       type: string
+ *                       enum: [forever, 1year, 2years, 5years]
+ *                     profileVisibility:
+ *                       type: string
+ *                       enum: [public, educators, private]
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/privacy-settings', protect, getPrivacySettings);
+
+/**
+ * @swagger
+ * /api/users/privacy-settings:
+ *   put:
+ *     summary: Update user privacy settings
+ *     description: Updates the privacy settings for the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               showInLeaderboard:
+ *                 type: boolean
+ *               showRealName:
+ *                 type: boolean
+ *               shareProgressWithEducators:
+ *                 type: boolean
+ *               allowAnonymousAnalytics:
+ *                 type: boolean
+ *               dataRetentionPeriod:
+ *                 type: string
+ *                 enum: [forever, 1year, 2years, 5years]
+ *               profileVisibility:
+ *                 type: string
+ *                 enum: [public, educators, private]
+ *     responses:
+ *       200:
+ *         description: Privacy settings updated successfully
+ *       400:
+ *         description: Invalid privacy settings provided
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.put('/privacy-settings', protect, updatePrivacySettings);
+
+/**
+ * @swagger
+ * /api/users/export-data:
+ *   post:
+ *     summary: Export user data
+ *     description: Exports all personal data for the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               exportType:
+ *                 type: string
+ *                 default: 'all'
+ *               format:
+ *                 type: string
+ *                 enum: [json, csv]
+ *                 default: 'json'
+ *     responses:
+ *       200:
+ *         description: Data export generated successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post('/export-data', protect, exportUserData);
+
+/**
+ * @swagger
+ * /api/users/request-account-deletion:
+ *   post:
+ *     summary: Request account deletion
+ *     description: Initiates the account deletion process for the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deletion request processed
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post('/request-account-deletion', protect, requestAccountDeletion);
 
 /**
  * Helper functions

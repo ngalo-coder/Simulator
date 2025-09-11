@@ -1268,17 +1268,30 @@ export const api = {
   getLeaderboard: async (specialty?: string, limit?: number) => {
     try {
       const queryParams = new URLSearchParams();
-      if (specialty) queryParams.append('specialty', specialty);
+      if (specialty && specialty.trim()) queryParams.append('specialty', specialty.trim());
       if (limit) queryParams.append('limit', limit.toString());
 
       const response = await authenticatedFetch(`${API_BASE_URL}/api/leaderboard?${queryParams.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch leaderboard');
+        if (response.status === 401) {
+          throw new Error('Authentication required to view leaderboard');
+        }
+        throw new Error(`Failed to fetch leaderboard: ${response.status}`);
       }
       const data = await response.json();
-      return data.data || data;
+      
+      // Ensure we return an array, even if API returns wrapped data
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data.data && Array.isArray(data.data)) {
+        return data.data;
+      } else {
+        console.warn('Unexpected leaderboard data format:', data);
+        return [];
+      }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
+      // Following Frontend API Error Handling Standard from memory
       throw error;
     }
   },

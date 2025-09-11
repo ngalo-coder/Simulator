@@ -38,12 +38,7 @@ const connectDB = async () => {
       minPoolSize: 1,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      bufferCommands: false,
-      bufferMaxEntries: 0,
-      // Additional serverless optimizations
-      maxIdleTimeMS: 30000,
-      keepAlive: true,
-      keepAliveInitialDelay: 0
+      maxIdleTimeMS: 30000 // Additional serverless optimizations
     };
 
     const connection = await mongoose.connect(mongoUri, options);
@@ -167,6 +162,7 @@ const loadRoutes = async () => {
     const educatorRoutes = await import('../src/routes/educatorRoutes.js');
     const studentRoutes = await import('../src/routes/studentRoutes.js');
     const performanceRoutes = await import('../src/routes/performanceRoutes.js');
+    const leaderboardRoutes = await import('../src/routes/leaderboardRoutes.js');
     const analyticsRoutes = await import('../src/routes/analyticsRoutes.js');
 
     // Register routes
@@ -178,6 +174,7 @@ const loadRoutes = async () => {
     app.use('/api/educator', educatorRoutes.default);
     app.use('/api/student', studentRoutes.default);
     app.use('/api/performance', performanceRoutes.default);
+    app.use('/api/leaderboard', leaderboardRoutes.default);
     app.use('/api/analytics', analyticsRoutes.default);
     
     routesLoaded = true;
