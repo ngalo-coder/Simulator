@@ -194,43 +194,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
         className="mb-8"
       />
 
-      {/* Internal Medicine Sub-Category Tabs */}
-      {isInternalMedicine && subCategoriesWithCounts.length > 0 && (
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sub-Specialties</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleFilterChange({ sub_category: '', page: 1 })}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                !filters.sub_category
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All Internal Medicine ({casesResponse.totalCases})
-            </button>
-            {subCategoriesWithCounts
-              .filter(cat => cat.count > 0)
-              .map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleFilterChange({
-                    sub_category: category.id,
-                    page: 1
-                  })}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    filters.sub_category === category.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  title={category.description}
-                >
-                  {category.name} ({category.count})
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Search and Filtering */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
@@ -647,31 +611,6 @@ const SpecialtyCasePage: React.FC = memo(() => {
         </>
       )}
 
-      {/* Quick Navigation */}
-      <div className="mt-12 bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Navigation</h3>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/simulation"
-            className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors text-sm"
-          >
-            Browse All Cases
-          </Link>
-          <Link
-            to="/browse-cases"
-            className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors text-sm"
-          >
-            Other Specialties
-          </Link>
-          <Link
-            to="/dashboard"
-            className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors text-sm"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-      
       {/* Retake Modal */}
       <RetakeModal
         isOpen={showRetakeModal}

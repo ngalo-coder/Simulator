@@ -9,7 +9,8 @@ import {
   updateSpecialty,
   deleteSpecialty,
   getProgramAreasWithCounts,
-  getSpecialtiesWithCounts
+  getSpecialtiesWithCounts,
+  toggleSpecialtyVisibility
 } from '../controllers/adminProgramController.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
 
@@ -459,5 +460,54 @@ router.put('/specialties/:id', protect, isAdmin, updateSpecialty);
  *               $ref: '#/components/schemas/Error'
  */
 router.delete('/specialties/:id', protect, isAdmin, deleteSpecialty);
+
+/**
+ * @swagger
+ * /admin/programs/specialties/{id}/toggle-visibility:
+ *   patch:
+ *     summary: Toggle specialty visibility
+ *     description: Toggle the active/inactive status of a specialty to hide/show it from users
+ *     tags: [Admin Programs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the specialty to toggle
+ *     responses:
+ *       200:
+ *         description: Specialty visibility toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 specialty:
+ *                   $ref: '#/components/schemas/Specialty'
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       403:
+ *         description: Forbidden - admin access required
+ *       404:
+ *         description: Specialty not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.patch('/specialties/:id/toggle-visibility', protect, isAdmin, toggleSpecialtyVisibility);
 
 export default router;

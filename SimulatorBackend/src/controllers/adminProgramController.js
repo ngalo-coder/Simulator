@@ -188,21 +188,27 @@ export async function deleteProgramArea(req, res) {
 export async function getSpecialties(req, res) {
     const log = req.log;
     try {
-        // First try to get from Specialty model if it exists
+        // Get all specialties with their active status from Specialty model
         let specialties = [];
         try {
-            specialties = await Specialty.find().select('name').lean();
-            specialties = specialties.map(spec => spec.name);
+            specialties = await Specialty.find().select('name programArea active').lean();
         } catch (err) {
             // If Specialty model doesn't exist, get distinct specialties from cases
             log.info('Specialty model not found, getting from cases');
-            specialties = await Case.distinct('case_metadata.specialty');
+            const specialtyNames = await Case.distinct('case_metadata.specialty');
+            specialties = specialtyNames
+                .filter(name => name && name.trim() !== '')
+                .map(name => ({ 
+                    name,
+                    programArea: 'General',
+                    active: true // Default to active for cases-derived specialties
+                }));
         }
         
         // Filter out null/empty values and sort
         specialties = specialties
-            .filter(specialty => specialty && specialty.trim() !== '')
-            .sort();
+            .filter(specialty => specialty.name && specialty.name.trim() !== '')
+            .sort((a, b) => a.name.localeCompare(b.name));
         
         handleSuccess(res, { specialties });
     } catch (error) {
@@ -272,7 +278,7 @@ export async function updateSpecialty(req, res) {
     const log = req.log;
     try {
         const { id } = req.params;
-        const { name, programArea } = req.body;
+        const { name, programArea, active } = req.body;
         
         if (!name || name.trim() === '') {
             return handleError(res, { message: 'Specialty name is required' }, log);
@@ -282,25 +288,28 @@ export async function updateSpecialty(req, res) {
             return handleError(res, { message: 'Program area is required' }, log);
         }
         
+        // Validate active field if provided
+        if (active !== undefined && typeof active !== 'boolean') {
+            return handleError(res, { message: 'Active field must be a boolean value' }, log);
+        }
+        
         // Update specialty
         let updatedSpecialty;
         try {
+            const updateData = { name, programArea };
+            if (active !== undefined) {
+                updateData.active = active;
+            }
+            
             updatedSpecialty = await Specialty.findByIdAndUpdate(
                 id,
-                { name, programArea },
+                updateData,
                 { new: true }
             );
             
             if (!updatedSpecialty) {
                 return handleError(res, { message: 'Specialty not found' }, log);
             }
-            
-            // Also update any cases using this specialty
-            // This is optional and depends on your data model
-            // await Case.updateMany(
-            //     { 'case_metadata.specialty': oldName },
-            //     { $set: { 'case_metadata.specialty': name } }
-            // );
             
         } catch (err) {
             log.error(err, 'Error updating specialty in database');
@@ -429,6 +438,7 @@ export async function getSpecialtiesWithCounts(req, res) {
                     id: spec._id || `spec-${spec.name}`,
                     name: spec.name,
                     programArea: spec.programArea || 'General',
+                    active: spec.active !== undefined ? spec.active : true,
                     casesCount: count
                 };
             })
@@ -438,5 +448,54 @@ export async function getSpecialtiesWithCounts(req, res) {
     } catch (error) {
         log.error(error, 'Error fetching specialties with counts');
         handleError(res, { message: 'Failed to fetch specialties with counts' }, log);
+    }
+}
+
+/**
+ * Toggle specialty visibility (active/inactive status)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export async function toggleSpecialtyVisibility(req, res) {
+    const log = req.log;
+    try {
+        const { id } = req.params;
+        
+        // Get current specialty
+        let specialty;
+        try {
+            specialty = await Specialty.findById(id);
+            if (!specialty) {
+                return handleError(res, { message: 'Specialty not found' }, log);
+            }
+        } catch (err) {
+            log.error(err, 'Error finding specialty');
+            return handleError(res, { message: 'Failed to find specialty' }, log);
+        }
+        
+        // Toggle the active status
+        const newActiveStatus = !specialty.active;
+        
+        try {
+            const updatedSpecialty = await Specialty.findByIdAndUpdate(
+                id,
+                { active: newActiveStatus },
+                { new: true }
+            );
+            
+            const statusText = newActiveStatus ? 'shown to' : 'hidden from';
+            
+            handleSuccess(res, {
+                message: `Specialty "${updatedSpecialty.name}" is now ${statusText} users`,
+                specialty: updatedSpecialty
+            });
+        } catch (err) {
+            log.error(err, 'Error updating specialty visibility');
+            return handleError(res, { message: 'Failed to update specialty visibility' }, log);
+        }
+        
+    } catch (error) {
+        log.error(error, 'Error toggling specialty visibility');
+        handleError(res, { message: 'Failed to toggle specialty visibility' }, log);
     }
 }

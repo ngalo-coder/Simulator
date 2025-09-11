@@ -17,7 +17,7 @@ class UserRegistrationService {
    * @returns {Promise<Object>} - Registration result with user and token
    */
   async registerUser(registrationData) {
-    const {
+    let {
       username,
       email,
       password,
@@ -30,6 +30,17 @@ class UserRegistrationService {
       yearOfStudy,
       licenseNumber
     } = registrationData;
+
+    // Backwards-compatible: allow minimal registration payloads
+    // If username not provided, derive from email local part
+    if (!username && email) {
+      username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    }
+
+    // If discipline is missing, set a safe default
+    if (!discipline) {
+      discipline = HealthcareDiscipline.MEDICINE;
+    }
 
     // Validate required fields
     this.validateRegistrationData(registrationData);
@@ -295,8 +306,9 @@ class UserRegistrationService {
    * @param {Object} data - Registration data
    */
   validateRegistrationData(data) {
-    const required = ['username', 'email', 'password', 'discipline', 'firstName', 'lastName', 'institution'];
-    
+    // Minimal required fields: email, password, firstName, lastName, institution
+    const required = ['email', 'password', 'firstName', 'lastName', 'institution'];
+
     for (const field of required) {
       if (!data[field] || data[field].toString().trim() === '') {
         throw new Error(`${field} is required`);
@@ -309,17 +321,19 @@ class UserRegistrationService {
       throw new Error('Invalid email format');
     }
 
-    // Validate username format
-    const usernameRegex = /^[a-zA-Z0-9]+$/;
-    if (!usernameRegex.test(data.username)) {
-      throw new Error('Username can only contain letters and numbers');
+    // If username is present validate it, otherwise it's derived earlier
+    if (data.username) {
+      const usernameRegex = /^[a-zA-Z0-9]+$/;
+      if (!usernameRegex.test(data.username)) {
+        throw new Error('Username can only contain letters and numbers');
+      }
     }
 
     // Validate password strength
     this.validatePassword(data.password);
 
-    // Validate discipline
-    if (!Object.values(HealthcareDiscipline).includes(data.discipline)) {
+    // Validate discipline if provided
+    if (data.discipline && !Object.values(HealthcareDiscipline).includes(data.discipline)) {
       throw new Error('Invalid healthcare discipline');
     }
 

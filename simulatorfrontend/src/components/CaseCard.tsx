@@ -171,72 +171,87 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
   };
 
   return (
-    <div className="relative rounded-2xl shadow-xl border border-blue-200 bg-gradient-to-br from-blue-50/90 to-blue-100/60 group overflow-hidden transition-all duration-200 hover:shadow-2xl hover:border-blue-300">
+    <div data-testid="case-card" className="relative rounded-2xl shadow-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20">
       {/* Decorative background */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300" style={{background: 'radial-gradient(circle at 80% 20%, #60a5fa33 0%, transparent 70%)'}} />
+      <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 70%)'}} />
 
-      <div className="relative p-6 flex flex-col min-h-[280px]">
-        {/* Completion Status Badge */}
-        {case_.isCompleted && (
-          <div className="absolute top-3 right-3 flex items-center gap-2">
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
-              ✓ Completed
-            </span>
-            {case_.bestScore && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                💯 {case_.bestScore}%
-              </span>
-            )}
+      <div className="relative p-6 flex flex-col min-h-[300px]">
+        {/* Header Section */}
+        <div className="flex justify-between items-start mb-3">
+          {/* Case Title */}
+          <div className="flex-1 mr-2">
+            <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white">
+              {getCleanTitle()}
+            </h3>
           </div>
-        )}
-
-        {/* Case Title */}
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-gray-900 leading-tight">
-            {getCleanTitle()}
-          </h3>
+          
+          {/* Completion Status Badge */}
+          {case_.isCompleted && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700/50">
+                ✓
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Patient Info & Specialty Row */}
-        <div className="flex items-center gap-3 mb-4 text-sm">
-          {case_.patient_age && case_.patient_gender && (
-            <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-              <span>👤</span>
-              <span>{case_.patient_age}y {case_.patient_gender}</span>
-            </span>
-          )}
-          {case_.patient_age && case_.patient_gender && case_.specialty && (
-            <span className="text-gray-400">|</span>
-          )}
-          {case_.specialty && (() => {
-            const tagStyle = getSpecialtyTagStyle(case_.specialty);
-            return (
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border} border shadow-sm`}>
-                <span>{tagStyle.icon}</span>
-                <span>{case_.specialty}</span>
+        {/* Patient Info Card */}
+        <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-700 font-medium dark:text-gray-200">
+                👤 {case_.patient_age}y {case_.patient_gender}
               </span>
-            );
-          })()}
+            </div>
+            
+            {case_.specialty && (() => {
+              const tagStyle = getSpecialtyTagStyle(case_.specialty);
+              return (
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border} border shadow-sm dark:bg-opacity-20 dark:border-opacity-30`}>
+                  <span className="hidden xs:inline">{tagStyle.icon}</span>
+                  <span className="dark:text-white">{case_.specialty}</span>
+                </span>
+              );
+            })()}
+          </div>
         </div>
 
         {/* Chief Complaint */}
         {case_.chief_complaint && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-3 mb-4">
-            <div className="flex items-center gap-2 text-yellow-800 font-semibold mb-1 text-sm">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-3 mb-4 dark:bg-yellow-900/20 dark:border-yellow-600">
+            <div className="flex items-center gap-2 text-yellow-800 font-semibold mb-1 text-sm dark:text-yellow-200">
               <span>🟨</span>
               <span>Chief Complaint:</span>
             </div>
-            <p className="text-yellow-900 text-sm leading-relaxed">{case_.chief_complaint}</p>
+            <p className="text-yellow-900 text-sm leading-relaxed dark:text-yellow-100">{case_.chief_complaint}</p>
           </div>
         )}
 
-{/* Buttons Section */}
+        {/* Stats Section */}
+        {case_.isCompleted && case_.bestScore && (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
+              <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Best Score</div>
+              <div className="text-lg font-bold text-blue-800 dark:text-blue-200">{case_.bestScore}%</div>
+            </div>
+            {case_.lastCompletedAt && (
+              <div className="bg-gray-50 dark:bg-gray-700/20 rounded-lg p-2 text-center">
+                <div className="text-xs text-gray-600 dark:text-gray-300 font-medium">Last Taken</div>
+                <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  {new Date(case_.lastCompletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Buttons Section */}
         <div className="mt-auto space-y-2">
           {/* Start Simulation Button */}
           <button
             onClick={() => onStartSimulation(case_)}
             disabled={startingSimulation}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg dark:from-blue-700 dark:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 dark:focus:ring-blue-500 dark:focus:ring-offset-0"
           >
             {startingSimulation ? (
               <>
@@ -256,21 +271,13 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
             <button
               onClick={() => onRetake(case_)}
               disabled={startingSimulation}
-              className="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-2.5 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow"
+              className="w-full bg-gradient-to-r from-orange-100 to-orange-200 hover:from-orange-200 hover:to-orange-300 text-orange-700 py-2.5 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow dark:from-orange-900/30 dark:to-orange-800/30 dark:text-orange-200 dark:hover:from-orange-800/40 dark:hover:to-orange-700/40 dark:focus:ring-orange-500 dark:focus:ring-offset-0"
             >
               <span>🔄</span>
               <span>Retake for Improvement</span>
             </button>
           )}
         </div>
-
-        {/* Footer: Last completed date */}
-        {case_.lastCompletedAt && (
-          <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
-            <span>⏰</span>
-            <span>Last completed: {new Date(case_.lastCompletedAt).toLocaleDateString()}</span>
-          </div>
-        )}
       </div>
     </div>
   );

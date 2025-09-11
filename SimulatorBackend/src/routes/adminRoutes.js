@@ -15,7 +15,62 @@ const router = express.Router();
 // Get system statistics
 router.get('/stats', protect, isAdmin, async (req, res) => {
   try {
-    // ... existing stats code ...
+    // Get total counts
+    const [
+      totalUsers,
+      totalCases,
+      totalCompletedSessions,
+      totalActiveSessions
+    ] = await Promise.all([
+      User.countDocuments(),
+      Case.countDocuments(),
+      PerformanceMetrics.countDocuments({ status: 'completed' }),
+      ClinicianProgress.countDocuments({ status: 'active' })
+    ]);
+
+    // Get recent activity
+    const recentActivity = await ClinicianProgress.find()
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .populate('userId', 'username')
+      .populate('caseId', 'title')
+      .lean();
+
+    // Get performance metrics
+    const performanceStats = await PerformanceMetrics.aggregate([
+      {
+        $group: {
+          _id: null,
+          avgScore: { $avg: '$score' },
+          totalTime: { $avg: '$completionTime' },
+          completionRate: {
+            $avg: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    // Format the response
+    const stats = {
+      totalUsers,
+      totalCases,
+      totalCompletedSessions,
+      totalActiveSessions,
+      recentActivity: recentActivity.map(activity => ({
+        id: activity._id,
+        username: activity.userId?.username || 'Unknown User',
+        caseTitle: activity.caseId?.title || 'Unknown Case',
+        status: activity.status,
+        lastUpdated: activity.updatedAt
+      })),
+      performance: {
+        averageScore: performanceStats[0]?.avgScore?.toFixed(2) || 0,
+        averageCompletionTime: (performanceStats[0]?.totalTime / 60000)?.toFixed(2) || 0, // Convert to minutes
+        completionRate: (performanceStats[0]?.completionRate * 100)?.toFixed(2) || 0
+      }
+    };
+
+    res.json(stats);
   } catch (error) {
     console.error('Error fetching system stats:', error);
     res.status(500).json({ error: 'Failed to fetch system statistics' });
@@ -45,7 +100,24 @@ router.get('/users', protect, isAdmin, async (req, res) => {
 // Get all cases for admin
 router.get('/cases', protect, isAdmin, async (req, res) => {
   try {
-    // ... existing cases code ...
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const cases = await Case.find()
+      .sort({ 'case_metadata.createdAt': -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalCases = await Case.countDocuments();
+
+    res.json({
+      cases,
+      totalPages: Math.ceil(totalCases / limit),
+      currentPage: page,
+      totalCases,
+    });
   } catch (error) {
     console.error('Error fetching cases:', error);
     res.status(500).json({ error: 'Failed to fetch cases' });
