@@ -8,11 +8,11 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "build": "echo 'No build step required'",
+    "build": "echo 'No build step required for serverless'",
+    "vercel-build": "echo 'Vercel build complete'",
     "railway:deploy": "railway up",
     "railway:logs": "railway logs",
     "railway:open": "railway open",
-    "vercel-build": "echo 'Building for Vercel'",
     "postinstall": "echo 'Dependencies installed successfully'",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
