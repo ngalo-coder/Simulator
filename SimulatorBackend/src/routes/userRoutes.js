@@ -115,7 +115,22 @@ const router = express.Router();
  */
 router.post('/register', async (req, res) => {
   try {
-    const result = await userRegistrationService.registerUser(req.body);
+    // Transform frontend data structure to match backend expectations
+    let registrationData = { ...req.body };
+    
+    // If profile data is nested, flatten it to root level
+    if (req.body.profile) {
+      const { profile, ...otherData } = req.body;
+      registrationData = {
+        ...otherData,
+        ...profile
+      };
+    }
+    
+    console.log('Registration data received:', JSON.stringify(req.body, null, 2));
+    console.log('Transformed registration data:', JSON.stringify(registrationData, null, 2));
+    
+    const result = await userRegistrationService.registerUser(registrationData);
     
     res.status(201).json(result);
   } catch (error) {
