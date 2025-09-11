@@ -274,26 +274,11 @@ export const apiClient = {
 
   // Admin APIs
   getSystemStats: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-      return {
-        totalUsers: 1247,
-        totalCases: 156,
-        totalSessions: 3429,
-        activeUsers: 89
-      };
-    }
-    
     const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/stats`);
     return response.json();
   },
 
   getUsers: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { users: mockData.users };
-    }
-    
     const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users`);
     return response.json();
   }

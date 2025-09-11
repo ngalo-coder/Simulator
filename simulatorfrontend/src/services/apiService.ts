@@ -1204,12 +1204,12 @@ export const api = {
 
   getSystemStats: async () => {
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/system-stats`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/stats`);
       if (!response.ok) {
         throw new Error('Failed to fetch system stats');
       }
       const data = await response.json();
-      return data.data || data;
+      return data;
     } catch (error) {
       console.error('Error fetching system stats:', error);
       throw error;
@@ -2559,15 +2559,69 @@ export const api = {
     }
   },
 
-  // ==================== ADMIN USERS ====================
+  // ==================== ADMIN CASES ====================
 
-  getAdminUsers: async (filters?: { role?: string; status?: string; limit?: number; page?: number }) => {
+  getAdminCases: async (filters?: { specialty?: string; programArea?: string; limit?: number; page?: number }) => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filters?.specialty) queryParams.append('specialty', filters.specialty);
+      if (filters?.programArea) queryParams.append('programArea', filters.programArea);
+      if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+      if (filters?.page) queryParams.append('page', filters.page.toString());
+
+      const response = await authenticatedFetch(
+        `${API_BASE_URL}/api/admin/cases?${queryParams.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin cases');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching admin cases:', error);
+      throw error;
+    }
+  },
+
+  updateAdminCase: async (caseId: string, caseData: any) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/${caseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(caseData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update case');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating case:', error);
+      throw error;
+    }
+  },
+
+  deleteAdminCase: async (caseId: string): Promise<void> => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/${caseId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to delete case: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting case:', error);
+      throw error;
+    }
+  },
+
+  getAdminUsers: async (filters?: { role?: string; status?: string; limit?: number; page?: number; search?: string }) => {
     try {
       const queryParams = new URLSearchParams();
       if (filters?.role) queryParams.append('role', filters.role);
       if (filters?.status) queryParams.append('status', filters.status);
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
       if (filters?.page) queryParams.append('page', filters.page.toString());
+      if (filters?.search) queryParams.append('search', filters.search);
 
       const response = await authenticatedFetch(
         `${API_BASE_URL}/api/admin/users?${queryParams.toString()}`
@@ -2576,7 +2630,7 @@ export const api = {
         throw new Error('Failed to fetch admin users');
       }
       const data = await response.json();
-      return data.data || data;
+      return data;
     } catch (error) {
       console.error('Error fetching admin users:', error);
       throw error;
@@ -2641,6 +2695,20 @@ export const api = {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+
+  getUsersWithScores: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/scores`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users with scores');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching users with scores:', error);
       throw error;
     }
   },

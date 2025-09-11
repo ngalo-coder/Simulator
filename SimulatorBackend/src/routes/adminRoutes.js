@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/UserModel.js';
 import Case from '../models/CaseModel.js';
 import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
+import ClinicianProgress from '../models/ClinicianProgressModel.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
 
 const router = express.Router();
@@ -25,8 +26,7 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
     }
     
     // Use Promise.all for parallel execution
-    const [
-      totalUsers,
+    const [      totalUsers,
       totalCases,
       totalSessions,
       recentUsers,
@@ -37,15 +37,18 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
     ] = await Promise.all([
       User.countDocuments(dateFilter),
       Case.countDocuments(),
-      PerformanceMetrics.countDocuments(dateFilter),
+      // Use ClinicianProgress as authoritative source for total sessions completed
+      ClinicianProgress.aggregate([
+        { $group: { _id: null, totalSessions: { $sum: '$totalCasesCompleted' } } }
+      ]).then(result => result[0]?.totalSessions || 0),
       
       // Recent users (last 30 days)
       User.countDocuments({
         createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
       }),
       
-      // Active users (users who have completed at least one case)
-      PerformanceMetrics.distinct('user_ref').then(userIds => userIds.length),
+      // Active users (users who have completed at least one case) from ClinicianProgress
+      ClinicianProgress.countDocuments({ totalCasesCompleted: { $gt: 0 } }),
       
       // Cases by specialty
       Case.aggregate([
@@ -58,9 +61,10 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
         { $sort: { count: -1 } }
       ]),
       
-      // Recent sessions (last 7 days)
-      PerformanceMetrics.countDocuments({
-        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+      // Recent sessions (last 7 days) - use ClinicianProgress with date filter
+      ClinicianProgress.countDocuments({
+        lastUpdatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        totalCasesCompleted: { $gt: 0 }
       }),
       
       // User growth over last 12 months
@@ -105,16 +109,19 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
 router.get('/stats/realtime', protect, isAdmin, async (req, res) => {
   try {
     const [activeUsers, recentSessions, pendingReviews] = await Promise.all([
-      PerformanceMetrics.distinct('user_ref', {
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-      }).then(userIds => userIds.length),
-      
-      PerformanceMetrics.countDocuments({
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) } // Last hour
+      // Active users who have updated progress in last 24 hours
+      ClinicianProgress.countDocuments({
+        lastUpdatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        totalCasesCompleted: { $gt: 0 }
       }),
       
-      // Assuming ContributedCase model exists
-      mongoose.model('ContributedCase').countDocuments({ status: 'submitted' })
+      // Recent sessions - users with progress updates in last hour
+      ClinicianProgress.countDocuments({
+        lastUpdatedAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+      }),
+      
+      // Placeholder for pending reviews (can be implemented later)
+      0
     ]);
     
     res.json({
@@ -481,7 +488,16 @@ router.put('/cases/:caseId', protect, isAdmin, async (req, res) => {
  */
 router.get('/users/scores', protect, isAdmin, async (req, res) => {
   try {
+    // Use ClinicianProgress as the primary data source for accurate progress metrics
     const usersWithScores = await User.aggregate([
+      {
+        $lookup: {
+          from: 'clinicianprogresses',
+          localField: '_id',
+          foreignField: 'userId',
+          as: 'progress'
+        }
+      },
       {
         $lookup: {
           from: 'performancemetrics',
@@ -492,19 +508,32 @@ router.get('/users/scores', protect, isAdmin, async (req, res) => {
       },
       {
         $addFields: {
-          totalCases: { $size: '$performances' },
+          progressData: { $arrayElemAt: ['$progress', 0] },
+          totalCases: {
+            $cond: {
+              if: { $gt: [{ $size: '$progress' }, 0] },
+              then: { $arrayElemAt: ['$progress.totalCasesCompleted', 0] },
+              else: { $size: '$performances' }
+            }
+          },
           averageScore: {
             $cond: {
-              if: { $gt: [{ $size: '$performances' }, 0] },
-              then: { $avg: '$performances.metrics.overall_score' },
-              else: 0
+              if: { $gt: [{ $size: '$progress' }, 0] },
+              then: { $arrayElemAt: ['$progress.overallAverageScore', 0] },
+              else: {
+                $cond: {
+                  if: { $gt: [{ $size: '$performances' }, 0] },
+                  then: { $avg: '$performances.metrics.overall_score' },
+                  else: 0
+                }
+              }
             }
           },
           excellentCount: {
             $size: {
               $filter: {
                 input: '$performances',
-                cond: { $eq: ['$$this.metrics.performance_label', 'Excellent'] }
+                cond: { $gte: ['$$this.metrics.overall_score', 90] }
               }
             }
           }

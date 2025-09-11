@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
 import AdminUserManagement from '../components/AdminUserManagement';
+import AdminCaseManagement from '../components/AdminCaseManagement';
+import AdminAnalytics from '../components/AdminAnalytics';
+
 
 interface SystemStats {
   totalUsers: number;
@@ -14,6 +17,7 @@ interface SystemStats {
 const AdminPage: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'cases' | 'analytics'>('overview');
 
   useEffect(() => {
@@ -23,18 +27,21 @@ const AdminPage: React.FC = () => {
   const fetchSystemStats = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await api.getSystemStats();
+      console.log('✅ Real admin stats loaded:', data);
       setStats(data);
-    } catch (error) {
-      console.error('Error fetching system stats:', error);
-      // Mock data for demo
+    } catch (error: any) {
+      console.error('❌ Error fetching system stats:', error);
+      setError(`Failed to load admin statistics: ${error.message || 'Unknown error'}`);
+      // Show zero values when API fails instead of hardcoded mock data
       setStats({
-        totalUsers: 1247,
-        totalCases: 156,
-        totalSessions: 3429,
-        activeUsers: 89,
-        recentUsers: 23,
-        recentSessions: 145
+        totalUsers: 0,
+        totalCases: 0,
+        totalSessions: 0,
+        activeUsers: 0,
+        recentUsers: 0,
+        recentSessions: 0
       });
     } finally {
       setLoading(false);
@@ -125,8 +132,24 @@ const AdminPage: React.FC = () => {
             isActive={activeTab === 'analytics'} 
             onClick={() => setActiveTab('analytics')} 
           />
+
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <span className="mr-2">⚠️</span>
+            <div>
+              <strong>API Error:</strong> {error}
+              <div className="text-sm mt-1">
+                Unable to load real data from database. Please check your authentication and backend connection.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
@@ -238,37 +261,15 @@ const AdminPage: React.FC = () => {
 
       {/* Cases Tab */}
       {activeTab === 'cases' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Case Management</h2>
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg mb-2">Case Management Interface</p>
-            <p>This section will contain case management tools including:</p>
-            <ul className="text-left mt-4 space-y-2 max-w-md mx-auto">
-              <li>• Browse all available cases</li>
-              <li>• Add new patient cases</li>
-              <li>• Edit existing case content</li>
-              <li>• Organize cases by specialty</li>
-            </ul>
-          </div>
-        </div>
+        <AdminCaseManagement />
       )}
 
       {/* Analytics Tab */}
       {activeTab === 'analytics' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Analytics Dashboard</h2>
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg mb-2">Analytics Interface</p>
-            <p>This section will contain detailed analytics including:</p>
-            <ul className="text-left mt-4 space-y-2 max-w-md mx-auto">
-              <li>• User engagement metrics</li>
-              <li>• Case completion rates</li>
-              <li>• Performance trends</li>
-              <li>• Usage statistics</li>
-            </ul>
-          </div>
-        </div>
+        <AdminAnalytics />
       )}
+
+
     </div>
   );
 };
