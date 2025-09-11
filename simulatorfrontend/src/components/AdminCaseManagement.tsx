@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
+import AdminCaseCreation from './AdminCaseCreation';
 
 interface CaseData {
   _id: string;
@@ -35,6 +36,7 @@ const AdminCaseManagement: React.FC = () => {
   const [filterProgramArea, setFilterProgramArea] = useState<string>('');
   const [selectedCase, setSelectedCase] = useState<CaseData | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCases, setTotalCases] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -106,6 +108,11 @@ const AdminCaseManagement: React.FC = () => {
     }
   };
 
+  const handleCaseCreated = (caseId: string) => {
+    // Refresh the cases list after a new case is created
+    fetchCases();
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty?.toLowerCase()) {
       case 'beginner':
@@ -138,8 +145,18 @@ const AdminCaseManagement: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Case Management</h2>
           <p className="text-gray-600">Manage patient simulation cases</p>
         </div>
-        <div className="text-sm text-gray-500">
-          Total Cases: {totalCases}
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            disabled={loading}
+          >
+            <span className="text-lg">+</span>
+            <span>Create New Case</span>
+          </button>
+          <div className="text-sm text-gray-500">
+            Total Cases: {totalCases}
+          </div>
         </div>
       </div>
 
@@ -470,6 +487,13 @@ const AdminCaseManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Case Creation Modal */}
+      <AdminCaseCreation
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCaseCreated={handleCaseCreated}
+      />
     </div>
   );
 };

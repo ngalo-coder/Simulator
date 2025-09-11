@@ -2614,6 +2614,93 @@ export const api = {
     }
   },
 
+  // ==================== ADMIN CASE CREATION ====================
+
+  getAdminCaseTemplates: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/templates`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch case templates');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching case templates:', error);
+      throw error;
+    }
+  },
+
+  createAdminCase: async (caseData: {
+    discipline: string;
+    title: string;
+    description?: string;
+    difficulty?: string;
+    estimatedDuration?: number;
+    specialty?: string;
+    programArea?: string;
+    customData?: any;
+  }) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/create`, {
+        method: 'POST',
+        body: JSON.stringify(caseData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create case');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error creating case:', error);
+      throw error;
+    }
+  },
+
+  editAdminCase: async (caseId: string, updateData: {
+    title?: string;
+    description?: string;
+    difficulty?: string;
+    estimatedDuration?: number;
+    specialty?: string;
+    programArea?: string;
+    status?: string;
+    caseData?: any;
+  }) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/${caseId}/edit`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update case');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating case:', error);
+      throw error;
+    }
+  },
+
+  publishAdminCase: async (caseId: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/cases/${caseId}/publish`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to publish case');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error publishing case:', error);
+      throw error;
+    }
+  },
+
   getAdminUsers: async (filters?: { role?: string; status?: string; limit?: number; page?: number; search?: string }) => {
     try {
       const queryParams = new URLSearchParams();
