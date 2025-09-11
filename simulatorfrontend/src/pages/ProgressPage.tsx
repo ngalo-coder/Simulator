@@ -3,7 +3,6 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
 import { formatDate, formatScore, getPerformanceColor } from '../utils/helpers';
 import { ClinicianProgressResponse } from '../types';
-import { RetakeHistory } from '../components/retake';
 
 const ProgressPage: React.FC = () => {
   const { user } = useAuth();
@@ -62,7 +61,7 @@ const ProgressPage: React.FC = () => {
     let totalImprovementSum = 0;
     let casesWithMultipleAttempts = 0;
     
-    caseRetakeMap.forEach((attempts, caseId) => {
+    caseRetakeMap.forEach((attempts) => {
       if (attempts.length > 1) {
         casesWithMultipleAttempts++;
         totalRetakes += attempts.length - 1;

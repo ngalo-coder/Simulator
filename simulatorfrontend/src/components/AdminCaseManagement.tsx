@@ -108,7 +108,7 @@ const AdminCaseManagement: React.FC = () => {
     }
   };
 
-  const handleCaseCreated = (caseId: string) => {
+  const handleCaseCreated = () => {
     // Refresh the cases list after a new case is created
     fetchCases();
   };

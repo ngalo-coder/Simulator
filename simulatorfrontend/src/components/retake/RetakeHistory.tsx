@@ -13,13 +13,11 @@ interface RetakeSession {
 
 interface RetakeHistoryProps {
   caseId: string;
-  caseTitle: string;
   className?: string;
 }
 
 const RetakeHistory: React.FC<RetakeHistoryProps> = ({
   caseId,
-  caseTitle,
   className = ''
 }) => {
   const [sessions, setSessions] = useState<RetakeSession[]>([]);
@@ -148,7 +146,7 @@ const RetakeHistory: React.FC<RetakeHistoryProps> = ({
       </div>
 
       <div className="divide-y divide-blue-100">
-        {(expanded ? sessions : sessions.slice(0, 3)).map((session, index) => (
+        {(expanded ? sessions : sessions.slice(0, 3)).map((session) => (
           <div key={session.sessionId} className="p-4 sm:p-6 hover:bg-blue-50/50 transition-all duration-200">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
               <div className="flex-1">
@@ -228,8 +226,8 @@ const RetakeHistory: React.FC<RetakeHistoryProps> = ({
               <div className="bg-blue-50 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">Score Progression</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  {comparisonData.scoreProgression?.map((score: any, index: number) => (
-                    <div key={index} className="text-center">
+                  {comparisonData.scoreProgression?.map((score: any) => (
+                    <div key={score.attempt} className="text-center">
                       <div className="text-lg font-bold text-blue-700">{score.score}%</div>
                       <div className="text-sm text-blue-600">Attempt #{score.attempt}</div>
                     </div>
@@ -241,8 +239,8 @@ const RetakeHistory: React.FC<RetakeHistoryProps> = ({
                 <div className="bg-green-50 rounded-lg p-4">
                   <h4 className="font-medium text-green-900 mb-2">Improved Areas</h4>
                   <div className="space-y-2">
-                    {comparisonData.areaImprovements.map((improvement: any, index: number) => (
-                      <div key={index} className="flex justify-between text-sm">
+                    {comparisonData.areaImprovements.map((improvement: any) => (
+                      <div key={improvement.area} className="flex justify-between text-sm">
                         <span className="text-green-700">{improvement.area}</span>
                         <span className="text-green-600 font-medium">
                           {improvement.firstAttempt} → {improvement.lastAttempt}

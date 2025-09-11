@@ -25,7 +25,6 @@ const SimulationPage: React.FC = () => {
   const [startingSimulation, setStartingSimulation] = useState(false);
   const [showRetakeModal, setShowRetakeModal] = useState(false);
   const [selectedRetakeCase, setSelectedRetakeCase] = useState<Case | null>(null);
-  const [userProgress, setUserProgress] = useState<any>(null);
   
   const [filters, setFilters] = useState(() => {
     const preselectedFilters = location.state?.preselectedFilters;
@@ -147,7 +146,6 @@ const SimulationPage: React.FC = () => {
         }
         
         setCases(enhancedCases);
-        setUserProgress(progressResponse);
       } else {
         setCases([]);
       }

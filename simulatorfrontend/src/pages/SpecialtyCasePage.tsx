@@ -4,7 +4,7 @@ import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
-import { RetakeButton, RetakeModal } from '../components/retake';
+import { RetakeModal } from '../components/retake';
 import {
   INTERNAL_MEDICINE_SUB_CATEGORIES,
   getSubCategoriesWithCounts,

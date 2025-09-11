@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
-import { RetakeButton, RetakeModal, RetakeHistory } from '../components/retake';
+import { RetakeModal, RetakeHistory } from '../components/retake';
 import { 
   createSimulationSessionUrl, 
   createSimulationCaseUrl, 
@@ -1658,7 +1658,6 @@ const SimulationChatPage: React.FC = () => {
                   <div className="animate-fade-in">
                     <RetakeHistory 
                       caseId={caseId || ''} 
-                      caseTitle={sessionData?.caseTitle || sessionData?.case_title || 'Unknown Case'}
                       className=""
                     />
                   </div>

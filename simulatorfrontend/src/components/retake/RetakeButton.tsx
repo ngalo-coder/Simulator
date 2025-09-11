@@ -10,9 +10,6 @@ interface RetakeButtonProps {
 }
 
 const RetakeButton: React.FC<RetakeButtonProps> = ({
-  caseId,
-  caseTitle,
-  previousSessionId,
   className = '',
   onRetakeStart,
   disabled = false
