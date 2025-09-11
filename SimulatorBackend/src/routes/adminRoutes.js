@@ -4,6 +4,7 @@ import Case from '../models/CaseModel.js';
 import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
 import ClinicianProgress from '../models/ClinicianProgressModel.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
+import AnalyticsService from '../services/AnalyticsService.js';
 
 const router = express.Router();
 
@@ -564,6 +565,46 @@ router.get('/users/scores', protect, isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching users with scores:', error);
     res.status(500).json({ error: 'Failed to fetch users with scores' });
+  }
+});
+
+// Get aggregated analytics for the admin dashboard
+router.get('/analytics', protect, isAdmin, async (req, res) => {
+  try {
+    const [
+      caseUsage,
+      performanceTrends,
+      effectivenessMetrics
+    ] = await Promise.all([
+      AnalyticsService.getCaseUsageAnalytics(),
+      AnalyticsService.getPerformanceTrends(),
+      AnalyticsService.getCaseEffectivenessMetrics()
+    ]);
+
+    const userEngagement = performanceTrends.map(trend => ({
+      name: trend._id.date,
+      value: trend.sessionCount,
+    }));
+
+    const casePopularity = caseUsage.usage.map(specialty => ({
+        name: specialty._id.specialty,
+        value: specialty.count
+    }));
+
+    const performanceMetrics = {
+        avgScore: effectivenessMetrics[0]?.averageScore || 0,
+        avgTime: `${(effectivenessMetrics[0]?.avgCompletionTime / 60000).toFixed(2) || 0}min`,
+        completionRate: `${((effectivenessMetrics[0]?.totalSessions / caseUsage.usage.reduce((acc, curr) => acc + curr.count, 0)) * 100).toFixed(2) || 0}%`,
+    }
+
+    res.json({
+        userEngagement,
+        casePopularity,
+        performanceMetrics
+    });
+  } catch (error) {
+    console.error('Error fetching admin analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch admin analytics' });
   }
 });
 
