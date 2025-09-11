@@ -47,12 +47,44 @@ function generateCase(index, specialty, program_area) {
 
   return {
     version: "3.1-program-aware",
-    description: `A ${age}-year-old ${gender.toLowerCase()} presents with ${complaint.toLowerCase()}. Practice your clinical skills in this ${specialty.toLowerCase()} case.`,
+    description: (() => {
+      const onset = "Started suddenly about 1 hour ago.";
+      const location = complaint.includes("chest") ? "chest" :
+                      complaint.includes("abdominal") ? "abdomen" :
+                      complaint.includes("head") ? "head" : 
+                      complaint.includes("eye") || complaint.includes("vision") ? "right eye" : "unspecified";
+      
+      let description = `A ${age}-year-old ${gender.toLowerCase()} patient presenting with ${complaint.toLowerCase()}`;
+      
+      // Add clinical context
+      if (onset.includes('sudden')) {
+        description += ' of sudden onset';
+      }
+      if (location !== 'unspecified') {
+        description += ` affecting the ${location}`;
+      }
+      
+      return description + '.';
+    })(),
     system_instruction: "You are a highly realistic AI-simulated patient for a medical training application. You must portray the patient as defined below and strictly adhere to the specialty of '" + specialty + "'. Never introduce symptoms or diagnoses outside this area. Only reveal what is asked for. Avoid offering medical suggestions or diagnosis.",
     case_metadata: {
       program_area,
       case_id: `VP-${specialty.toUpperCase().replace(/\s+/g, '_')}-${String(index).padStart(4, '0')}`,
-      title: `${age}-Year-Old ${gender} with ${complaint}`,
+      title: (() => {
+        // Add clinical context to the title based on specialty and complaint
+        const formattedComplaint = complaint.toLowerCase();
+        if (specialty.toLowerCase().includes('emergency')) {
+          return `Acute ${complaint}`;
+        } else if (specialty.toLowerCase().includes('chronic')) {
+          return `Chronic ${complaint}`;
+        } else if (formattedComplaint.includes('pain')) {
+          return `${complaint} with Associated Symptoms`;
+        } else if (formattedComplaint.includes('loss')) {
+          return `Progressive ${complaint}`;
+        } else {
+          return complaint;
+        }
+      })(),
       specialty,
       difficulty: pickOne(difficulties),
       tags: [complaint.toLowerCase(), specialty.toLowerCase(), "clinical reasoning"]

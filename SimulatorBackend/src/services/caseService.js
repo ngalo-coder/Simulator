@@ -48,10 +48,98 @@ export class CaseService {
   static formatCase(caseData) {
     const { case_metadata: meta, patient_persona: patient, clinical_dossier: clinical } = caseData;
     
+    // Format the title - Focus on key clinical presentation
+    const formatClinicalTitle = (complaint, hpi) => {
+      // Extract key clinical elements
+      const onset = hpi?.onset?.toLowerCase() || '';
+      const location = hpi?.location?.toLowerCase() || '';
+      const duration = hpi?.timing_and_duration?.toLowerCase() || '';
+      const severity = hpi?.severity?.toLowerCase() || '';
+      
+      // Common clinical patterns
+      const isAcute = onset?.includes('sudden') || onset?.includes('acute') || duration?.includes('hour') || duration?.includes('day');
+      const isChronic = duration?.includes('month') || duration?.includes('year') || onset?.includes('gradual');
+      const isProgressive = onset?.includes('progressive') || onset?.includes('worsening');
+      const isRecurrent = duration?.includes('recurring') || duration?.includes('episodic');
+      const isUnilateral = location?.includes('right') || location?.includes('left');
+      const isSevere = severity?.includes('severe') || severity?.includes('10') || severity?.includes('9');
+      
+      // Build clinically relevant title
+      let title = complaint?.split('.')[0] || '';
+      
+      // Add clinical modifiers
+      if (isAcute) title = `Acute ${title}`;
+      if (isChronic) title = `Chronic ${title}`;
+      if (isProgressive) title = `Progressive ${title}`;
+      if (isRecurrent) title = `Recurrent ${title}`;
+      if (isUnilateral && !title.toLowerCase().includes('unilateral')) title = `Unilateral ${title}`;
+      if (isSevere && !title.toLowerCase().includes('severe')) title = `Severe ${title}`;
+      
+      // Cleanup and standardize
+      return title
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+        .trim() || 'Unknown Case';
+    };
+
+    const formattedTitle = formatClinicalTitle(patient?.chief_complaint, clinical?.history_of_presenting_illness);
+    const age = patient?.age || '';
+    const gender = patient?.gender?.toLowerCase() || 'patient';
+    const chiefComplaint = patient?.chief_complaint || '';
+    const hpi = clinical?.history_of_presenting_illness || {};
+    
+    // Format clinical description professionally
+    const formatDescription = (age, gender, complaint, history) => {
+      // Extract relevant history elements
+      const onset = history?.onset?.toLowerCase() || '';
+      const timing = history?.timing_and_duration?.toLowerCase() || '';
+      const location = history?.location?.toLowerCase() || '';
+      
+      // Build professional clinical description
+      let description = `A ${age}-year-old ${gender} patient`;
+      
+      // Add presenting problem with proper clinical phrasing
+      if (complaint) {
+        description += ` presenting with ${complaint.toLowerCase()}`;
+        
+        // Add onset if available
+        if (onset && !complaint.toLowerCase().includes(onset)) {
+          if (onset.includes('sudden') || onset.includes('acute')) {
+            description += ` of sudden onset`;
+          } else if (onset.includes('gradual')) {
+            description += ` of gradual onset`;
+          } else if (timing.includes('hour') || timing.includes('day')) {
+            description += ` that started ${timing}`;
+          }
+        }
+        
+        // Add location if relevant
+        if (location && !complaint.toLowerCase().includes(location)) {
+          description += ` affecting the ${location}`;
+        }
+      }
+      
+      return description + '.';
+    };
+
+    const description = formatDescription(age, gender, chiefComplaint, hpi);
+
+    // Format the presenting complaint with structured clinical details
+    const presentingComplaint = [
+      `Presenting Complaint: ${chiefComplaint}`,
+      hpi.onset ? `Onset: ${hpi.onset}` : null,
+      hpi.timing_and_duration ? `Duration: ${hpi.timing_and_duration}` : null,
+      hpi.location ? `Location: ${hpi.location}` : null,
+      hpi.character ? `Character: ${hpi.character}` : null,
+      hpi.severity ? `Severity: ${hpi.severity}` : null
+    ].filter(Boolean).join('\n');
+    
     return {
       id: meta?.case_id,
-      title: meta?.title?.replace(/ with.*$/, ''),
-      description: caseData.description,
+      title: formattedTitle,
+      description: description,
+      presentingComplaint: presentingComplaint,
       category: meta?.specialized_area,
       // estimated_time removed - duration is provided within case data
       program_area: meta?.program_area,

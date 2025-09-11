@@ -147,6 +147,14 @@ export async function getPatientResponseStream(
   res,
   willEndCurrentResponse
 ) {
+    // Debug logging
+    console.log('🔄 Starting patient response stream:', {
+        sessionId,
+        question: newQuestion,
+        hasConversationHistory: Array.isArray(conversationHistory) && conversationHistory.length > 0,
+        caseDataKeys: Object.keys(caseData || {}),
+        willEndCurrentResponse
+    });
   const log = logger.child({
     service: 'aiService',
     function: 'getPatientResponseStream',
@@ -168,8 +176,10 @@ export async function getPatientResponseStream(
   try {
     log.info('Requesting patient response stream from AI.');
     const stream = await openai.chat.completions.create({
-      model: 'openai/gpt-4o',
+      model: 'gpt-4',
       messages: [{ role: 'system', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 150,
       temperature: 0.7,
       max_tokens: 100,
       stream: true,

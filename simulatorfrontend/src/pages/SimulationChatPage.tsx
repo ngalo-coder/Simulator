@@ -487,10 +487,11 @@ const SimulationChatPage: React.FC = () => {
       const messages: Message[] = [];
 
       // Add system welcome message - Requirement 2.2
+      const displayName = (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
       const systemMessage: Message = {
         id: 'system-' + Date.now(),
         role: 'assistant',
-        content: `🏥 **Welcome to Simuatech**\n\nYou are now interacting with ${patientName}. This is a safe learning environment where you can practice your clinical skills.\n\n**How to interact:**\n• Ask questions about symptoms, medical history, or concerns\n• Conduct a virtual examination by asking specific questions\n• Practice your diagnostic reasoning\n• The patient will respond realistically based on their condition\n\n**Tips:**\n• Start with open-ended questions like "What brings you in today?"\n• Be thorough in your questioning\n• Take your time - there's no rush\n\nType your first question below to begin the consultation. Good luck! 👩‍⚕️👨‍⚕️`,
+        content: `🏥 **Welcome to Simuatech**\n\nYou are now interacting with ${displayName}. This is a safe learning environment where you can practice your clinical skills.\n\n**How to interact:**\n• Ask questions about symptoms, medical history, or concerns\n• Conduct a virtual examination by asking specific questions\n• Practice your diagnostic reasoning\n• The patient will respond realistically based on their condition\n\n**Tips:**\n• Start with open-ended questions like "What brings you in today?"\n• Be thorough in your questioning\n• Take your time - there's no rush\n\nType your first question below to begin the consultation. Good luck! 👩‍⚕️👨‍⚕️`,
         timestamp: new Date(),
         speaks_for: 'System',
       };
@@ -516,12 +517,13 @@ const SimulationChatPage: React.FC = () => {
         messages.push(patientMessage);
       } else {
         console.log('⚠️ No initial prompt, adding default greeting - Requirement 2.2');
+        const displayName = (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
         const defaultMessage: Message = {
           id: 'patient-default-' + Date.now(),
           role: 'assistant',
-          content: `Hello, I'm ${patientName}. Thank you for seeing me today. How can I help you?`,
+          content: `Hello, I'm ${displayName}. Thank you for seeing me today. How can I help you?`,
           timestamp: new Date(),
-          speaks_for: speaksFor,
+          speaks_for: (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor,
         };
         messages.push(defaultMessage);
       }
@@ -657,7 +659,21 @@ const SimulationChatPage: React.FC = () => {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !sessionData?.sessionId || isLoading || isSessionEnded) return;
+    console.log('🚀 sendMessage called');
+    console.log('💬 Input message:', inputMessage.trim());
+    console.log('📋 Session data:', sessionData);
+    console.log('🔄 Is loading:', isLoading);
+    console.log('🚪 Session ended:', isSessionEnded);
+    
+    if (!inputMessage.trim() || !sessionData?.sessionId || isLoading || isSessionEnded) {
+      console.log('⚠️ Message sending blocked:', {
+        hasMessage: !!inputMessage.trim(),
+        hasSessionId: !!sessionData?.sessionId,
+        isLoading,
+        isSessionEnded
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -669,6 +685,19 @@ const SimulationChatPage: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
+
+    console.log('🗨️ User message added, starting streaming...');
+
+    // Test backend connectivity first
+    console.log('🔍 Testing backend connectivity...');
+    try {
+      const testResponse = await fetch(`${import.meta.env.VITE_API_URL}/health`, {
+        method: 'GET'
+      });
+      console.log('🌐 Backend connectivity test:', testResponse.status);
+    } catch (connectError) {
+      console.error('❌ Backend connectivity test failed:', connectError);
+    }
 
     try {
       await streamPatientResponse(sessionData.sessionId, userMessage.content);
@@ -732,6 +761,7 @@ const SimulationChatPage: React.FC = () => {
       const token = localStorage.getItem('authToken');
 
       if (!token) {
+        console.error('❌ No authentication token found in localStorage');
         reject(new Error('No authentication token found'));
         return;
       }
@@ -742,9 +772,13 @@ const SimulationChatPage: React.FC = () => {
         token,
       });
 
-      const eventSource = new EventSource(
-        `${import.meta.env.VITE_API_URL}/api/simulation/ask?${queryParams.toString()}`
-      );
+      const eventSourceUrl = `${import.meta.env.VITE_API_URL}/api/simulation/ask?${queryParams.toString()}`;
+      console.log('🔗 Creating EventSource connection to:', eventSourceUrl);
+      console.log('🔑 Using token:', token.substring(0, 20) + '...');
+      console.log('📝 Session ID:', sessionId);
+      console.log('❓ Question:', question);
+
+      const eventSource = new EventSource(eventSourceUrl);
 
       eventSourceRef.current = eventSource;
 
@@ -753,34 +787,48 @@ const SimulationChatPage: React.FC = () => {
         role: 'assistant',
         content: '',
         timestamp: new Date(),
-        speaks_for: sessionData?.patientName || 'Patient',
+        speaks_for: (() => {
+          const speaksFor = sessionData?.speaks_for;
+          const patientName = sessionData?.patientName || 'Patient';
+          // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
+          return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+        })(),
       };
 
       let hasStarted = false;
       let connectionEstablished = false;
 
       eventSource.onopen = () => {
-        console.log('EventSource connection opened');
+        console.log('✅ EventSource connection opened successfully');
         connectionEstablished = true;
       };
 
       eventSource.onmessage = (event) => {
         try {
-          console.log('Received SSE data:', event.data);
+          console.log('📨 Received SSE data:', event.data);
           const data = JSON.parse(event.data);
 
           switch (data.type) {
             case 'chunk':
               if (!hasStarted) {
-                // Update the assistant message with the correct name and role from the backend
-                assistantMessage.speaks_for = data.name || data.speaks_for || sessionData?.patientName || 'Patient';
+                // Update the assistant message with the correct speaker name from the backend
+                // If speaks_for is present and not "Self", use it (e.g., "Mother" for parent speaking for child)
+                // Otherwise use the patient's name
+                const speakerName = (data.speaks_for && data.speaks_for !== 'Self') 
+                  ? data.speaks_for 
+                  : (data.name || sessionData?.patientName || 'Patient');
+                assistantMessage.speaks_for = speakerName;
                 setMessages((prev) => [...prev, assistantMessage]);
                 hasStarted = true;
               }
 
               assistantMessage.content += data.content;
-              // Use the name from the backend response, fallback to speaks_for or sessionData
-              assistantMessage.speaks_for = data.name || data.speaks_for || assistantMessage.speaks_for;
+              // Use speaks_for if available and not "Self" (for cases where someone speaks for the patient)
+              // Otherwise use the patient's name
+              const speakerName = (data.speaks_for && data.speaks_for !== 'Self') 
+                ? data.speaks_for 
+                : (data.name || assistantMessage.speaks_for);
+              assistantMessage.speaks_for = speakerName;
 
               setMessages((prev) =>
                 prev.map((msg) => (msg.id === assistantMessage.id ? { ...assistantMessage } : msg))
@@ -823,8 +871,9 @@ const SimulationChatPage: React.FC = () => {
       };
 
       eventSource.onerror = (err) => {
-        console.error('EventSource error:', err);
-        console.error('EventSource readyState:', eventSource.readyState);
+        console.error('❌ EventSource error:', err);
+        console.error('🔍 EventSource readyState:', eventSource.readyState);
+        console.error('🌐 EventSource URL:', eventSource.url);
 
         // Enhanced error logging for streaming - Requirement 3.4
         const errorDetails = {
@@ -832,7 +881,8 @@ const SimulationChatPage: React.FC = () => {
           connectionEstablished,
           sessionId,
           question: question.substring(0, 100) + '...',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          url: eventSource.url
         };
 
         if (!connectionEstablished) {
@@ -1237,10 +1287,12 @@ const SimulationChatPage: React.FC = () => {
                     <p className="font-semibold text-gray-900 text-sm sm:text-base">
                       {simulationStartupState.isLoading 
                         ? (simulationStartupState.phase === 'loading_patient' ? 'Loading Patient...' : 'Setting Up...')
-                        : (sessionData?.patientName ||
-                           sessionData?.patient_name ||
-                           sessionData?.name ||
-                           'Patient')
+                        : (() => {
+                            const speaksFor = sessionData?.speaks_for;
+                            const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                            // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
+                            return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                          })()
                       }
                       {/* Enhanced Debug info */}
                       {import.meta.env.DEV && (
@@ -1448,10 +1500,12 @@ const SimulationChatPage: React.FC = () => {
               </div>
               <div className="flex-1 sm:max-w-md lg:max-w-lg">
                 <div className="text-xs mb-1 sm:mb-2 font-semibold text-purple-700">
-                  {sessionData?.patientName ||
-                    sessionData?.patient_name ||
-                    sessionData?.name ||
-                    'Patient'}
+                  {(() => {
+                    const speaksFor = sessionData?.speaks_for;
+                    const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                    // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
+                    return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                  })()}
                 </div>
                 <div className="bg-white text-gray-900 border border-gray-200 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
                   <div className="flex items-center space-x-2 sm:space-x-3">
@@ -1472,11 +1526,13 @@ const SimulationChatPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-600 font-medium">
-                        {sessionData?.patientName ||
-                          sessionData?.patient_name ||
-                          sessionData?.name ||
-                          'Patient'}{' '}
-                        is thinking...
+                        {(() => {
+                          const speaksFor = sessionData?.speaks_for;
+                          const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                          // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
+                          return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                        })()}{' '}
+                        {!isSessionEnded ? 'is thinking...' : 'Generating report...'}
                       </span>
                       {/* Progress indicator for response generation - Requirement 2.4 */}
                       <div className="mt-1">
