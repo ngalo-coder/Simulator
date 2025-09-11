@@ -43,6 +43,133 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
     return case_.title;
   };
 
+  // Helper function to get specialty tag styling
+  const getSpecialtyTagStyle = (specialty: string) => {
+    const normalizedSpecialty = specialty.toLowerCase();
+    
+    const specialtyStyles: Record<string, {
+      bg: string;
+      text: string;
+      border: string;
+      icon: string;
+      gradient: string;
+    }> = {
+      // Internal Medicine - Blue theme
+      'internal medicine': {
+        bg: 'bg-blue-100',
+        text: 'text-blue-800',
+        border: 'border-blue-200',
+        icon: '🩺',
+        gradient: 'from-blue-50 to-blue-100'
+      },
+      // Cardiology - Red theme
+      'cardiology': {
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        border: 'border-red-200',
+        icon: '❤️',
+        gradient: 'from-red-50 to-red-100'
+      },
+      // Ophthalmology - Green theme
+      'ophthalmology': {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        border: 'border-green-200',
+        icon: '👁️',
+        gradient: 'from-green-50 to-green-100'
+      },
+      // Neurology - Purple theme
+      'neurology': {
+        bg: 'bg-purple-100',
+        text: 'text-purple-800',
+        border: 'border-purple-200',
+        icon: '🧠',
+        gradient: 'from-purple-50 to-purple-100'
+      },
+      // Pediatrics - Pink theme
+      'pediatrics': {
+        bg: 'bg-pink-100',
+        text: 'text-pink-800',
+        border: 'border-pink-200',
+        icon: '👶',
+        gradient: 'from-pink-50 to-pink-100'
+      },
+      // Emergency Medicine - Orange theme
+      'emergency medicine': {
+        bg: 'bg-orange-100',
+        text: 'text-orange-800',
+        border: 'border-orange-200',
+        icon: '🚨',
+        gradient: 'from-orange-50 to-orange-100'
+      },
+      // Surgery - Indigo theme
+      'surgery': {
+        bg: 'bg-indigo-100',
+        text: 'text-indigo-800',
+        border: 'border-indigo-200',
+        icon: '🔪',
+        gradient: 'from-indigo-50 to-indigo-100'
+      },
+      // Radiology - Teal theme
+      'radiology': {
+        bg: 'bg-teal-100',
+        text: 'text-teal-800',
+        border: 'border-teal-200',
+        icon: '📸',
+        gradient: 'from-teal-50 to-teal-100'
+      },
+      // Laboratory - Cyan theme
+      'laboratory': {
+        bg: 'bg-cyan-100',
+        text: 'text-cyan-800',
+        border: 'border-cyan-200',
+        icon: '🔬',
+        gradient: 'from-cyan-50 to-cyan-100'
+      },
+      // Pharmacy - Emerald theme
+      'pharmacy': {
+        bg: 'bg-emerald-100',
+        text: 'text-emerald-800',
+        border: 'border-emerald-200',
+        icon: '💊',
+        gradient: 'from-emerald-50 to-emerald-100'
+      },
+      // Nursing - Rose theme
+      'nursing': {
+        bg: 'bg-rose-100',
+        text: 'text-rose-800',
+        border: 'border-rose-200',
+        icon: '👩‍⚕️',
+        gradient: 'from-rose-50 to-rose-100'
+      },
+      // Dermatology - Amber theme
+      'dermatology': {
+        bg: 'bg-amber-100',
+        text: 'text-amber-800',
+        border: 'border-amber-200',
+        icon: '🧴',
+        gradient: 'from-amber-50 to-amber-100'
+      },
+      // Psychiatry - Violet theme
+      'psychiatry': {
+        bg: 'bg-violet-100',
+        text: 'text-violet-800',
+        border: 'border-violet-200',
+        icon: '🧘',
+        gradient: 'from-violet-50 to-violet-100'
+      }
+    };
+
+    // Return specific style or default blue theme
+    return specialtyStyles[normalizedSpecialty] || {
+      bg: 'bg-blue-100',
+      text: 'text-blue-800',
+      border: 'border-blue-200',
+      icon: '🏥',
+      gradient: 'from-blue-50 to-blue-100'
+    };
+  };
+
   return (
     <div className="relative rounded-2xl shadow-xl border border-blue-200 bg-gradient-to-br from-blue-50/90 to-blue-100/60 group overflow-hidden transition-all duration-200 hover:shadow-2xl hover:border-blue-300">
       {/* Decorative background */}
@@ -81,12 +208,15 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
           {case_.patient_age && case_.patient_gender && case_.specialty && (
             <span className="text-gray-400">|</span>
           )}
-          {case_.specialty && (
-            <span className="flex items-center gap-1.5 text-blue-700 font-medium">
-              <span>🏥</span>
-              <span>{case_.specialty}</span>
-            </span>
-          )}
+          {case_.specialty && (() => {
+            const tagStyle = getSpecialtyTagStyle(case_.specialty);
+            return (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border} border shadow-sm`}>
+                <span>{tagStyle.icon}</span>
+                <span>{case_.specialty}</span>
+              </span>
+            );
+          })()}
         </div>
 
         {/* Chief Complaint */}
@@ -100,15 +230,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
           </div>
         )}
 
-        {/* Description (only if no chief complaint and different from title) */}
-        {case_.description && !case_.chief_complaint && 
-         case_.description.toLowerCase() !== case_.title?.toLowerCase() && (
-          <div className="text-gray-700 text-sm mb-4 line-clamp-2">
-            {case_.description}
-          </div>
-        )}
-
-        {/* Buttons Section */}
+{/* Buttons Section */}
         <div className="mt-auto space-y-2">
           {/* Start Simulation Button */}
           <button
