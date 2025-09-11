@@ -129,10 +129,10 @@ export const apiClient = {
     return data; // This already has the correct format with data.token and data.user
   },
 
-  register: async (username: string, email: string, password: string) => {
+  register: async (userData: { email: string; password: string; firstName: string; lastName: string; institution: string }) => {
     if (USE_MOCK_DATA) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const user = { id: '1', username, email, role: 'user' as const };
+      const user = { id: '1', username: userData.email.split('@')[0], email: userData.email, role: 'user' as const };
       return { 
         data: {
           token: 'mock-jwt-token-' + Date.now(),
@@ -141,10 +141,23 @@ export const apiClient = {
       };
     }
     
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    // Transform the simplified data to match backend expectations
+    const registrationData = {
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      institution: userData.institution,
+      // Set default values for required fields
+      username: userData.email.split('@')[0],
+      discipline: 'medicine',
+      primaryRole: 'student'
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/api/users/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
+      body: JSON.stringify(registrationData)
     });
     
     if (!response.ok) {

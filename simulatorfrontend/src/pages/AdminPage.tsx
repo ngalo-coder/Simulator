@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
 import AdminUserManagement from '../components/AdminUserManagement';
 import AdminCaseManagement from '../components/AdminCaseManagement';
+import AdminSpecialtyManagement from '../components/AdminSpecialtyManagement';
 import AdminAnalytics from '../components/AdminAnalytics';
 
 
@@ -18,7 +19,7 @@ const AdminPage: React.FC = () => {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'cases' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'cases' | 'specialties' | 'analytics'>('overview');
 
   useEffect(() => {
     fetchSystemStats();
@@ -127,6 +128,12 @@ const AdminPage: React.FC = () => {
             onClick={() => setActiveTab('cases')} 
           />
           <TabButton 
+            id="specialties" 
+            label="Specialties" 
+            isActive={activeTab === 'specialties'} 
+            onClick={() => setActiveTab('specialties')} 
+          />
+          <TabButton 
             id="analytics" 
             label="Analytics" 
             isActive={activeTab === 'analytics'} 
@@ -209,6 +216,19 @@ const AdminPage: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold mb-3">Specialty Visibility</h3>
+              <p className="text-gray-600 mb-4">
+                Control which specialties are visible to users
+              </p>
+              <button 
+                onClick={() => setActiveTab('specialties')}
+                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+              >
+                Manage Specialties
+              </button>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-3">Performance Analytics</h3>
               <p className="text-gray-600 mb-4">
                 View detailed usage and performance analytics
@@ -262,6 +282,11 @@ const AdminPage: React.FC = () => {
       {/* Cases Tab */}
       {activeTab === 'cases' && (
         <AdminCaseManagement />
+      )}
+
+      {/* Specialties Tab */}
+      {activeTab === 'specialties' && (
+        <AdminSpecialtyManagement />
       )}
 
       {/* Analytics Tab */}

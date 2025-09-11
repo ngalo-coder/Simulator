@@ -1,6 +1,6 @@
 
 // Comprehensive API service for the virtual patient frontend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://simulator-gamma-six.vercel.app';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Auth utilities
 const getAuthToken = (): string | null => {
@@ -2606,7 +2606,68 @@ export const api = {
     }
   },
 
-  // ==================== ADMIN CASES ====================
+  // ==================== ADMIN SPECIALTY MANAGEMENT ====================
+
+  getAdminSpecialties: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin specialties');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching admin specialties:', error);
+      throw error;
+    }
+  },
+
+  getAdminSpecialtiesWithCounts: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties/counts`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch admin specialties with counts');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching admin specialties with counts:', error);
+      throw error;
+    }
+  },
+
+  updateAdminSpecialty: async (specialtyId: string, specialtyData: any) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties/${specialtyId}`, {
+        method: 'PUT',
+        body: JSON.stringify(specialtyData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update specialty');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating specialty:', error);
+      throw error;
+    }
+  },
+
+  toggleSpecialtyVisibility: async (specialtyId: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties/${specialtyId}/toggle-visibility`, {
+        method: 'PATCH',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to toggle specialty visibility');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error toggling specialty visibility:', error);
+      throw error;
+    }
+  },
 
   getAdminCases: async (filters?: { specialty?: string; programArea?: string; limit?: number; page?: number }) => {
     try {

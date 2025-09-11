@@ -13,20 +13,11 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: {
-    username: string;
-    email: string;
-    password: string;
-    profile: {
-      firstName: string;
-      lastName: string;
-      institution: string;
-      specialization?: string;
-      yearOfStudy?: number;
-      licenseNumber?: string;
-      competencyLevel: string;
-    };
-    discipline: string;
-    primaryRole: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  institution: string;
   }) => Promise<void>;
   logout: () => void;
 }
@@ -101,20 +92,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (userData: {
-    username: string;
     email: string;
     password: string;
-    profile: {
-      firstName: string;
-      lastName: string;
-      institution: string;
-      specialization?: string;
-      yearOfStudy?: number;
-      licenseNumber?: string;
-      competencyLevel: string;
-    };
-    discipline: string;
-    primaryRole: string;
+    firstName: string;
+    lastName: string;
+    institution: string;
   }) => {
     const response = await api.register(userData);
     const { token, user } = response;
