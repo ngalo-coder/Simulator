@@ -3,6 +3,8 @@ import User from '../models/UserModel.js';
 import Case from '../models/CaseModel.js';
 import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
 import ClinicianProgress from '../models/ClinicianProgressModel.js';
+import caseTemplateService from '../services/CaseTemplateService.js';
+import caseManagementService from '../services/CaseManagementService.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
 
 const router = express.Router();
@@ -564,6 +566,378 @@ router.get('/users/scores', protect, isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching users with scores:', error);
     res.status(500).json({ error: 'Failed to fetch users with scores' });
+  }
+});
+
+// ==================== ADMIN CASE CREATION ENDPOINTS ====================
+
+/**
+ * @swagger
+ * /api/admin/cases/templates:
+ *   get:
+ *     summary: Get available case templates for admin case creation
+ *     description: Retrieve all available case templates organized by discipline
+ *     tags: [Admin Case Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Templates retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 templates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       discipline:
+ *                         type: string
+ *                       metadata:
+ *                         type: object
+ *                       template:
+ *                         type: object
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       500:
+ *         description: Server error
+ */
+router.get('/cases/templates', protect, isAdmin, async (req, res) => {
+  try {
+    const templates = caseTemplateService.getAllTemplates();
+    
+    res.json({
+      success: true,
+      templates
+    });
+  } catch (error) {
+    console.error('Error fetching case templates:', error);
+    res.status(500).json({ error: 'Failed to fetch case templates' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/cases/create:
+ *   post:
+ *     summary: Create a new case (Admin)
+ *     description: Create a new simulation case from template or custom data
+ *     tags: [Admin Case Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - discipline
+ *               - title
+ *             properties:
+ *               discipline:
+ *                 type: string
+ *                 enum: [medicine, nursing, laboratory, radiology, pharmacy]
+ *                 example: 'medicine'
+ *               title:
+ *                 type: string
+ *                 example: 'Acute Myocardial Infarction Case'
+ *               description:
+ *                 type: string
+ *                 example: 'A comprehensive case study for cardiology training'
+ *               difficulty:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced]
+ *                 example: 'intermediate'
+ *               estimatedDuration:
+ *                 type: number
+ *                 example: 45
+ *               specialty:
+ *                 type: string
+ *                 example: 'Cardiology'
+ *               programArea:
+ *                 type: string
+ *                 example: 'Internal Medicine'
+ *               customData:
+ *                 type: object
+ *                 description: Custom case data to merge with template
+ *     responses:
+ *       201:
+ *         description: Case created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Case created successfully'
+ *                 caseId:
+ *                   type: string
+ *                   example: '64a7b8c9d1234567890abcde'
+ *                 case:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Bad request - Invalid input data
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       500:
+ *         description: Server error
+ */
+router.post('/cases/create', protect, isAdmin, async (req, res) => {
+  try {
+    const {
+      discipline,
+      title,
+      description,
+      difficulty = 'intermediate',
+      estimatedDuration = 45,
+      specialty,
+      programArea,
+      customData = {}
+    } = req.body;
+
+    // Validate required fields
+    if (!discipline || !title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Discipline and title are required'
+      });
+    }
+
+    // Prepare case data for creation
+    const caseCreationData = {
+      discipline,
+      customData: {
+        case_metadata: {
+          title,
+          description: description || '',
+          difficulty,
+          estimated_duration: estimatedDuration,
+          specialty: specialty || discipline,
+          program_area: programArea || discipline
+        },
+        description: description || '',
+        ...customData
+      }
+    };
+
+    // Create case using the template service and case management service
+    const templateCase = caseTemplateService.createCaseFromTemplate(
+      discipline,
+      caseCreationData.customData,
+      req.user
+    );
+
+    // Use case management service to create the case in the database
+    const createdCase = await caseManagementService.createCase(templateCase, req.user);
+
+    res.status(201).json({
+      success: true,
+      message: 'Case created successfully',
+      caseId: createdCase._id,
+      case: createdCase
+    });
+  } catch (error) {
+    console.error('Error creating case:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create case'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/cases/{caseId}/edit:
+ *   put:
+ *     summary: Edit an existing case (Admin)
+ *     description: Update case data including metadata and clinical content
+ *     tags: [Admin Case Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to edit
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               difficulty:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced]
+ *               estimatedDuration:
+ *                 type: number
+ *               specialty:
+ *                 type: string
+ *               programArea:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [draft, pending_review, approved, published, archived, rejected]
+ *               caseData:
+ *                 type: object
+ *                 description: Updated case content data
+ *     responses:
+ *       200:
+ *         description: Case updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Case updated successfully'
+ *                 case:
+ *                   $ref: '#/components/schemas/Case'
+ *       400:
+ *         description: Bad request - Invalid input data
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Admin access required
+ *       404:
+ *         description: Case not found
+ *       500:
+ *         description: Server error
+ */
+router.put('/cases/:caseId/edit', protect, isAdmin, async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const updateData = req.body;
+
+    // Find the case
+    const existingCase = await Case.findById(caseId);
+    if (!existingCase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Case not found'
+      });
+    }
+
+    // Prepare update data
+    const caseUpdateData = {
+      lastModifiedBy: req.user._id,
+      lastModifiedAt: new Date()
+    };
+
+    // Update metadata if provided
+    if (updateData.title || updateData.description || updateData.difficulty || 
+        updateData.estimatedDuration || updateData.specialty || updateData.programArea) {
+      caseUpdateData.case_metadata = {
+        ...existingCase.case_metadata.toObject(),
+        ...(updateData.title && { title: updateData.title }),
+        ...(updateData.description && { description: updateData.description }),
+        ...(updateData.difficulty && { difficulty: updateData.difficulty }),
+        ...(updateData.estimatedDuration && { estimated_duration: updateData.estimatedDuration }),
+        ...(updateData.specialty && { specialty: updateData.specialty }),
+        ...(updateData.programArea && { program_area: updateData.programArea })
+      };
+    }
+
+    // Update description if provided
+    if (updateData.description) {
+      caseUpdateData.description = updateData.description;
+    }
+
+    // Update status if provided
+    if (updateData.status) {
+      caseUpdateData.status = updateData.status;
+    }
+
+    // Merge any additional case data
+    if (updateData.caseData) {
+      Object.assign(caseUpdateData, updateData.caseData);
+    }
+
+    // Use case management service to update the case
+    const updatedCase = await caseManagementService.updateCase(caseId, caseUpdateData, req.user);
+
+    res.json({
+      success: true,
+      message: 'Case updated successfully',
+      case: updatedCase
+    });
+  } catch (error) {
+    console.error('Error updating case:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update case'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/cases/{caseId}/publish:
+ *   post:
+ *     summary: Publish a case (Admin)
+ *     description: Publish a case making it available for simulation
+ *     tags: [Admin Case Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the case to publish
+ *     responses:
+ *       200:
+ *         description: Case published successfully
+ *       404:
+ *         description: Case not found
+ *       400:
+ *         description: Case cannot be published (validation failed)
+ *       500:
+ *         description: Server error
+ */
+router.post('/cases/:caseId/publish', protect, isAdmin, async (req, res) => {
+  try {
+    const { caseId } = req.params;
+
+    // Use case management service to publish the case
+    const result = await caseManagementService.publishCase(caseId, req.user);
+
+    res.json({
+      success: true,
+      message: 'Case published successfully',
+      case: result
+    });
+  } catch (error) {
+    console.error('Error publishing case:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to publish case'
+    });
   }
 });
 
