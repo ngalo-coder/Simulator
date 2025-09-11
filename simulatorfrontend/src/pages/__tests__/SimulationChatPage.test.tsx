@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { BrowserRouter, MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
+import renderWithRouter from '../../test-utils'
 import { act } from 'react'
 import SimulationChatPage from '../SimulationChatPage'
 import * as apiService from '../../services/apiService'
@@ -9,7 +10,8 @@ import * as urlUtils from '../../utils/urlUtils'
 // Mock the API service
 vi.mock('../../services/apiService', () => ({
   api: {
-    startSimulation: vi.fn()
+    startSimulation: vi.fn(),
+    endSimulation: vi.fn(),
   }
 }))
 
@@ -110,11 +112,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'John Doe'
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-OPTH-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-OPTH-001'] })
 
       // Verify URL parsing was called
       expect(urlUtils.parseSimulationUrl).toHaveBeenCalledWith('/simulation/VP-OPTH-001')
@@ -138,11 +136,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
 
       const mockStartSimulation = vi.mocked(apiService.api.startSimulation)
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-OPTH-001/session/session-123']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-OPTH-001/session/session-123'] })
 
       // Should not start a new simulation for existing session
       await waitFor(() => {
@@ -161,11 +155,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         sessionId: null
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/invalid-url']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/invalid-url'] })
 
       // Should show error for invalid URL
       await waitFor(() => {
@@ -175,11 +165,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
 
     it('should validate bookmark compatibility', async () => {
       // Test Requirements: 4.4 - Bookmark compatibility
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-OPTH-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-OPTH-001'] })
 
       // Verify bookmark validation functions are called
       expect(urlUtils.isValidSimulationUrl).toHaveBeenCalled()
@@ -198,11 +184,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'Jane Smith'
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-NEURO-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-NEURO-001'] })
 
       // Should show loading state initially
       await waitFor(() => {
@@ -231,11 +213,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'Bob Wilson'
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-CARD-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-CARD-001'] })
 
       await waitFor(() => {
         expect(mockStartSimulation).toHaveBeenCalledWith('VP-CARD-001')
@@ -265,13 +243,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'Alice Johnson'
       })
 
-      render(
-        <MemoryRouter 
-          initialEntries={[{ pathname: '/simulation/VP-CARD-002', state: specialtyState }]}
-        >
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: [{ pathname: '/simulation/VP-CARD-002', state: specialtyState }] })
 
       await waitFor(() => {
         expect(mockStartSimulation).toHaveBeenCalledWith('VP-CARD-002')
@@ -296,11 +268,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'Test Patient'
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-TEST-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-TEST-001'] })
 
       await waitFor(() => {
         expect(mockStartSimulation).toHaveBeenCalledWith('VP-TEST-001')
@@ -329,11 +297,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         })
       )
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-LOAD-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-LOAD-001'] })
 
       // Should show initial validation phase
       expect(screen.getByText(/Validating case VP-LOAD-001/)).toBeInTheDocument()
@@ -367,11 +331,7 @@ describe('SimulationChatPage - Route Matching and Component Logic', () => {
         speaks_for: 'Ready Test Patient'
       })
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/VP-READY-001']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/VP-READY-001'] })
 
       await waitFor(() => {
         expect(mockStartSimulation).toHaveBeenCalledWith('VP-READY-001')
@@ -392,11 +352,7 @@ ribe('Error Handling Scenarios and State Transitions', () => {
       const mockStartSimulation = vi.mocked(apiService.api.startSimulation)
       mockStartSimulation.mockRejectedValue(new Error('Case not found'))
 
-      render(
-        <MemoryRouter initialEntries={['/simulation/INVALID-CASE']}>
-          <SimulationChatPage />
-        </MemoryRouter>
-      )
+      renderWithRouter(<SimulationChatPage />, { initialEntries: ['/simulation/INVALID-CASE'] })
 
       await waitFor(() => {
         expect(mockStartSimulation).toHaveBeenCalledWith('INVALID-CASE')
