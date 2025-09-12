@@ -1002,7 +1002,7 @@ const SimulationChatPage: React.FC = () => {
     const errorColor = getErrorColor(simulationError.type);
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center max-w-lg mx-auto p-6 bg-white rounded-lg shadow-lg">
           <div className={`w-20 h-20 bg-${errorColor}-100 rounded-full flex items-center justify-center mx-auto mb-6`}>
             <span className="text-3xl">{getErrorIcon(simulationError.type)}</span>
@@ -1139,7 +1139,7 @@ const SimulationChatPage: React.FC = () => {
   // Enhanced loading screen with detailed progress - Requirements 2.2, 2.3, 2.4
   if ((isLoading && messages.length === 0) || simulationStartupState.isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-lg">
           {/* Animated Logo/Icon */}
           <div className="relative mb-6">
@@ -1257,7 +1257,7 @@ const SimulationChatPage: React.FC = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50 via-white to-indigo-50 -mx-4 sm:-mx-6 lg:-mx-8 -my-8">
       {/* Enhanced Header with Patient Info */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -1266,8 +1266,8 @@ const SimulationChatPage: React.FC = () => {
                   <span className="text-white font-bold text-xs sm:text-sm">ST</span>
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900">Simuatech</h1>
-                  <p className="text-xs text-gray-500 hidden sm:block">Medical Simulation Platform</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Simuatech</h1>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Medical Simulation Platform</p>
                 </div>
               </div>
 
@@ -1507,7 +1507,7 @@ const SimulationChatPage: React.FC = () => {
                     return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
                   })()}
                 </div>
-                <div className="bg-white text-gray-900 border border-gray-200 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
+                <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     {/* Enhanced typing animation - Requirement 2.4 */}
                     <div className="flex space-x-1">
@@ -1555,7 +1555,7 @@ const SimulationChatPage: React.FC = () => {
       {isSessionEnded && evaluation && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border-t border-blue-200 p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -1748,7 +1748,7 @@ const SimulationChatPage: React.FC = () => {
 
       {/* Enhanced Input Section */}
       {!isSessionEnded && (
-        <div className="bg-white border-t border-gray-200 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
           <div className="p-3 sm:p-6">
             <div className="flex flex-col sm:flex-row items-end space-y-3 sm:space-y-0 sm:space-x-4">
               <div className="flex-1 w-full">

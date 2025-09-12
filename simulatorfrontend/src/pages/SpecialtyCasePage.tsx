@@ -197,24 +197,29 @@ const SpecialtyCasePage: React.FC = memo(() => {
 
 
       {/* Search and Filtering */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+      <div className="bg-white/80 dark:bg-dark-surface/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 mb-6">
         {/* Basic Search */}
         <div className="flex items-center space-x-4 mb-4">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <input
               type="text"
               value={filters.search}
               onChange={(e) => handleFilterChange({ search: e.target.value })}
               placeholder={`Search within ${specialtyName} cases...`}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-dark-card border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
             />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
               showAdvancedFilters
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 focus:ring-blue-500'
+                : 'bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-dark-hover focus:ring-gray-500'
             }`}
           >
             {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
@@ -222,7 +227,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
           {hasActiveFilters() && (
             <button
               onClick={clearAllFilters}
-              className="px-3 py-2 text-gray-600 hover:text-gray-800 text-sm"
+              className="px-4 py-2.5 text-sm font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             >
               Clear All
             </button>
@@ -241,7 +246,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                 <select
                   value={filters.patient_gender}
                   onChange={(e) => handleFilterChange({ patient_gender: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-dark-card border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors duration-200"
                 >
                   <option value="">All Genders</option>
                   <option value="Male">Male</option>
@@ -263,7 +268,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                   placeholder="Min age"
                   min="0"
                   max="120"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-dark-card border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors duration-200"
                 />
               </div>
 
@@ -280,34 +285,34 @@ const SpecialtyCasePage: React.FC = memo(() => {
                   placeholder="Max age"
                   min="0"
                   max="120"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-dark-card border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors duration-200"
                 />
               </div>
             </div>
 
             {/* Active Filters Summary */}
             {hasActiveFilters() && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm rounded-lg border border-blue-100/50 dark:border-blue-700/30">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-blue-800 font-medium">Active filters:</span>
+                    <span className="text-sm text-blue-800 dark:text-blue-200 font-medium">Active filters:</span>
                     {filters.search && (
-                      <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                      <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200 text-xs rounded-full border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                         Search: "{filters.search}"
                       </span>
                     )}
                     {filters.patient_gender && (
-                      <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                      <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200 text-xs rounded-full border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                         Gender: {filters.patient_gender}
                       </span>
                     )}
                     {(filters.patient_age_min !== undefined || filters.patient_age_max !== undefined) && (
-                      <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                      <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200 text-xs rounded-full border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                         Age: {filters.patient_age_min || 0}-{filters.patient_age_max || '∞'}
                       </span>
                     )}
                     {filters.sub_category && (
-                      <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                      <span className="px-3 py-1.5 bg-blue-100 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200 text-xs rounded-full border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                         Sub-Specialty: {INTERNAL_MEDICINE_SUB_CATEGORIES.find(cat => cat.id === filters.sub_category)?.name || filters.sub_category}
                       </span>
                     )}
@@ -469,56 +474,54 @@ const SpecialtyCasePage: React.FC = memo(() => {
             {cases.map((case_) => {
               const extendedCase = case_ as ExtendedCase;
               return (
-              <div 
-                key={case_.id} 
-                className="group bg-gradient-to-br from-blue-50 via-white to-blue-50 rounded-xl shadow-md hover:shadow-xl border border-blue-100 hover:border-blue-200 p-4 sm:p-6 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden"
-              >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-blue-100/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {/* Content */}
+                <div
+                  key={case_.id}
+                  className="relative rounded-2xl shadow-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20 p-6"
+                >
+                  {/* Decorative background */}
+                  <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 70%)'}} />                {/* Content */}
                 <div className="relative z-10">
                   <div className="mb-4">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-800 transition-colors duration-200">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-2 leading-tight group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors duration-200">
                         {case_.title}
                       </h3>
                       {extendedCase.isCompleted && (
                         <div className="flex flex-col items-end ml-2 flex-shrink-0">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700/50 shadow-sm">
                             ✓ Completed
                           </span>
                           {extendedCase.bestScore && (
-                            <span className="text-xs text-blue-600 font-semibold mt-1 bg-blue-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs text-blue-600 dark:text-blue-300 font-semibold mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                               Best: {extendedCase.bestScore}%
                             </span>
                           )}
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-600 text-sm line-clamp-3 mb-3 leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-3 leading-relaxed">
                       {case_.description}
                     </p>
                   </div>
 
                   <div className="space-y-2 mb-4 text-sm">
                     {case_.specialty && (
-                      <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg border border-blue-100">
-                        <span className="text-blue-600 font-medium">Specialty:</span>
-                        <span className="text-blue-800 font-semibold bg-blue-100 px-2 py-1 rounded-md text-xs">{case_.specialty}</span>
+                      <div className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-700/50">
+                        <span className="text-blue-600 dark:text-blue-300 font-medium">Specialty:</span>
+                        <span className="text-blue-800 dark:text-blue-200 font-semibold bg-blue-100 dark:bg-blue-800/50 px-2 py-1 rounded-md text-xs">{case_.specialty}</span>
                       </div>
                     )}
 
                     {case_.patient_age && case_.patient_gender && (
-                      <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
-                        <span className="text-gray-600 font-medium">Patient:</span>
-                        <span className="text-gray-800 font-semibold">{case_.patient_age}y {case_.patient_gender}</span>
+                      <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">Patient:</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-semibold">{case_.patient_age}y {case_.patient_gender}</span>
                       </div>
                     )}
                     {case_.chief_complaint && (
-                      <div className="p-2 bg-amber-50 rounded-lg border border-amber-100">
-                        <span className="text-amber-700 font-medium text-xs block mb-1">Chief Complaint:</span>
-                        <span className="text-amber-800 font-semibold text-sm">{case_.chief_complaint}</span>
+                      <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-700/50">
+                        <span className="text-amber-700 dark:text-amber-300 font-medium text-xs block mb-1">Chief Complaint:</span>
+                        <span className="text-amber-800 dark:text-amber-200 font-semibold text-sm">{case_.chief_complaint}</span>
                       </div>
                     )}
                   </div>
@@ -527,7 +530,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                     <button
                       onClick={() => handleStartSimulation(case_)}
                       disabled={startingSimulation}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
                     >
                       {startingSimulation ? (
                         <>
@@ -546,7 +549,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                       <button
                         onClick={() => handleRetakeCase(case_)}
                         disabled={startingSimulation}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-700 dark:to-orange-800 hover:from-orange-600 hover:to-orange-700 dark:hover:from-orange-800 dark:hover:to-orange-900 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-orange-300 dark:focus:ring-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center space-x-2"
                       >
                         <span>🔄</span>
                         <span>Retake for Improvement</span>
@@ -564,7 +567,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
               <button
                 onClick={() => handlePageChange(casesResponse.currentPage - 1)}
                 disabled={!casesResponse.hasPrevPage}
-                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 text-sm font-semibold bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 Previous
               </button>
@@ -587,11 +590,11 @@ const SpecialtyCasePage: React.FC = memo(() => {
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
                         pageNum === casesResponse.currentPage
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                      }`}
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white shadow-md'
+                          : 'text-gray-700 dark:text-gray-200 bg-white dark:bg-dark-card border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-dark-hover'
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
                     >
                       {pageNum}
                     </button>
@@ -602,7 +605,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
               <button
                 onClick={() => handlePageChange(casesResponse.currentPage + 1)}
                 disabled={!casesResponse.hasNextPage}
-                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 text-sm font-semibold bg-white dark:bg-dark-card text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 Next
               </button>

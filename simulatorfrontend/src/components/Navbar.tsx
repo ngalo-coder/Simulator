@@ -33,13 +33,13 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-primary-600 dark:bg-primary-700 text-white shadow-md sticky top-0 z-50 transition-colors duration-300">
+    <nav className="bg-primary-600 dark:bg-dark-surface border-b border-transparent dark:border-dark text-white shadow-md sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Specialty Context */}
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center group">
-              <img src="/logo.png" alt="Simuatech Logo" className="h-8 w-auto" />
+              <img src="/logo.png" alt="Simuatech Logo" className="h-8 w-auto dark:brightness-90" />
             </Link>
             
             {/* Current Specialty Indicator */}

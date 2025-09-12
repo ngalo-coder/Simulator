@@ -22,25 +22,103 @@ interface CaseCardProps {
 
 
 const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake, startingSimulation }) => {
-  // Helper function to clean up the title if it's duplicated in chief complaint
-  const getCleanTitle = () => {
-    if (!case_.chief_complaint) return case_.title;
+  // Format the description into a proper narrative
+  const formatDescription = (case_: Case) => {
+    if (!case_.description) return '';
+
+    let description = case_.description;
+
+    // Check if the description contains direct patient quotes
+    const hasQuotes = description.includes('"') || description.includes('"') || description.includes('"');
     
-    // If title is the same as chief complaint, use a generic title
-    const titleLower = case_.title?.toLowerCase();
-    const complaintLower = case_.chief_complaint?.toLowerCase();
-    
-    if (titleLower === complaintLower || 
-        titleLower?.includes(complaintLower) || 
-        complaintLower?.includes(titleLower)) {
-      // Extract a more meaningful title or use specialty-based title
-      if (case_.specialty) {
-        return `${case_.specialty} Case`;
+    if (!hasQuotes) {
+      // If no quotes, wrap the first-person narrative in quotes
+      if (/\b(i'(?:ve|m)|i\s|my)\b/i.test(description)) {
+        description = description.replace(/^(.*)$/i, 'presenting with: "$1"');
       }
-      return "Clinical Case";
+    }
+
+    // Clean up the text
+    description = description
+      .replace(/\s+/g, ' ') // Fix multiple spaces
+      .replace(/\.{2,}/g, '.') // Replace multiple dots with single dot
+      .replace(/\"\s*\./g, '."') // Move period inside quotes
+      .trim();
+
+    // Ensure proper sentence ending
+    if (!description.endsWith('.') && !description.endsWith('."')) {
+      description += '.';
+    }
+
+    // Capitalize first letter of the sentence and after colons
+    description = description
+      .replace(/^([a-z])/i, m => m.toUpperCase()) // Capitalize first letter
+      .replace(/:(\s*)\"([a-z])/gi, (_, space, letter) => `: ${space}"${letter.toUpperCase()}`); // Capitalize first letter after quotes
+
+    // Fix common sentence structure issues
+    description = description
+      // Capitalize first letter of the sentence
+      .replace(/^\w/, c => c.toUpperCase())
+      // Fix spacing after punctuation
+      .replace(/([.,!?])([^\s])/g, '$1 $2')
+      // Ensure single space between words
+      .replace(/\s+/g, ' ')
+      // Fix capitalization after sentence endings
+      .replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`)
+      // Remove multiple periods
+      .replace(/\.+/g, '.')
+      // Fix "presenting with with"
+      .replace(/presenting with with/gi, 'presenting with')
+      // Fix "presents with with"
+      .replace(/presents with with/gi, 'presents with');
+
+    // Add proper sentence ending if missing
+    if (!description.match(/[.!?]$/)) {
+      description += '.';
+    }
+
+    return description;
+  };
+
+  // Helper function to create a terse, focused title
+  const getCleanTitle = () => {
+    if (!case_.title) return "Clinical Case";
+    
+    // Remove common filler words and phrases
+    const fillerWords = [
+      'patient presenting with',
+      'presenting with',
+      'patient with',
+      'case of',
+      'evaluation of',
+      'assessment of',
+      'management of',
+      'history of'
+    ];
+    
+    let cleanTitle = case_.title;
+    
+    // Remove filler phrases
+    fillerWords.forEach(phrase => {
+      cleanTitle = cleanTitle.toLowerCase().replace(phrase.toLowerCase(), '').trim();
+    });
+    
+    // Capitalize first letter of each word
+    cleanTitle = cleanTitle.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    
+    // If the title is the same as chief complaint, create a focused title
+    if (case_.chief_complaint && 
+        cleanTitle.toLowerCase() === case_.chief_complaint.toLowerCase()) {
+      if (case_.patient_age && case_.patient_gender) {
+        return `${case_.patient_age}y ${case_.patient_gender}: ${cleanTitle}`;
+      }
+      return cleanTitle;
     }
     
-    return case_.title;
+    // Limit to 40 characters with ellipsis if needed
+    return cleanTitle.length > 40 ? cleanTitle.substring(0, 37) + '...' : cleanTitle;
   };
 
   // Helper function to get specialty tag styling
@@ -183,6 +261,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
             <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white">
               {getCleanTitle()}
             </h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2 leading-relaxed">
+              {formatDescription(case_)}
+            </p>
           </div>
           
           {/* Completion Status Badge */}
@@ -195,15 +276,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
           )}
         </div>
 
-        {/* Patient Info Card */}
+        {/* Specialty Card */}
         <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-700 font-medium dark:text-gray-200">
-                👤 {case_.patient_age}y {case_.patient_gender}
-              </span>
-            </div>
-            
+          <div className="flex items-center justify-end">
             {case_.specialty && (() => {
               const tagStyle = getSpecialtyTagStyle(case_.specialty);
               return (

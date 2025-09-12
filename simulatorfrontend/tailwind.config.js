@@ -19,6 +19,27 @@ export default {
           800: '#154360',
           900: '#1B4F72',
         }
+      },
+      backgroundColor: {
+        dark: {
+          DEFAULT: '#121212',
+          surface: '#1E1E1E',
+          card: '#242424',
+          hover: '#2A2A2A'
+        }
+      },
+      textColor: {
+        dark: {
+          primary: '#E4E6EB',
+          secondary: '#B0B3B8',
+          tertiary: '#808285'
+        }
+      },
+      borderColor: {
+        dark: {
+          DEFAULT: '#2D2D2D',
+          hover: '#404040'
+        }
       }
     },
   },

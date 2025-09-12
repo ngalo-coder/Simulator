@@ -163,19 +163,19 @@ const AdminUserManagement: React.FC = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'educator': return 'bg-blue-100 text-blue-800';
-      case 'student': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+      case 'educator': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200';
+      case 'student': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200';
+      default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'suspended': return 'bg-red-100 text-red-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200';
+      case 'suspended': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+      case 'inactive': return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
+      default: return 'bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -503,10 +503,10 @@ const AdminUserManagement: React.FC = () => {
 
       {/* User Details Modal */}
       {showUserDetails && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-primary">User Details</h3>
               <button
                 onClick={() => setShowUserDetails(false)}
                 className="text-gray-400 hover:text-gray-600"
