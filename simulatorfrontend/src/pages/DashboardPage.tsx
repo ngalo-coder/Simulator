@@ -1,6 +1,4 @@
-import React, { useState,  const [progressData, setProgressData] = useState<ProgressData | null>(null);
-  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
-  const [showDataExport, setShowDataExport] = useState(false);Effect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
@@ -26,7 +24,6 @@ interface ProgressData {
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
-  const [isLoading, setLoading] = useState(true);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showDataExport, setShowDataExport] = useState(false);
   const [downloadingPDF, setDownloadingPDF] = useState(false);

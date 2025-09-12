@@ -22,64 +22,6 @@ interface CaseCardProps {
 
 
 const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake, startingSimulation }) => {
-  // Format the description into a proper narrative
-  const formatDescription = (case_: Case) => {
-    if (!case_.description) return '';
-
-    let description = case_.description;
-
-    // Check if the description contains direct patient quotes
-    const hasQuotes = description.includes('"') || description.includes('"') || description.includes('"');
-    
-    if (!hasQuotes) {
-      // If no quotes, wrap the first-person narrative in quotes
-      if (/\b(i'(?:ve|m)|i\s|my)\b/i.test(description)) {
-        description = description.replace(/^(.*)$/i, 'presenting with: "$1"');
-      }
-    }
-
-    // Clean up the text
-    description = description
-      .replace(/\s+/g, ' ') // Fix multiple spaces
-      .replace(/\.{2,}/g, '.') // Replace multiple dots with single dot
-      .replace(/\"\s*\./g, '."') // Move period inside quotes
-      .trim();
-
-    // Ensure proper sentence ending
-    if (!description.endsWith('.') && !description.endsWith('."')) {
-      description += '.';
-    }
-
-    // Capitalize first letter of the sentence and after colons
-    description = description
-      .replace(/^([a-z])/i, m => m.toUpperCase()) // Capitalize first letter
-      .replace(/:(\s*)\"([a-z])/gi, (_, space, letter) => `: ${space}"${letter.toUpperCase()}`); // Capitalize first letter after quotes
-
-    // Fix common sentence structure issues
-    description = description
-      // Capitalize first letter of the sentence
-      .replace(/^\w/, c => c.toUpperCase())
-      // Fix spacing after punctuation
-      .replace(/([.,!?])([^\s])/g, '$1 $2')
-      // Ensure single space between words
-      .replace(/\s+/g, ' ')
-      // Fix capitalization after sentence endings
-      .replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`)
-      // Remove multiple periods
-      .replace(/\.+/g, '.')
-      // Fix "presenting with with"
-      .replace(/presenting with with/gi, 'presenting with')
-      // Fix "presents with with"
-      .replace(/presents with with/gi, 'presents with');
-
-    // Add proper sentence ending if missing
-    if (!description.match(/[.!?]$/)) {
-      description += '.';
-    }
-
-    return description;
-  };
-
   // Helper function to create a terse, focused title
   const getCleanTitle = () => {
     if (!case_.title) return "Clinical Case";
@@ -261,9 +203,6 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
             <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white">
               {getCleanTitle()}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2 leading-relaxed">
-              {formatDescription(case_)}
-            </p>
           </div>
           
           {/* Completion Status Badge */}
