@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState,  const [progressData, setProgressData] = useState<ProgressData | null>(null);
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [showDataExport, setShowDataExport] = useState(false);Effect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
 import PrivacySettingsModal from '../components/PrivacySettings';
@@ -23,9 +25,8 @@ interface ProgressData {
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setLoading] = useState(true);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showDataExport, setShowDataExport] = useState(false);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
@@ -34,7 +35,6 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true);
         const progressData = await api.getUserProgress();
         // Transform progress data to match dashboard structure
         const dashboardData: ProgressData = {
@@ -61,8 +61,6 @@ const DashboardPage: React.FC = () => {
         setProgressData(dashboardData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
       }
     };
 

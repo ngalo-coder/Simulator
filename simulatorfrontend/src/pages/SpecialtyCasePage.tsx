@@ -1,15 +1,11 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
 import { RetakeModal } from '../components/retake';
-import {
-  INTERNAL_MEDICINE_SUB_CATEGORIES,
-  getSubCategoriesWithCounts,
-  SubCategoryWithCount
-} from '../utils/internalMedicineCategories';
+import { INTERNAL_MEDICINE_SUB_CATEGORIES } from '../utils/internalMedicineCategories';
 
 interface Case {
   id: string;
@@ -60,16 +56,9 @@ const SpecialtyCasePage: React.FC = memo(() => {
   const [showRetakeModal, setShowRetakeModal] = React.useState(false);
   const [selectedRetakeCase, setSelectedRetakeCase] = React.useState<Case | null>(null);
 
-  // Check if this is Internal Medicine specialty
-  const isInternalMedicine = useMemo(() => {
-    return specialtyName.toLowerCase() === 'internal medicine';
-  }, [specialtyName]);
 
-  // Get sub-categories with case counts for Internal Medicine
-  const subCategoriesWithCounts = useMemo((): SubCategoryWithCount[] => {
-    if (!isInternalMedicine || !cases.length) return [];
-    return getSubCategoriesWithCounts(cases);
-  }, [isInternalMedicine, cases]);
+
+
 
 
 
