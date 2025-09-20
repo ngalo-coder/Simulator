@@ -9,9 +9,6 @@ interface Specialty {
   casesCount: number;
 }
 
-interface SpecialtiesResponse {
-  specialties: Specialty[];
-}
 
 const AdminSpecialtyManagement: React.FC = () => {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);

@@ -17,7 +17,6 @@ const CaseBrowsingPage: React.FC = () => {
     navigateToSpecialty,
     getSpecialtyFromSlug,
     clearError,
-    refreshSpecialties,
     forceRefreshSpecialties
   } = useSpecialtyContext();
 

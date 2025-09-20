@@ -2,7 +2,6 @@
  * API request and response validation utilities
  */
 
-import { PatientCase, User } from '../types';
 
 // Validation schemas using simple JSON Schema-like structure
 export interface ValidationSchema {

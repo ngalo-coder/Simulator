@@ -43,7 +43,6 @@ const SpecialtyCasePage: React.FC = memo(() => {
     handleFilterChange,
     handlePageChange,
     clearAllFilters,
-    hasActiveFilters,
     handleStartSimulation: optimizedStartSimulation,
     retryFetch,
   } = useOptimizedSpecialtyPage();

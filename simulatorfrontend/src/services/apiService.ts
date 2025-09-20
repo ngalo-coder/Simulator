@@ -1,10 +1,8 @@
 
 // Consolidated API service for the virtual patient frontend
 // This file consolidates functionality from both api.ts and apiService.ts
-import { PatientCase, PerformanceData } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5003';
-const USE_MOCK_DATA = false; // Set to true for development without backend
 
 
 // Auth utilities
