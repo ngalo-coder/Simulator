@@ -78,7 +78,20 @@ export class AdminStatsService {
           averageScore: {
             $cond: {
               if: { $gt: [{ $size: '$performances' }, 0] },
-              then: { $avg: '$performances.metrics.overall_score' },
+              then: {
+                $avg: {
+                  $map: {
+                    input: {
+                      $filter: {
+                        input: '$performances',
+                        cond: { $ne: ['$$this.metrics.overall_score', null] }
+                      }
+                    },
+                    as: 'perf',
+                    in: '$$perf.metrics.overall_score'
+                  }
+                }
+              },
               else: 0
             }
           },

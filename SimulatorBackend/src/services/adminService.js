@@ -123,7 +123,15 @@ export async function getUsersWithScoresForAdmin() {
         {
             $group: {
                 _id: '$user_ref',
-                averageScore: { $avg: '$metrics.overall_score' },
+                averageScore: {
+                    $avg: {
+                        $cond: {
+                            if: { $ne: ['$metrics.overall_score', null] },
+                            then: '$metrics.overall_score',
+                            else: 0
+                        }
+                    }
+                },
                 casesCompleted: { $sum: 1 }
             }
         }

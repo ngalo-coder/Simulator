@@ -31,10 +31,14 @@ const AdminSpecialtyManagement: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response: SpecialtiesResponse = await api.getAdminSpecialtiesWithCounts();
+      const response = await api.getAdminSpecialtiesWithCounts();
       console.log('Admin specialties response:', response);
-      
-      if (response.specialties) {
+
+      // Handle the API response structure: {data: {specialties: [...]}, message: "Success"}
+      if (response.data && response.data.specialties) {
+        setSpecialties(response.data.specialties);
+      } else if (response.specialties) {
+        // Fallback for direct specialties property
         setSpecialties(response.specialties);
       } else {
         setSpecialties([]);
@@ -54,18 +58,26 @@ const AdminSpecialtyManagement: React.FC = () => {
       setError(null);
       
       const response = await api.toggleSpecialtyVisibility(specialtyId);
-      
-      // Update the specialty in the list
-      setSpecialties(prev => 
-        prev.map(specialty => 
-          specialty.id === specialtyId 
+
+      // Update the specialty in the list (optimistically update UI)
+      setSpecialties(prev =>
+        prev.map(specialty =>
+          specialty.id === specialtyId
             ? { ...specialty, active: !specialty.active }
             : specialty
         )
       );
-      
+
+      // Handle API response structure: {data: {specialty: {...}}, message: "Success"}
+      let updatedSpecialty = null;
+      if (response.data && response.data.specialty) {
+        updatedSpecialty = response.data.specialty;
+      } else if (response.specialty) {
+        updatedSpecialty = response.specialty;
+      }
+
       // Show success message briefly
-      const action = response.specialty.active ? 'shown to' : 'hidden from';
+      const action = updatedSpecialty?.active ? 'shown to' : 'hidden from';
       console.log(`Specialty "${specialtyName}" is now ${action} users`);
       
     } catch (error) {

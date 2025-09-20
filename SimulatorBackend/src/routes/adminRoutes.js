@@ -33,7 +33,9 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(5)
       .populate('userId', 'username')
-      .populate('caseId', 'title')
+      .populate('lastCompletedBeginnerCase', 'case_metadata.title')
+      .populate('lastCompletedIntermediateCase', 'case_metadata.title')
+      .populate('lastCompletedAdvancedCase', 'case_metadata.title')
       .lean();
 
     // Get performance metrics
@@ -59,7 +61,10 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
       recentActivity: recentActivity.map(activity => ({
         id: activity._id,
         username: activity.userId?.username || 'Unknown User',
-        caseTitle: activity.caseId?.title || 'Unknown Case',
+        caseTitle: activity.lastCompletedBeginnerCase?.case_metadata?.title ||
+                  activity.lastCompletedIntermediateCase?.case_metadata?.title ||
+                  activity.lastCompletedAdvancedCase?.case_metadata?.title ||
+                  'Unknown Case',
         status: activity.status,
         lastUpdated: activity.updatedAt
       })),

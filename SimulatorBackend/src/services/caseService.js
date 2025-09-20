@@ -216,14 +216,19 @@ export class CaseService {
     }
 
     // Also include specialties from cases that might not be in the Specialty collection
+    // But only if they exist as active specialties in the Specialty collection
     const caseSpecialtyNames = caseSpecialties.filter(s => s?.trim());
 
-    // Merge specialties from both sources
-    const allAvailableSpecialties = [...new Set([...availableSpecialties, ...caseSpecialtyNames])].sort();
+    // Filter case specialties to only include those that are active in the Specialty collection
+    const activeSpecialtyNames = new Set(availableSpecialties);
+    const filteredCaseSpecialties = caseSpecialtyNames.filter(specialty => activeSpecialtyNames.has(specialty));
 
-    // Get counts for all specialties found in cases
+    // Merge specialties from both sources
+    const allAvailableSpecialties = [...new Set([...availableSpecialties, ...filteredCaseSpecialties])].sort();
+
+    // Get counts for all specialties found in cases (only active ones)
     const allSpecialtyCounts = {};
-    for (const specialty of caseSpecialtyNames) {
+    for (const specialty of filteredCaseSpecialties) {
       if (program_area) {
         allSpecialtyCounts[specialty] = await Case.countDocuments({
           'case_metadata.program_area': program_area,
