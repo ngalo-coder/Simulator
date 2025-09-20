@@ -2,21 +2,149 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: 'user' | 'admin';
+  primaryRole: 'student' | 'educator' | 'admin';
+  discipline: 'medicine' | 'nursing' | 'laboratory' | 'radiology' | 'pharmacy';
+  profile: {
+    firstName: string;
+    lastName: string;
+    institution: string;
+    specialization?: string;
+    yearOfStudy?: number;
+    competencyLevel?: 'novice' | 'advanced_beginner' | 'competent' | 'proficient' | 'expert';
+  };
+  isActive: boolean;
+  emailVerified: boolean;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface PatientCase {
   id: string;
-  title: string;
+  version: number;
   description: string;
-  category: string;
-  program_area: string;
-  specialized_area: string;
-  patient_age: number;
-  patient_gender: string;
-  chief_complaint: string;
-  presenting_symptoms: string[];
+  system_instruction: string;
+  case_metadata: {
+    case_id: string;
+    title: string;
+    specialty: string;
+    program_area: 'Basic Program' | 'Specialty Program';
+    module?: string;
+    difficulty: 'Easy' | 'Intermediate' | 'Hard';
+    tags: string[];
+    location: string;
+  };
+  patient_persona: {
+    name: string;
+    age: number;
+    gender: string;
+    occupation?: string;
+    chief_complaint: string;
+    emotional_tone: string;
+    background_story?: string;
+    speaks_for?: string;
+    patient_is_present?: boolean;
+    patient_age_for_communication?: number;
+    is_pediatric?: boolean;
+    guardian?: {
+      name: string;
+      relationship: string;
+      age: number;
+      occupation?: string;
+      emotional_state: string;
+      background_info?: string;
+      communication_style: string;
+    };
+  };
+  initial_prompt: string;
+  clinical_dossier: {
+    comment?: string;
+    hidden_diagnosis: string;
+    history_of_presenting_illness?: {
+      onset: string;
+      location: string;
+      radiation: string;
+      character: string;
+      severity: number;
+      timing_and_duration: string;
+      exacerbating_factors: string;
+      relieving_factors: string;
+      associated_symptoms: string[];
+    };
+    review_of_systems?: {
+      comment: string;
+      positive: string[];
+      negative: string[];
+    };
+    past_medical_history: string[];
+    medications: string[];
+    allergies: string[];
+    surgical_history: string[];
+    family_history: string[];
+    social_history: {
+      smoking_status: string;
+      alcohol_use: string;
+      substance_use: string;
+      diet_and_exercise: string;
+      living_situation: string;
+    };
+  };
+  simulation_triggers: {
+    end_session: {
+      condition_keyword: string;
+      patient_response: string;
+    };
+    invalid_input: {
+      condition_keyword: string;
+      patient_response: string;
+    };
+  };
+  evaluation_criteria: Record<string, any>;
+  nursing_diagnoses?: Array<{
+    diagnosis: string;
+    related_factors: string[];
+    defining_characteristics: string[];
+    priority: 'High' | 'Medium' | 'Low';
+    nanda_code?: string;
+  }>;
+  nursing_interventions?: Array<{
+    intervention: string;
+    category: string;
+    description?: string;
+    nic_code?: string;
+    parameters: string[];
+    expected_outcomes: string[];
+  }>;
+  nursing_outcomes?: Array<{
+    outcome: string;
+    indicators: string[];
+    measurement_scale?: string;
+    noc_code?: string;
+  }>;
+  multimediaContent?: Array<{
+    fileId: string;
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+    thumbnailUrl?: string;
+    type: 'image' | 'video' | 'audio' | 'document';
+    category: string;
+    description?: string;
+    tags: string[];
+    uploadedBy: string;
+    uploadedAt: Date;
+    isActive: boolean;
+    metadata?: Record<string, any>;
+  }>;
+  categories: string[];
   tags: string[];
+  status: 'draft' | 'pending_review' | 'approved' | 'published' | 'archived' | 'rejected';
+  createdBy: string;
+  lastModifiedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SimulationSession {

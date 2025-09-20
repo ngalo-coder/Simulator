@@ -1,6 +1,11 @@
 
-// Comprehensive API service for the virtual patient frontend
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+// Consolidated API service for the virtual patient frontend
+// This file consolidates functionality from both api.ts and apiService.ts
+import { PatientCase, PerformanceData } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5003';
+const USE_MOCK_DATA = false; // Set to true for development without backend
+
 
 // Auth utilities
 const getAuthToken = (): string | null => {
@@ -242,14 +247,14 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Login failed');
       }
-      
-      const data = await response.json();
-      return data;
+
+      const result = await response.json();
+       return result.data || result; // Backend now returns {data, message} format
     } catch (error) {
       console.error('Error during login:', error);
       throw error;
@@ -258,18 +263,19 @@ export const api = {
 
   register: async (userData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Registration failed');
       }
-      
-      return response.json();
+
+      const data = await response.json();
+      return data.data || data; // Backend now returns {data, message} format
     } catch (error) {
       console.error('Error during registration:', error);
       throw error;
@@ -284,8 +290,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to logout');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+       return result.data || result; // Backend now returns {data, message} format
     } catch (error) {
       console.error('Error during logout:', error);
       throw error;
@@ -300,8 +306,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to refresh token');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+       return result.data || result; // Backend now returns {data, message} format
     } catch (error) {
       console.error('Error refreshing token:', error);
       throw error;
@@ -314,8 +320,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Token verification failed');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+       return result.data || result; // Backend now returns {data, message} format
     } catch (error) {
       console.error('Error verifying token:', error);
       throw error;
@@ -1082,8 +1088,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to fetch cases');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+      return result.data || result; // Backend returns {data, message} format
     } catch (error) {
       console.error('Error fetching cases:', error);
       throw error;
@@ -1101,8 +1107,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to start simulation');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+      return result.data || result; // Backend returns {data, message} format
     } catch (error) {
       console.error('Error starting simulation:', error);
       throw error;
@@ -1118,8 +1124,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to end simulation');
       }
-      const data = await response.json();
-      return data.data || data;
+      const result = await response.json();
+      return result.data || result; // Backend returns {data, message} format
     } catch (error) {
       console.error('Error ending simulation:', error);
       throw error;
@@ -1255,8 +1261,8 @@ export const api = {
       if (!response.ok) {
         throw new Error('Failed to fetch system stats');
       }
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      return result.data || result; // Backend returns {data, message} format
     } catch (error) {
       console.error('Error fetching system stats:', error);
       throw error;
@@ -3122,4 +3128,5 @@ export const api = {
   },
 
   // Add more API methods here as needed for other endpoints
+
 };

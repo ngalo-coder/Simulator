@@ -33,6 +33,7 @@ export interface SpecialtyContextActions {
   getSpecialtyFromSlug: (slug: string) => string | null;
   getSlugFromSpecialty: (specialty: string) => string;
   refreshSpecialties: () => Promise<void>;
+  forceRefreshSpecialties: (maxRetries?: number) => Promise<void>;
   clearError: () => void;
 }
 
@@ -68,15 +69,27 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
   }, [location.pathname]);
 
   /**
-   * Fetch available specialties from the API with caching
+   * Fetch available specialties from the API with improved caching
    */
   const fetchSpecialties = useCallback(async (): Promise<{
     specialties: string[];
     specialtyCounts: Record<string, number>;
   }> => {
     try {
-      // Check cache first
-      const cachedData = specialtyCache.getSpecialtyData();
+      // Use the improved cache with fallback
+      const cachedData = await specialtyCache.getSpecialtyDataWithFallback(async () => {
+        console.log('Fetching specialties from API (cache miss or expired)');
+        const categoriesData = await api.getCaseCategories();
+        const specialties = categoriesData.specialties || [];
+        const specialtyCounts = categoriesData.specialty_counts || {};
+
+        // Build and cache the specialty data
+        const cacheData = specialtyCache.buildSpecialtyCache(specialties, specialtyCounts);
+        specialtyCache.setSpecialtyData(cacheData);
+
+        return cacheData;
+      });
+
       if (cachedData) {
         return {
           specialties: cachedData.specialties,
@@ -84,18 +97,13 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
         };
       }
 
-      const categoriesData = await api.getCaseCategories();
-      const specialties = categoriesData.specialties || [];
-      const specialtyCounts = categoriesData.specialty_counts || {};
-
-      // Build and cache the specialty data
-      const cacheData = specialtyCache.buildSpecialtyCache(specialties, specialtyCounts);
-      specialtyCache.setSpecialtyData(cacheData);
-
-      return { specialties, specialtyCounts };
+      // Fallback if no data available
+      console.warn('No specialty data available from cache or API');
+      return { specialties: [], specialtyCounts: {} };
     } catch (error) {
       console.error('Error fetching specialties:', error);
-      throw error;
+      // Return empty data instead of throwing to prevent app crashes
+      return { specialties: [], specialtyCounts: {} };
     }
   }, []);
 
@@ -295,9 +303,38 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
    * Refresh specialties data from API
    */
   const refreshSpecialties = useCallback(async (): Promise<void> => {
-    // Clear cache to force fresh fetch
-    specialtyCache.clear();
-    await initializeSpecialtyContext();
+    try {
+      // Force refresh cache to get fresh data
+      specialtyCache.forceRefresh();
+      await initializeSpecialtyContext();
+      console.log('Specialties refreshed successfully');
+    } catch (error) {
+      console.error('Failed to refresh specialties:', error);
+      // Still try to initialize with cached data
+      await initializeSpecialtyContext();
+    }
+  }, [initializeSpecialtyContext]);
+
+  /**
+   * Force refresh specialties with retry mechanism
+   */
+  const forceRefreshSpecialties = useCallback(async (maxRetries: number = 3): Promise<void> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempting to refresh specialties (attempt ${attempt}/${maxRetries})`);
+        specialtyCache.forceRefresh();
+        await initializeSpecialtyContext();
+        console.log('Specialties force refreshed successfully');
+        return;
+      } catch (error) {
+        console.error(`Failed to refresh specialties (attempt ${attempt}/${maxRetries}):`, error);
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }, [initializeSpecialtyContext]);
 
   /**
@@ -348,7 +385,7 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
     specialtyRoutes: state.specialtyRoutes,
     loading: state.loading,
     error: state.error,
-    
+
     // Actions
     navigateToSpecialty,
     navigateToSpecialtySlug,
@@ -357,6 +394,7 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
     getSpecialtyFromSlug,
     getSlugFromSpecialty,
     refreshSpecialties,
+    forceRefreshSpecialties,
     clearError,
   };
 };

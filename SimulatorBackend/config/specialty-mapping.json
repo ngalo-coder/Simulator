@@ -1,0 +1,28 @@
+{
+  "overrides": {
+    "Cardiac Surgery": "Specialty Program",
+    "Interventional Cardiology": "Specialty Program",
+    "Neonatal Intensive Care": "Basic Program"
+  },
+  "keywordRules": {
+    "Basic Program": [
+      "general medicine",
+      "primary care",
+      "preventive medicine",
+      "community medicine",
+      "family practice",
+      "internal medicine",
+      "pediatrics",
+      "geriatrics"
+    ],
+    "Specialty Program": [
+      "surgery",
+      "surgical",
+      "interventional",
+      "advanced",
+      "specialized",
+      "subspecialty",
+      "fellowship"
+    ]
+  }
+}

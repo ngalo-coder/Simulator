@@ -155,7 +155,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
   // Optimized fetch function with request deduplication
   const fetchSpecialtyCases = useCallback(async (showNotification: boolean = true) => {
     const endApiCall = trackApiCall('getCases');
-    
+
     try {
       // Validate specialty slug
       if (!specialtySlug || !isValidSpecialtySlug(specialtySlug)) {
@@ -190,12 +190,12 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
 
       // Create cache key for request deduplication
       const cacheKey = JSON.stringify(apiFilters);
-      
+
       // Skip if same request is already in progress
-      if (cacheKey === lastFetchParamsRef.current && loading) {
+      if (cacheKey === lastFetchParamsRef.current) {
         return;
       }
-      
+
       lastFetchParamsRef.current = cacheKey;
 
       // Remove undefined values
@@ -205,12 +205,12 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
 
       const response = await api.getCases(cleanFilters);
       endApiCall();
-      
+
       // Check if request was aborted
       if (abortControllerRef.current?.signal.aborted) {
         return;
       }
-      
+
       if (response && response.cases && Array.isArray(response.cases)) {
         setCases(response.cases);
         setCasesResponse({
@@ -238,12 +238,12 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
       }
     } catch (error) {
       endApiCall();
-      
+
       // Don't show error if request was aborted
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      
+
       console.error('Error fetching specialty cases:', error);
       setError('Failed to load cases');
       setCases([]);
@@ -255,21 +255,21 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
         hasNextPage: false,
         hasPrevPage: false
       });
-      
+
       if (showNotification) {
         addNotification('Failed to load cases. Please try again.', 'error');
       }
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
-      
+
       // End page load tracking on first successful load
       if (pageLoadEndRef.current) {
         pageLoadEndRef.current();
         pageLoadEndRef.current = null;
       }
     }
-  }, [specialtySlug, specialtyName, filters, loading, addNotification]);
+  }, [specialtySlug, specialtyName, filters, addNotification]);
 
   // Optimized simulation start handler
   const handleStartSimulation = useCallback(async (case_: Case) => {
@@ -308,13 +308,11 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
   // Effect for filter changes (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!loading) {
-        fetchSpecialtyCases(false);
-      }
+      fetchSpecialtyCases(false);
     }, 300); // 300ms debounce for filter changes
 
     return () => clearTimeout(timer);
-  }, [filters, fetchSpecialtyCases, loading]);
+  }, [filters, fetchSpecialtyCases]);
 
   // Cleanup on unmount
   useEffect(() => {

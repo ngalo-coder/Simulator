@@ -176,7 +176,7 @@ export class CaseService {
 
   static async getCaseCategories(program_area) {
     const baseQuery = program_area ? { 'case_metadata.program_area': program_area } : {};
-    
+
     const [programAreas, caseSpecialties, specializedAreas, allSpecialties] = await Promise.all([
       Case.distinct('case_metadata.program_area'),
       Case.distinct('case_metadata.specialty', baseQuery),
@@ -194,7 +194,7 @@ export class CaseService {
     } else {
       availableSpecialties = allSpecialties.map(s => s.name).sort();
     }
-    
+
     // Get case counts for each specialty when program_area is specified
     let specialty_counts = {};
     if (program_area && caseSpecialties.length > 0) {
@@ -207,7 +207,7 @@ export class CaseService {
           });
           return { specialty, count };
         });
-      
+
       const counts = await Promise.all(countPromises);
       specialty_counts = counts.reduce((acc, { specialty, count }) => {
         acc[specialty] = count;
@@ -215,11 +215,40 @@ export class CaseService {
       }, {});
     }
 
+    // Also include specialties from cases that might not be in the Specialty collection
+    const caseSpecialtyNames = caseSpecialties.filter(s => s?.trim());
+
+    // Merge specialties from both sources
+    const allAvailableSpecialties = [...new Set([...availableSpecialties, ...caseSpecialtyNames])].sort();
+
+    // Get counts for all specialties found in cases
+    const allSpecialtyCounts = {};
+    for (const specialty of caseSpecialtyNames) {
+      if (program_area) {
+        allSpecialtyCounts[specialty] = await Case.countDocuments({
+          'case_metadata.program_area': program_area,
+          'case_metadata.specialty': specialty
+        });
+      } else {
+        allSpecialtyCounts[specialty] = await Case.countDocuments({
+          'case_metadata.specialty': specialty
+        });
+      }
+    }
+
+    console.log('CaseService.getCaseCategories results:', {
+      programAreas: programAreas.length,
+      caseSpecialties: caseSpecialtyNames.length,
+      dbSpecialties: availableSpecialties.length,
+      allSpecialties: allAvailableSpecialties.length,
+      program_area
+    });
+
     return {
       program_areas: programAreas.sort(),
-      specialties: availableSpecialties,
+      specialties: allAvailableSpecialties,
       specialized_areas: specializedAreas.filter(a => a?.trim()).sort(),
-      specialty_counts
+      specialty_counts: allSpecialtyCounts
     };
   }
 

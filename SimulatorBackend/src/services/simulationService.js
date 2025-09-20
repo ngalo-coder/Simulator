@@ -107,7 +107,9 @@ export async function startRetakeSession(caseId, previousSessionId, retakeReason
     // Extract patient information for the frontend
     const patientPersona = caseDataFromDB.patient_persona;
     const patientName = patientPersona?.name || 'Virtual Patient';
-    const speaksFor = patientPersona?.speaks_for;
+    // If speaks_for isn't explicitly set and we have a valid name, the patient speaks for themselves
+    // This ensures consistency between regular and retake sessions
+    const speaksFor = patientPersona?.speaks_for || (patientName !== 'Virtual Patient' ? patientName : 'Self');
 
     return {
         sessionId: newSession._id.toString(),

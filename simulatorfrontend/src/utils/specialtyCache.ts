@@ -90,7 +90,7 @@ class SpecialtyCache {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        
+
         // Check if localStorage cache is still valid
         if (Date.now() - parsed.timestamp < this.STORAGE_TTL) {
           // Restore to memory cache
@@ -111,6 +111,37 @@ class SpecialtyCache {
     }
 
     return null;
+  }
+
+  /**
+   * Force refresh of specialty data by clearing cache
+   */
+  forceRefresh(): void {
+    this.clear();
+    console.log('Specialty cache force refreshed');
+  }
+
+  /**
+   * Get specialty data with fallback to API if cache is empty
+   */
+  async getSpecialtyDataWithFallback(apiCall: () => Promise<SpecialtyCacheData>): Promise<SpecialtyCacheData | null> {
+    // Try cache first
+    let data = this.getSpecialtyData();
+
+    if (!data) {
+      try {
+        // If no cache, try to fetch from API
+        data = await apiCall();
+        if (data) {
+          this.setSpecialtyData(data);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch specialty data from API:', error);
+        return null;
+      }
+    }
+
+    return data;
   }
 
   /**

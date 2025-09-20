@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
@@ -30,7 +30,7 @@ interface ExtendedCase extends Case {
 const SpecialtyCasePage: React.FC = memo(() => {
   const navigate = useNavigate();
   const { } = useSpecialtyContext();
-  
+
   // Use optimized hook for better performance
   const {
     cases,
@@ -47,14 +47,31 @@ const SpecialtyCasePage: React.FC = memo(() => {
     handleStartSimulation: optimizedStartSimulation,
     retryFetch,
   } = useOptimizedSpecialtyPage();
-  
+
   // State for UI
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [retryCount, setRetryCount] = React.useState(0);
-  
+
   // Retake functionality state
   const [showRetakeModal, setShowRetakeModal] = React.useState(false);
   const [selectedRetakeCase, setSelectedRetakeCase] = React.useState<Case | null>(null);
+
+  // Memoized specialty slug for performance
+  const specialtySlug = useMemo(() =>
+    specialtyName.toLowerCase().replace(/\s+/g, '_'),
+    [specialtyName]
+  );
+
+  // Memoized active filters check to prevent unnecessary re-renders
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.search) count++;
+    if (filters.patient_gender) count++;
+    if (filters.patient_age_min !== undefined) count++;
+    if (filters.patient_age_max !== undefined) count++;
+    if (filters.sub_category) count++;
+    return count;
+  }, [filters.search, filters.patient_gender, filters.patient_age_min, filters.patient_age_max, filters.sub_category]);
 
 
 
@@ -63,17 +80,17 @@ const SpecialtyCasePage: React.FC = memo(() => {
 
 
   // Enhanced simulation start handler with specialty context
-  const handleStartSimulation = React.useCallback(async (case_: Case) => {
+  const handleStartSimulation = useCallback(async (case_: Case) => {
     try {
       await optimizedStartSimulation(case_);
-      
+
       // Navigate to simulation interface, preserving specialty context
       navigate(`/simulation/${case_.id}`, {
         state: {
           specialtyContext: {
             specialty: specialtyName,
-            specialtySlug: specialtyName.toLowerCase().replace(/\s+/g, '_'),
-            returnUrl: `/${specialtyName.toLowerCase().replace(/\s+/g, '_')}`
+            specialtySlug: specialtySlug,
+            returnUrl: `/${specialtySlug}`
           }
         }
       });
@@ -81,27 +98,27 @@ const SpecialtyCasePage: React.FC = memo(() => {
       // Error handling is done in the optimized hook
       console.error('Navigation error:', error);
     }
-  }, [optimizedStartSimulation, navigate, specialtyName]);
+  }, [optimizedStartSimulation, navigate, specialtyName, specialtySlug]);
 
-  const handleRetakeCase = React.useCallback((case_: Case) => {
+  const handleRetakeCase = useCallback((case_: Case) => {
     setSelectedRetakeCase(case_);
     setShowRetakeModal(true);
   }, []);
 
-  const handleRetakeSuccess = React.useCallback((sessionId: string) => {
+  const handleRetakeSuccess = useCallback((sessionId: string) => {
     if (selectedRetakeCase) {
       navigate(`/simulation/${selectedRetakeCase.id}/session/${sessionId}`, {
         state: {
           specialtyContext: {
             specialty: specialtyName,
-            specialtySlug: specialtyName.toLowerCase().replace(/\s+/g, '_'),
-            returnUrl: `/${specialtyName.toLowerCase().replace(/\s+/g, '_')}`
+            specialtySlug: specialtySlug,
+            returnUrl: `/${specialtySlug}`
           },
           isRetake: true
         }
       });
     }
-  }, [selectedRetakeCase, navigate, specialtyName]);
+  }, [selectedRetakeCase, navigate, specialtyName, specialtySlug]);
 
   // Show skeleton loading state
   if (loading && !cases.length) {
@@ -154,6 +171,12 @@ const SpecialtyCasePage: React.FC = memo(() => {
             This specialty may not exist or may not have any cases available.
           </p>
           <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Refresh Page
+            </button>
             <Link
               to="/browse-cases"
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -175,9 +198,9 @@ const SpecialtyCasePage: React.FC = memo(() => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Specialty Header with breadcrumbs and navigation */}
-      <SpecialtyHeader 
+      <SpecialtyHeader
         specialtyName={specialtyName}
-        specialtySlug={specialtyName.toLowerCase().replace(/\s+/g, '_')}
+        specialtySlug={specialtySlug}
         showNavigation={true}
         showBreadcrumbs={true}
         className="mb-8"
@@ -213,7 +236,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
           >
             {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
           </button>
-          {hasActiveFilters() && (
+          {activeFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
               className="px-4 py-2.5 text-sm font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -280,7 +303,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
             </div>
 
             {/* Active Filters Summary */}
-            {hasActiveFilters() && (
+            {activeFiltersCount > 0 && (
               <div className="mt-4 p-4 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm rounded-lg border border-blue-100/50 dark:border-blue-700/30">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-2">
@@ -389,16 +412,16 @@ const SpecialtyCasePage: React.FC = memo(() => {
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-6xl mb-4">📚</div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {hasActiveFilters() ? 'No Matching Cases Found' : `No ${specialtyName} Cases Available`}
+            {activeFiltersCount > 0 ? 'No Matching Cases Found' : `No ${specialtyName} Cases Available`}
           </h3>
           <p className="text-gray-600 mb-4">
-            {hasActiveFilters() 
+            {activeFiltersCount > 0
               ? `No cases found matching your filters in ${specialtyName}. Try adjusting your search criteria.`
               : `There are currently no cases available in ${specialtyName}.`
             }
           </p>
           <div className="flex justify-center space-x-3">
-            {hasActiveFilters() && (
+            {activeFiltersCount > 0 && (
               <button
                 onClick={clearAllFilters}
                 className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
@@ -426,7 +449,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
-                {hasActiveFilters() 
+                {activeFiltersCount > 0
                   ? `Found ${casesResponse.totalCases} case${casesResponse.totalCases !== 1 ? 's' : ''} matching your filters in ${specialtyName}`
                   : `${casesResponse.totalCases} case${casesResponse.totalCases !== 1 ? 's' : ''} available in ${specialtyName}`
                 }

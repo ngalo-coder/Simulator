@@ -1,7 +1,7 @@
 export function handleSuccess(res, data, message = 'Success', statusCode = 200) {
     res.status(statusCode).json({
-        message,
-        data
+        data,
+        message
     });
 }
 
@@ -14,6 +14,7 @@ export function handleError(res, error, log) {
     }
 
     res.status(statusCode).json({
-        message
+        message,
+        error: true
     });
 }

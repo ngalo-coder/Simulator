@@ -99,6 +99,22 @@ const SimulationChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Helper function to normalize speaks_for values
+  const normalizeSpeaksFor = (speaksFor: string | undefined): string | undefined => {
+    if (!speaksFor) return speaksFor;
+    return speaksFor.toLowerCase() === 'self' ? 'Self' : speaksFor;
+  };
+
+  // Test the fix - this will log to console to verify the fix works
+  React.useEffect(() => {
+    const testCases = ['self', 'Self', 'mother', 'father', undefined, ''];
+    testCases.forEach(testCase => {
+      const normalized = normalizeSpeaksFor(testCase);
+      const isSelf = !normalized || normalized === 'Self';
+      console.log(`🔧 Patient name fix test: "${testCase}" -> "${normalized}" -> isSelf: ${isSelf}`);
+    });
+  }, []);
+
   // Bookmark compatibility handler - Requirement 4.4
   useEffect(() => {
     // Ensure bookmark compatibility by validating and potentially correcting URLs
@@ -487,7 +503,8 @@ const SimulationChatPage: React.FC = () => {
       const messages: Message[] = [];
 
       // Add system welcome message - Requirement 2.2
-      const displayName = (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+      const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
+      const displayName = (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
       const systemMessage: Message = {
         id: 'system-' + Date.now(),
         role: 'assistant',
@@ -517,13 +534,14 @@ const SimulationChatPage: React.FC = () => {
         messages.push(patientMessage);
       } else {
         console.log('⚠️ No initial prompt, adding default greeting - Requirement 2.2');
-        const displayName = (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+        const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
+        const displayName = (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
         const defaultMessage: Message = {
           id: 'patient-default-' + Date.now(),
           role: 'assistant',
           content: `Hello, I'm ${displayName}. Thank you for seeing me today. How can I help you?`,
           timestamp: new Date(),
-          speaks_for: (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor,
+          speaks_for: (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor,
         };
         messages.push(defaultMessage);
       }
@@ -790,8 +808,9 @@ const SimulationChatPage: React.FC = () => {
         speaks_for: (() => {
           const speaksFor = sessionData?.speaks_for;
           const patientName = sessionData?.patientName || 'Patient';
+          const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
           // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-          return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+          return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
         })(),
       };
 
@@ -814,8 +833,9 @@ const SimulationChatPage: React.FC = () => {
                 // Update the assistant message with the correct speaker name from the backend
                 // If speaks_for is present and not "Self", use it (e.g., "Mother" for parent speaking for child)
                 // Otherwise use the patient's name
-                const speakerName = (data.speaks_for && data.speaks_for !== 'Self') 
-                  ? data.speaks_for 
+                const normalizedSpeaksFor = normalizeSpeaksFor(data.speaks_for);
+                const speakerName = (normalizedSpeaksFor && normalizedSpeaksFor !== 'Self')
+                  ? normalizedSpeaksFor
                   : (data.name || sessionData?.patientName || 'Patient');
                 assistantMessage.speaks_for = speakerName;
                 setMessages((prev) => [...prev, assistantMessage]);
@@ -825,8 +845,9 @@ const SimulationChatPage: React.FC = () => {
               assistantMessage.content += data.content;
               // Use speaks_for if available and not "Self" (for cases where someone speaks for the patient)
               // Otherwise use the patient's name
-              const speakerName = (data.speaks_for && data.speaks_for !== 'Self') 
-                ? data.speaks_for 
+              const normalizedSpeaksFor = normalizeSpeaksFor(data.speaks_for);
+              const speakerName = (normalizedSpeaksFor && normalizedSpeaksFor !== 'Self')
+                ? normalizedSpeaksFor
                 : (data.name || assistantMessage.speaks_for);
               assistantMessage.speaks_for = speakerName;
 
@@ -930,8 +951,9 @@ const SimulationChatPage: React.FC = () => {
 
       // Log completion for debugging progress tracking
       console.log('✅ Session completed successfully. Progress should be updated.');
-      
-      logError('Session ended successfully', {
+
+      // Log session completion as info, not error
+      console.log('📊 Session ended successfully', {
         sessionId: sessionData.sessionId,
         caseId,
         messageCount: messages.length,
@@ -1290,8 +1312,9 @@ const SimulationChatPage: React.FC = () => {
                         : (() => {
                             const speaksFor = sessionData?.speaks_for;
                             const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                            const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
                             // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-                            return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                            return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
                           })()
                       }
                       {/* Enhanced Debug info */}
@@ -1503,8 +1526,9 @@ const SimulationChatPage: React.FC = () => {
                   {(() => {
                     const speaksFor = sessionData?.speaks_for;
                     const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                    const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
                     // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-                    return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                    return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
                   })()}
                 </div>
                 <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
@@ -1529,8 +1553,9 @@ const SimulationChatPage: React.FC = () => {
                         {(() => {
                           const speaksFor = sessionData?.speaks_for;
                           const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                          const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
                           // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-                          return (!speaksFor || speaksFor === 'Self') ? patientName : speaksFor;
+                          return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
                         })()}{' '}
                         {!isSessionEnded ? 'is thinking...' : 'Generating report...'}
                       </span>

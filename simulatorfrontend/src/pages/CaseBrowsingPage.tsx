@@ -16,7 +16,9 @@ const CaseBrowsingPage: React.FC = () => {
     error: specialtyError,
     navigateToSpecialty,
     getSpecialtyFromSlug,
-    clearError
+    clearError,
+    refreshSpecialties,
+    forceRefreshSpecialties
   } = useSpecialtyContext();
 
   const [step, setStep] = useState<'program' | 'specialty'>('program');
@@ -25,6 +27,7 @@ const CaseBrowsingPage: React.FC = () => {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number>>({});
+  const [refreshing, setRefreshing] = useState(false);
   
   // Detect if we're in specialty context from URL or current specialty
   const isSpecialtyContext = !!(currentSpecialty || params.specialty);
@@ -179,6 +182,18 @@ const CaseBrowsingPage: React.FC = () => {
     }
   };
 
+  const handleRefreshSpecialties = async () => {
+    try {
+      setRefreshing(true);
+      await forceRefreshSpecialties();
+      console.log('Specialties refreshed successfully');
+    } catch (error) {
+      console.error('Failed to refresh specialties:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if ((loading && step === 'program') || (specialtyLoading && isSpecialtyContext)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -199,12 +214,19 @@ const CaseBrowsingPage: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <h3 className="text-xl font-semibold text-red-900 mb-2">
-            Invalid Specialty
+            Specialty Not Available
           </h3>
           <p className="text-red-700 mb-4">
             {specialtyError}
           </p>
           <div className="flex justify-center space-x-4">
+            <button
+              onClick={handleRefreshSpecialties}
+              disabled={refreshing}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh Specialties'}
+            </button>
             <button
               onClick={() => {
                 clearError();
@@ -249,15 +271,35 @@ const CaseBrowsingPage: React.FC = () => {
               }
             </p>
           </div>
-          {(step === 'specialty' || isSpecialtyContext) && (
+          <div className="flex items-center space-x-3">
+            {/* Refresh Button */}
             <button
-              onClick={handleBackToPrograms}
-              className="flex items-center space-x-2 px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors"
+              onClick={handleRefreshSpecialties}
+              disabled={refreshing || specialtyLoading}
+              className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh specialties"
             >
-              <span>←</span>
-              <span>{isSpecialtyContext ? 'Browse All Cases' : 'Back to Programs'}</span>
+              <svg
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-sm">Refresh</span>
             </button>
-          )}
+
+            {(step === 'specialty' || isSpecialtyContext) && (
+              <button
+                onClick={handleBackToPrograms}
+                className="flex items-center space-x-2 px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <span>←</span>
+                <span>{isSpecialtyContext ? 'Browse All Cases' : 'Back to Programs'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -464,12 +506,21 @@ const CaseBrowsingPage: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 There are no specialties available for {selectedProgramArea} at the moment.
               </p>
-              <button
-                onClick={handleBackToPrograms}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Choose Different Program
-              </button>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={handleRefreshSpecialties}
+                  disabled={refreshing}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {refreshing ? 'Refreshing...' : 'Refresh Specialties'}
+                </button>
+                <button
+                  onClick={handleBackToPrograms}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Choose Different Program
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
