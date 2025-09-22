@@ -2612,6 +2612,41 @@ export const api = {
 
   // ==================== ADMIN SPECIALTY MANAGEMENT ====================
 
+  getSpecialtyVisibility: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch specialty visibility settings');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error fetching specialty visibility:', error);
+      throw error;
+    }
+  },
+
+  updateSpecialtyVisibility: async (visibilityData: Array<{
+    specialtyId: string;
+    isVisible: boolean;
+    programArea: string;
+  }>) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`, {
+        method: 'PUT',
+        body: JSON.stringify({ specialties: visibilityData }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update specialty visibility');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error updating specialty visibility:', error);
+      throw error;
+    }
+  },
+
   getAdminSpecialties: async () => {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties`);

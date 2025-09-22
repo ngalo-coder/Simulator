@@ -6,7 +6,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import CaseBrowsingPage from './pages/CaseBrowsingPage';
+import EnhancedSpecialtySelectionPage from './pages/EnhancedSpecialtySelectionPage';
 import SimulationPage from './pages/SimulationPage';
 import SimulationChatPage from './pages/SimulationChatPage';
 import LazySpecialtyPage from './components/LazySpecialtyPage';
@@ -51,7 +51,7 @@ function App() {
                   path="/browse-cases"
                   element={
                     <ProtectedRoute>
-                      <CaseBrowsingPage />
+                      <EnhancedSpecialtySelectionPage />
                     </ProtectedRoute>
                   }
                 />

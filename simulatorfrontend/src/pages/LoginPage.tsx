@@ -28,12 +28,12 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 -mx-4 sm:-mx-6 lg:-mx-8 -my-8 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-medical-100 -mx-4 sm:-mx-6 lg:-mx-8 -my-8 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-br from-medical-500 to-medical-600 rounded-medical-xl flex items-center justify-center shadow-medical-lg">
               <span className="text-white text-2xl font-bold">🏥</span>
             </div>
           </div>
@@ -44,13 +44,13 @@ const LoginPage: React.FC = () => {
         {/* Form */}
         <div className="bg-white rounded-xl shadow-2xl p-8">
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-md">
+            <div className="bg-emergency-50 border-l-4 border-emergency-500 p-4 mb-6 rounded-medical-lg">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  <span className="text-red-500 text-lg">⚠️</span>
+                  <span className="text-emergency-500 text-lg">⚠️</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
+                  <p className="text-sm font-medium text-emergency-800">{error}</p>
                 </div>
               </div>
             </div>
@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
                   placeholder="Enter your email address"
                   required
                   aria-describedby="emailHelp"
@@ -89,7 +89,7 @@ const LoginPage: React.FC = () => {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
                   placeholder="Enter your password"
                   required
                   aria-describedby="passwordHelp"
@@ -97,7 +97,7 @@ const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-medical-500 rounded-medical-md p-1"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   <span className="text-lg">{showPassword ? '🙈' : '👁️'}</span>
@@ -109,7 +109,7 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+              className="w-full bg-gradient-to-r from-medical-600 to-medical-700 text-white py-4 px-6 rounded-medical-lg font-semibold hover:from-medical-700 hover:to-medical-800 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-medical-lg hover:shadow-medical-lg transform hover:scale-[1.02]"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -135,7 +135,7 @@ const LoginPage: React.FC = () => {
             <div className="mt-6 text-center">
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                className="text-medical-600 hover:text-medical-800 font-medium transition-colors"
               >
                 Create your free account →
               </Link>
@@ -144,7 +144,7 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Help Section */}
-        <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+        <div className="bg-medical-50 rounded-medical-lg p-6 border border-medical-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-3 text-center">Need Help?</h3>
           <p className="text-gray-600 text-sm mb-4 text-center">
             Having trouble signing in? We're here to help you get back to learning.
@@ -152,7 +152,7 @@ const LoginPage: React.FC = () => {
           <div className="space-y-3 text-center">
             <Link
               to="/forgot-password"
-              className="block text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+              className="block text-medical-600 hover:text-medical-800 text-sm font-medium transition-colors"
             >
               Reset your password
             </Link>

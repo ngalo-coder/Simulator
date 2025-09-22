@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
 import { formatDate, formatScore, getPerformanceColor } from '../utils/helpers';
 import { ClinicianProgressResponse } from '../types';
-import { Button, Card, Loading, Alert } from '../components/ui';
+import { Button, Card, Loading, Alert, EnhancedProgressBar } from '../components/ui';
 
 const ProgressPage: React.FC = () => {
   const { user } = useAuth();
@@ -298,32 +298,32 @@ const ProgressPage: React.FC = () => {
         </div>
 
       {/* Performance Level */}
-      <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-200 mb-8">
-        <h2 className="text-lg sm:text-xl font-bold mb-4 text-blue-900">Performance Level</h2>
+      <Card variant="elevated" padding="md" className="bg-gradient-to-br from-medical-50 via-white to-medical-50 border-medical-200 mb-8">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-medical-900">Performance Level</h2>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
           <div className={`px-4 py-2 rounded-full font-semibold text-sm sm:text-base ${progressLevel.color} border-2 border-current`}>
             {progressLevel.level}
           </div>
           <div className="text-gray-700 text-sm sm:text-base">{progressLevel.description}</div>
         </div>
-        
-        {/* Progress Bar */}
+
+        {/* Enhanced Progress Bar */}
         <div className="mt-4 sm:mt-6">
-          <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
-            <span className="font-medium">Progress to Next Level</span>
-            <span className="font-bold text-blue-600">{formatScore(progressData?.overallAverageScore || 0)}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-              style={{ width: `${Math.min((progressData?.overallAverageScore || 0), 100)}%` }}
-            ></div>
-          </div>
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            {progressData?.overallAverageScore || 0}% of 100%
-          </div>
+          <EnhancedProgressBar
+            value={progressData?.overallAverageScore || 0}
+            max={100}
+            size="md"
+            label="Progress to Next Level"
+            contextualLabel={`${progressLevel.level} • ${progressLevel.description}`}
+            milestones={[
+              { value: 60, label: "Developing", color: "#FF6B35" },
+              { value: 70, label: "Intermediate", color: "#FFEB3B" },
+              { value: 80, label: "Advanced", color: "#2196F3" },
+              { value: 90, label: "Expert", color: "#4CAF50" }
+            ]}
+          />
         </div>
-      </div>
+      </Card>
 
       {/* Retake Performance Analysis */}
       {retakeStats && (retakeStats.totalRetakes > 0 || retakeStats.casesWithMultipleAttempts > 0) && (
@@ -404,34 +404,34 @@ const ProgressPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Progress by Specialty */}
-        <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-200">
-          <h2 className="text-lg sm:text-xl font-bold mb-4 text-blue-900">Progress by Specialty</h2>
-          
+        <Card variant="elevated" padding="md" className="bg-gradient-to-br from-medical-50 via-white to-medical-50 border-medical-200">
+          <h2 className="text-lg sm:text-xl font-bold mb-4 text-medical-900">Progress by Specialty</h2>
+
           {progressData?.specialtyProgress && progressData.specialtyProgress.length > 0 ? (
             <div className="space-y-3 sm:space-y-4">
               {progressData.specialtyProgress.map((specialty: { specialty: string; casesCompleted: number; averageScore: number }, index: number) => (
-                <div key={index} className="border border-blue-100 rounded-lg p-3 sm:p-4 bg-white/50 hover:bg-white/80 transition-all duration-300">
+                <Card variant="default" padding="sm" className="border-medical-100 bg-white/50 hover:bg-white/80 transition-all duration-300">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 space-y-1 sm:space-y-0">
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{specialty.specialty}</h3>
                     <span className={`text-sm font-bold px-2 py-1 rounded-full bg-opacity-20 ${getPerformanceColor(specialty.averageScore)}`}>
                       {formatScore(specialty.averageScore)}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-3">
                     <span className="font-medium">{specialty.casesCompleted} cases completed</span>
                   </div>
-                  
+
                   <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 shadow-inner">
-                    <div 
+                    <div
                       className={`h-2 sm:h-3 rounded-full transition-all duration-500 ${
-                        specialty.averageScore >= 90 ? 'bg-gradient-to-r from-green-400 to-green-500' :
-                        specialty.averageScore >= 70 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 'bg-gradient-to-r from-red-400 to-red-500'
+                        specialty.averageScore >= 90 ? 'bg-gradient-to-r from-stable-400 to-stable-500' :
+                        specialty.averageScore >= 70 ? 'bg-gradient-to-r from-warning-400 to-warning-500' : 'bg-gradient-to-r from-emergency-400 to-emergency-500'
                       }`}
                       style={{ width: `${Math.min(specialty.averageScore, 100)}%` }}
                     ></div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
@@ -440,28 +440,30 @@ const ProgressPage: React.FC = () => {
               <p className="text-sm mt-2">Complete some cases to see your progress by specialty.</p>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Recent Performance */}
-        <div className="bg-gradient-to-br from-green-50 via-white to-green-50 p-4 sm:p-6 rounded-xl shadow-lg border border-green-200">
-          <h2 className="text-lg sm:text-xl font-bold mb-4 text-green-900">Recent Performance</h2>
-          
+        <Card variant="elevated" padding="md" className="bg-gradient-to-br from-stable-50 via-white to-stable-50 border-stable-200">
+          <h2 className="text-lg sm:text-xl font-bold mb-4 text-stable-900">Recent Performance</h2>
+
           {progressData?.recentPerformance && progressData.recentPerformance.length > 0 ? (
             <div className="space-y-2 sm:space-y-3 max-h-80 overflow-y-auto">
               {progressData.recentPerformance.slice(0, 8).map((metric: { caseTitle: string; completedAt: Date; score: number }, index: number) => (
-                <div key={index} className="flex justify-between items-center p-2 sm:p-3 bg-white/60 rounded-lg border border-green-100 hover:bg-white/90 hover:shadow-md transition-all duration-300">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
-                      {metric.caseTitle || 'Unknown Case'}
-                    </h4>
-                    <p className="text-xs text-gray-600">
-                      {formatDate(metric.completedAt)}
-                    </p>
+                <Card variant="default" padding="sm" className="bg-white/60 border-stable-100 hover:bg-white/90 hover:shadow-md transition-all duration-300">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
+                        {metric.caseTitle || 'Unknown Case'}
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        {formatDate(metric.completedAt)}
+                      </p>
+                    </div>
+                    <div className={`font-bold text-sm flex-shrink-0 px-2 py-1 rounded-full ${getPerformanceColor(metric.score || 0)} bg-opacity-20`}>
+                      {formatScore(metric.score || 0)}
+                    </div>
                   </div>
-                  <div className={`font-bold text-sm flex-shrink-0 px-2 py-1 rounded-full ${getPerformanceColor(metric.score || 0)} bg-opacity-20`}>
-                    {formatScore(metric.score || 0)}
-                  </div>
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
@@ -471,14 +473,14 @@ const ProgressPage: React.FC = () => {
               <p className="text-xs sm:text-sm mt-2">Start completing cases to track your performance.</p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
         {/* Call to Action */}
         {(!progressData?.totalCasesCompleted || progressData.totalCasesCompleted === 0) && (
-          <Card className="mt-8 border-l-4 border-l-medical-500 bg-gradient-to-r from-medical-50 to-white">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Card variant="elevated" padding="lg" className="mt-8 border-l-4 border-l-medical-500 bg-gradient-to-r from-medical-50 to-white">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-medical-100 rounded-medical-xl flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>

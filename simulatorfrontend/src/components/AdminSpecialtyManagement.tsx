@@ -1,125 +1,233 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/apiService';
+import { Button, Card, Badge, Loading, Alert } from '../components/ui';
+import {
+  SpecialtyConfig,
+  getSpecialtyConfig,
+  getAvailableSpecialties,
+  getSpecialtyColor,
+  getSpecialtyIcon
+} from '../utils/specialtyConfig';
 
-interface Specialty {
-  id: string;
-  name: string;
+interface SpecialtyVisibility {
+  specialtyId: string;
+  isVisible: boolean;
   programArea: string;
-  active: boolean;
-  casesCount: number;
+  lastModified: Date;
+  modifiedBy: string;
 }
 
+interface SpecialtyVisibilityResponse {
+  specialties: SpecialtyVisibility[];
+  total: number;
+}
 
 const AdminSpecialtyManagement: React.FC = () => {
-  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [specialties, setSpecialties] = useState<SpecialtyConfig[]>([]);
+  const [visibilitySettings, setVisibilitySettings] = useState<Record<string, SpecialtyVisibility>>({});
+
+  // Program area options
+  const programAreas = [
+    { value: 'basic', label: 'Basic Program' },
+    { value: 'specialty', label: 'Specialty Program' }
+  ];
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterProgramArea, setFilterProgramArea] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('all'); // all, active, inactive
-  const [toggling, setToggling] = useState<Set<string>>(new Set());
+  const [filterProgram, setFilterProgram] = useState('all');
+  const [filterVisibility, setFilterVisibility] = useState('all');
+
+  // Program area options for filtering
+  const programAreaOptions = [
+    { value: 'all', label: 'All Programs' },
+    { value: 'basic', label: 'Basic Program' },
+    { value: 'specialty', label: 'Specialty Program' }
+  ];
+
+  const visibilityOptions = [
+    { value: 'all', label: 'All Specialties' },
+    { value: 'visible', label: 'Visible Only' },
+    { value: 'hidden', label: 'Hidden Only' }
+  ];
 
   useEffect(() => {
-    fetchSpecialties();
+    loadSpecialtyData();
   }, []);
 
-  const fetchSpecialties = async () => {
+  const loadSpecialtyData = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await api.getAdminSpecialtiesWithCounts();
-      console.log('Admin specialties response:', response);
 
-      // Handle the API response structure: {data: {specialties: [...]}, message: "Success"}
-      if (response.data && response.data.specialties) {
-        setSpecialties(response.data.specialties);
-      } else if (response.specialties) {
-        // Fallback for direct specialties property
-        setSpecialties(response.specialties);
-      } else {
-        setSpecialties([]);
-      }
-    } catch (error) {
-      console.error('Error fetching specialties:', error);
-      setError('Failed to load specialties. Please try again.');
-      setSpecialties([]);
+      // Load all available specialties
+      const allSpecialties = getAvailableSpecialties();
+      setSpecialties(allSpecialties);
+
+      // Load visibility settings from API
+      const response: SpecialtyVisibilityResponse = await api.getSpecialtyVisibility();
+      const visibilityMap: Record<string, SpecialtyVisibility> = {};
+
+      response.specialties.forEach(setting => {
+        visibilityMap[setting.specialtyId] = setting;
+      });
+
+      // Set default visibility for specialties not in the response
+      allSpecialties.forEach(specialty => {
+        if (!visibilityMap[specialty.id]) {
+          visibilityMap[specialty.id] = {
+            specialtyId: specialty.id,
+            isVisible: true, // Default to visible
+            programArea: 'basic', // Default to basic program for new specialties
+            lastModified: new Date(),
+            modifiedBy: 'system'
+          };
+        }
+      });
+
+      setVisibilitySettings(visibilityMap);
+    } catch (error: any) {
+      console.error('Error loading specialty data:', error);
+      setError(`Failed to load specialty data: ${error.message || 'Unknown error'}`);
+
+      // Fallback: create default visibility settings
+      const allSpecialties = getAvailableSpecialties();
+      const defaultVisibility: Record<string, SpecialtyVisibility> = {};
+
+      allSpecialties.forEach(specialty => {
+        defaultVisibility[specialty.id] = {
+          specialtyId: specialty.id,
+          isVisible: true,
+          programArea: 'basic', // Default to basic program for error cases
+          lastModified: new Date(),
+          modifiedBy: 'system'
+        };
+      });
+
+      setSpecialties(allSpecialties);
+      setVisibilitySettings(defaultVisibility);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleVisibility = async (specialtyId: string, specialtyName: string) => {
-    try {
-      setToggling(prev => new Set(prev).add(specialtyId));
-      setError(null);
-      
-      const response = await api.toggleSpecialtyVisibility(specialtyId);
-
-      // Update the specialty in the list (optimistically update UI)
-      setSpecialties(prev =>
-        prev.map(specialty =>
-          specialty.id === specialtyId
-            ? { ...specialty, active: !specialty.active }
-            : specialty
-        )
-      );
-
-      // Handle API response structure: {data: {specialty: {...}}, message: "Success"}
-      let updatedSpecialty = null;
-      if (response.data && response.data.specialty) {
-        updatedSpecialty = response.data.specialty;
-      } else if (response.specialty) {
-        updatedSpecialty = response.specialty;
+  const handleVisibilityToggle = (specialtyId: string) => {
+    setVisibilitySettings(prev => ({
+      ...prev,
+      [specialtyId]: {
+        ...prev[specialtyId],
+        isVisible: !prev[specialtyId].isVisible,
+        lastModified: new Date()
       }
+    }));
+  };
 
-      // Show success message briefly
-      const action = updatedSpecialty?.active ? 'shown to' : 'hidden from';
-      console.log(`Specialty "${specialtyName}" is now ${action} users`);
-      
-    } catch (error) {
-      console.error('Error toggling specialty visibility:', error);
-      setError(`Failed to update visibility for ${specialtyName}. Please try again.`);
+  const handleProgramToggle = (specialtyId: string, programArea: string) => {
+    setVisibilitySettings(prev => {
+      const current = prev[specialtyId];
+
+      return {
+        ...prev,
+        [specialtyId]: {
+          ...current,
+          programArea,
+          lastModified: new Date()
+        }
+      };
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(null);
+
+      const changes = Object.values(visibilitySettings).map(setting => ({
+        specialtyId: setting.specialtyId,
+        isVisible: setting.isVisible,
+        programArea: setting.programArea
+      }));
+
+      await api.updateSpecialtyVisibility(changes);
+
+      setSuccess('Specialty visibility settings saved successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error: any) {
+      console.error('Error saving specialty visibility:', error);
+      setError(`Failed to save changes: ${error.message || 'Unknown error'}`);
     } finally {
-      setToggling(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(specialtyId);
-        return newSet;
-      });
+      setSaving(false);
     }
   };
 
-  const filteredSpecialties = specialties.filter(specialty => {
-    const matchesSearch = specialty.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProgramArea = !filterProgramArea || specialty.programArea === filterProgramArea;
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && specialty.active) ||
-                         (filterStatus === 'inactive' && !specialty.active);
-    
-    return matchesSearch && matchesProgramArea && matchesStatus;
-  });
+  const handleResetToDefaults = () => {
+    if (window.confirm('Are you sure you want to reset all specialty visibility to defaults? This will restore the original settings.')) {
+      const defaultVisibility: Record<string, SpecialtyVisibility> = {};
 
-  const uniqueProgramAreas = [...new Set(specialties.map(s => s.programArea))].sort();
+      specialties.forEach(specialty => {
+        defaultVisibility[specialty.id] = {
+          specialtyId: specialty.id,
+          isVisible: true,
+          programArea: 'basic', // Default to basic program for reset
+          lastModified: new Date(),
+          modifiedBy: 'admin'
+        };
+      });
 
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-        ✓ Visible to Users
-      </span>
-    ) : (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-        ✕ Hidden from Users
-      </span>
-    );
+      setVisibilitySettings(defaultVisibility);
+    }
+  };
+
+  // Filter specialties based on search and filters
+  const filteredSpecialties = useMemo(() => {
+    return specialties.filter(specialty => {
+      const visibility = visibilitySettings[specialty.id];
+
+      // Search filter
+      if (searchTerm) {
+        const matchesSearch = specialty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              specialty.description.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!matchesSearch) return false;
+      }
+
+      // Program filter
+      if (filterProgram !== 'all') {
+        const matchesProgram = visibility.programArea === filterProgram;
+        if (!matchesProgram) return false;
+      }
+
+      // Visibility filter
+      if (filterVisibility !== 'all') {
+        const matchesVisibility = filterVisibility === 'visible' ? visibility.isVisible : !visibility.isVisible;
+        if (!matchesVisibility) return false;
+      }
+
+      return true;
+    });
+  }, [specialties, visibilitySettings, searchTerm, filterProgram, filterVisibility]);
+
+  const getSpecialtyStatusColor = (isVisible: boolean) => {
+    return isVisible
+      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+  };
+
+  const getSpecialtyStatusText = (isVisible: boolean) => {
+    return isVisible ? 'Visible' : 'Hidden';
   };
 
   if (loading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+        </div>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="bg-gray-200 h-20 rounded-lg"></div>
+            <div key={i} className="bg-gray-200 h-24 rounded-lg animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -129,210 +237,244 @@ const AdminSpecialtyManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Specialty Visibility Management</h2>
-          <p className="text-gray-600">Control which specialties are visible to users</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Specialty Visibility Management</h2>
+          <p className="text-gray-600 dark:text-gray-400">Control which specialties are visible to users and in which program areas</p>
         </div>
-        <div className="text-sm text-gray-500">
-          Total Specialties: {specialties.length} ({specialties.filter(s => s.active).length} visible, {specialties.filter(s => !s.active).length} hidden)
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleResetToDefaults}
+            disabled={saving}
+          >
+            Reset to Defaults
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSaveChanges}
+            disabled={saving}
+            className="flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <span>💾</span>
+                Save Changes
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Alerts */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="text-red-800">{error}</div>
-        </div>
+        <Alert variant="error">
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">⚠️</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-red-800 dark:text-red-200">Error</h3>
+              <p className="text-red-700 dark:text-red-300">{error}</p>
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert variant="success">
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">✅</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-green-800 dark:text-green-200">Success</h3>
+              <p className="text-green-700 dark:text-green-300">{success}</p>
+            </div>
+          </div>
+        </Alert>
       )}
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card variant="elevated" padding="md">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Specialties</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search specialties..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search by name or description..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Program Area</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Program Area</label>
             <select
-              value={filterProgramArea}
-              onChange={(e) => setFilterProgramArea(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filterProgram}
+              onChange={(e) => setFilterProgram(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
-              <option value="">All Program Areas</option>
-              {uniqueProgramAreas.map(area => (
-                <option key={area} value={area}>{area}</option>
+              {programAreas.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Visibility Status</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Visibility Status</label>
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filterVisibility}
+              onChange={(e) => setFilterVisibility(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
-              <option value="all">All Specialties</option>
-              <option value="active">Visible Only</option>
-              <option value="inactive">Hidden Only</option>
+              {visibilityOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setFilterProgramArea('');
-                setFilterStatus('all');
-              }}
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-            >
-              Clear Filters
-            </button>
+        </div>
+      </Card>
+
+      {/* Specialty List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Specialties ({filteredSpecialties.length})
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredSpecialties.length} of {specialties.length} specialties
           </div>
         </div>
-      </div>
 
-      {/* Specialties Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Specialty
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Program Area
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cases Count
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSpecialties.map((specialty) => (
-                <tr key={specialty.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{specialty.name}</div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                      {specialty.programArea}
-                    </span>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {specialty.casesCount} case{specialty.casesCount !== 1 ? 's' : ''}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(specialty.active)}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleToggleVisibility(specialty.id, specialty.name)}
-                      disabled={toggling.has(specialty.id)}
-                      className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        specialty.active
-                          ? 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
-                          : 'text-green-700 bg-green-100 hover:bg-green-200 focus:ring-green-500'
-                      } ${
-                        toggling.has(specialty.id) ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {toggling.has(specialty.id) ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2"></div>
-                          Updating...
-                        </>
-                      ) : specialty.active ? (
-                        <>
-                          <span className="mr-1">👁️‍🗨️</span>
-                          Hide from Users
-                        </>
-                      ) : (
-                        <>
-                          <span className="mr-1">👁️</span>
-                          Show to Users
-                        </>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {filteredSpecialties.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-500">
-            <p>No specialties found matching your criteria.</p>
+        {filteredSpecialties.length === 0 ? (
+          <Card variant="elevated" padding="lg" className="text-center">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Specialties Found</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              No specialties match your current filters. Try adjusting your search criteria.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {filteredSpecialties.map(specialty => {
+              const visibility = visibilitySettings[specialty.id];
+              const isVisible = visibility.isVisible;
+
+              return (
+                <Card key={specialty.id} variant="elevated" padding="md" className="hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-4">
+                    {/* Specialty Icon and Info */}
+                    <div className="flex-shrink-0">
+                      <div
+                        className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                        style={{ backgroundColor: `${specialty.color}15` }}
+                      >
+                        {specialty.icon}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{specialty.name}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{specialty.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {specialty.caseCount} cases
+                          </Badge>
+                          <Badge
+                            variant={isVisible ? "success" : "error"}
+                            className="text-xs"
+                          >
+                            {getSpecialtyStatusText(isVisible)}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          <strong>Phase:</strong> {specialty.phase}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          <strong>Difficulty:</strong> {specialty.difficulty}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          <strong>Duration:</strong> {specialty.estimatedDuration}
+                        </span>
+                      </div>
+
+                      {/* Program Area Selection */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Program Area:
+                        </label>
+                        <div className="flex flex-wrap gap-4">
+                          {programAreas.map(program => (
+                            <label key={program.value} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`program-${specialty.id}`}
+                                value={program.value}
+                                checked={visibility.programArea === program.value}
+                                onChange={(e) => handleProgramToggle(specialty.id, e.target.value)}
+                                className="border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{program.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Visibility Toggle */}
+                    <div className="flex-shrink-0">
+                      <Button
+                        variant={isVisible ? "danger" : "success"}
+                        size="sm"
+                        onClick={() => handleVisibilityToggle(specialty.id)}
+                        className="whitespace-nowrap"
+                      >
+                        {isVisible ? 'Hide' : 'Show'}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-2xl">👁️</span>
-            </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-green-600">
-                {specialties.filter(s => s.active).length}
-              </div>
-              <div className="text-sm text-green-700 font-medium">Visible Specialties</div>
-            </div>
+      {/* Summary */}
+      <Card variant="elevated" padding="md" className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Visibility Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <span className="font-medium text-blue-800 dark:text-blue-200">Total Specialties:</span>
+            <span className="ml-2 text-blue-700 dark:text-blue-300">{specialties.length}</span>
+          </div>
+          <div>
+            <span className="font-medium text-blue-800 dark:text-blue-200">Visible:</span>
+            <span className="ml-2 text-blue-700 dark:text-blue-300">
+              {Object.values(visibilitySettings).filter(s => s.isVisible).length}
+            </span>
+          </div>
+          <div>
+            <span className="font-medium text-blue-800 dark:text-blue-200">Hidden:</span>
+            <span className="ml-2 text-blue-700 dark:text-blue-300">
+              {Object.values(visibilitySettings).filter(s => !s.isVisible).length}
+            </span>
           </div>
         </div>
-
-        <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-2xl">🚫</span>
-            </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-red-600">
-                {specialties.filter(s => !s.active).length}
-              </div>
-              <div className="text-sm text-red-700 font-medium">Hidden Specialties</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-2xl">📊</span>
-            </div>
-            <div className="ml-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {specialties.reduce((sum, s) => sum + s.casesCount, 0)}
-              </div>
-              <div className="text-sm text-blue-700 font-medium">Total Cases</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </Card>
     </div>
   );
 };

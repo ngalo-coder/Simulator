@@ -7,6 +7,12 @@ import caseTemplateService from '../services/CaseTemplateService.js';
 import caseManagementService from '../services/CaseManagementService.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
 import AnalyticsService from '../services/AnalyticsService.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -366,6 +372,308 @@ router.post('/cases/:caseId/publish', protect, isAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to publish case'
+    });
+  }
+});
+
+// ==================== SPECIALTY VISIBILITY MANAGEMENT ====================
+
+// Import Specialty model
+import Specialty from '../models/SpecialtyModel.js';
+
+// Get specialty visibility settings
+router.get('/specialties/visibility', protect, isAdmin, async (req, res) => {
+  try {
+    const specialties = await Specialty.find({}).select('name isVisible programArea lastModified modifiedBy');
+    const visibilitySettings = {
+      specialties: specialties.map(specialty => ({
+        specialtyId: specialty.name.toLowerCase().replace(/\s+/g, '_'),
+        isVisible: specialty.isVisible,
+        programArea: specialty.programArea,
+        lastModified: specialty.lastModified,
+        modifiedBy: specialty.modifiedBy
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: visibilitySettings
+    });
+  } catch (error) {
+    console.error('Error fetching specialty visibility settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch specialty visibility settings'
+    });
+  }
+});
+
+// Update specialty visibility settings
+router.put('/specialties/visibility', protect, isAdmin, async (req, res) => {
+  try {
+    const { specialties } = req.body;
+
+    if (!Array.isArray(specialties)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Specialties array is required'
+      });
+    }
+
+    // Update each specialty in the database
+    const updatePromises = specialties.map(async (specialty) => {
+      const specialtyName = specialty.specialtyId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      return Specialty.updateOne(
+        { name: specialtyName },
+        {
+          $set: {
+            isVisible: specialty.isVisible,
+            programArea: specialty.programArea || 'basic',
+            lastModified: new Date(),
+            modifiedBy: req.user?.username || 'admin'
+          }
+        }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    // Get updated settings
+    const updatedSpecialties = await Specialty.find({}).select('name isVisible programArea lastModified modifiedBy');
+    const visibilitySettings = {
+      specialties: updatedSpecialties.map(specialty => ({
+        specialtyId: specialty.name.toLowerCase().replace(/\s+/g, '_'),
+        isVisible: specialty.isVisible,
+        programArea: specialty.programArea,
+        lastModified: specialty.lastModified,
+        modifiedBy: specialty.modifiedBy
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: visibilitySettings,
+      message: 'Specialty visibility settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating specialty visibility settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update specialty visibility settings'
+    });
+  }
+});
+
+// Get admin specialties with visibility info
+router.get('/programs/specialties', protect, isAdmin, async (req, res) => {
+  try {
+    // Import Case model for case counting
+    const Case = (await import('../models/CaseModel.js')).default;
+
+    // Get all specialties from database
+    const specialties = await Specialty.find({}).sort({ name: 1 });
+
+    // Get case counts for each specialty
+    const caseCounts = await Case.aggregate([
+      { $match: { status: 'published' } },
+      { $group: { _id: '$case_metadata.specialty', count: { $sum: 1 } } }
+    ]);
+
+    // Create a map of specialty names to case counts
+    const caseCountMap = {};
+    caseCounts.forEach(item => {
+      caseCountMap[item._id] = item.count;
+    });
+
+    // Define specialty metadata (colors, icons, etc.)
+    const specialtyMetadata = {
+      'Internal Medicine': {
+        description: 'Complex medical cases focusing on diagnosis and management of internal conditions',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#2E7D9A',
+        icon: '🏥'
+      },
+      'Surgery': {
+        description: 'Surgical procedures and perioperative care',
+        difficulty: 'advanced',
+        phase: 'current',
+        color: '#BE123C',
+        icon: '🔪'
+      },
+      'Pediatrics': {
+        description: 'Child and adolescent medicine',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#059669',
+        icon: '👶'
+      },
+      'Ophthalmology': {
+        description: 'Eye conditions and visual system disorders',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#7C3AED',
+        icon: '👁️'
+      },
+      'ENT': {
+        description: 'Ear, nose, and throat conditions',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#EA580C',
+        icon: '👂'
+      },
+      'Cardiology': {
+        description: 'Heart and cardiovascular system cases',
+        difficulty: 'advanced',
+        phase: 'phase1',
+        color: '#C62D42',
+        icon: '❤️'
+      },
+      'Neurology': {
+        description: 'Neurological conditions and brain disorders',
+        difficulty: 'advanced',
+        phase: 'phase1',
+        color: '#7C3AED',
+        icon: '🧠'
+      },
+      'Emergency Medicine': {
+        description: 'Acute care and trauma scenarios',
+        difficulty: 'advanced',
+        phase: 'phase1',
+        color: '#DC2626',
+        icon: '🚑'
+      },
+      'Psychiatry': {
+        description: 'Mental health and behavioral cases',
+        difficulty: 'intermediate',
+        phase: 'phase2',
+        color: '#7C2D92',
+        icon: '🧠'
+      },
+      'Family Medicine': {
+        description: 'Primary care and family practice',
+        difficulty: 'beginner',
+        phase: 'current',
+        color: '#059669',
+        icon: '🏠'
+      },
+      'Obstetrics & Gynecology': {
+        description: 'Women\'s health and reproductive medicine',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#BE123C',
+        icon: '🤰'
+      },
+      'Dermatology': {
+        description: 'Skin conditions and dermatological procedures',
+        difficulty: 'intermediate',
+        phase: 'phase2',
+        color: '#EA580C',
+        icon: '🧴'
+      },
+      'Orthopedics': {
+        description: 'Musculoskeletal system and orthopedic procedures',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#1D4ED8',
+        icon: '🦴'
+      },
+      'Radiology': {
+        description: 'Medical imaging and radiological interpretation',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#374151',
+        icon: '📊'
+      },
+      'Pathology': {
+        description: 'Laboratory medicine and pathological analysis',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#92400E',
+        icon: '🔬'
+      },
+      'Anesthesiology': {
+        description: 'Anesthesia and perioperative medicine',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#1F2937',
+        icon: '💉'
+      },
+      'Nursing': {
+        description: 'Nursing care and patient management',
+        difficulty: 'beginner',
+        phase: 'current',
+        color: '#3B82F6',
+        icon: '👩‍⚕️'
+      },
+      'Laboratory': {
+        description: 'Laboratory medicine and diagnostics',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#10B981',
+        icon: '🧪'
+      },
+      'Gastroenterology': {
+        description: 'Digestive system disorders and gastrointestinal procedures',
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#C62D42',
+        icon: '🫀'
+      },
+      'Oncology': {
+        description: 'Cancer care and oncological treatment',
+        difficulty: 'advanced',
+        phase: 'phase2',
+        color: '#7C2D92',
+        icon: '🎗️'
+      },
+      'Reproductive Health': {
+        description: 'Reproductive medicine and family planning',
+        difficulty: 'intermediate',
+        phase: 'phase2',
+        color: '#EC4899',
+        icon: '🌸'
+      }
+    };
+
+    // Format specialties for response
+    const formattedSpecialties = specialties.map(specialty => {
+      const metadata = specialtyMetadata[specialty.name] || {
+        description: `${specialty.name} specialty for medical training`,
+        difficulty: 'intermediate',
+        phase: 'current',
+        color: '#6B7280',
+        icon: '📚'
+      };
+
+      return {
+        id: specialty.name.toLowerCase().replace(/\s+/g, '_'),
+        name: specialty.name,
+        description: metadata.description,
+        caseCount: caseCountMap[specialty.name] || 0,
+        difficulty: metadata.difficulty,
+        phase: metadata.phase,
+        color: metadata.color,
+        icon: metadata.icon,
+        visibility: {
+          isVisible: specialty.isVisible,
+          programArea: specialty.programArea,
+          lastModified: specialty.lastModified,
+          modifiedBy: specialty.modifiedBy
+        }
+      };
+    });
+
+    res.json({
+      success: true,
+      specialties: formattedSpecialties
+    });
+  } catch (error) {
+    console.error('Error fetching admin specialties:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch admin specialties'
     });
   }
 });

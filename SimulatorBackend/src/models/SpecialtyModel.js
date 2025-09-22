@@ -7,10 +7,12 @@ const specialtySchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
+    // Single program area - either 'basic' or 'specialty'
     programArea: {
         type: String,
         required: true,
-        trim: true
+        enum: ['basic', 'specialty'],
+        default: 'basic'
     },
     description: {
         type: String,
@@ -19,6 +21,19 @@ const specialtySchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    // Specialty visibility management fields
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
+    lastModified: {
+        type: Date,
+        default: Date.now
+    },
+    modifiedBy: {
+        type: String,
+        default: 'system'
     }
 }, {
     timestamps: true

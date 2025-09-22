@@ -23,8 +23,8 @@ vi.mock('./pages/DashboardPage', () => ({
   default: () => <div data-testid="dashboard-page">Dashboard Page</div>
 }))
 
-vi.mock('./pages/CaseBrowsingPage', () => ({
-  default: () => <div data-testid="case-browsing-page">Case Browsing Page</div>
+vi.mock('./pages/EnhancedSpecialtySelectionPage', () => ({
+  default: () => <div data-testid="enhanced-specialty-selection-page">Enhanced Specialty Selection Page</div>
 }))
 
 vi.mock('./components/ProtectedRoute', () => ({
@@ -55,7 +55,7 @@ const TestRoutes = () => (
     <Route path="/" element={<div data-testid="home-page">Home Page</div>} />
     <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
     <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard Page</div>} />
-    <Route path="/browse-cases" element={<div data-testid="case-browsing-page">Case Browsing Page</div>} />
+    <Route path="/browse-cases" element={<div data-testid="enhanced-specialty-selection-page">Enhanced Specialty Selection Page</div>} />
     <Route path="/simulation" element={<div data-testid="simulation-page">Simulation Page</div>} />
     <Route path="/simulation/:caseId" element={<div data-testid="simulation-chat-page">Simulation Chat Page</div>} />
     <Route path="/simulation/:caseId/session/:sessionId" element={<div data-testid="simulation-chat-page">Simulation Chat Page</div>} />
@@ -167,14 +167,14 @@ describe('App Routing Configuration', () => {
       expect(screen.getByTestId('dashboard-page')).toBeInTheDocument()
     })
 
-    it('should render CaseBrowsingPage for /browse-cases route', () => {
+    it('should render EnhancedSpecialtySelectionPage for /browse-cases route', () => {
       render(
         <MemoryRouter initialEntries={['/browse-cases']}>
           <TestRoutes />
         </MemoryRouter>
       )
-      
-      expect(screen.getByTestId('case-browsing-page')).toBeInTheDocument()
+
+      expect(screen.getByTestId('enhanced-specialty-selection-page')).toBeInTheDocument()
     })
   })
 
