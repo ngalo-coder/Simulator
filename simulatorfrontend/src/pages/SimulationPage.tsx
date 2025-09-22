@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { api } from '../services/apiService';
 import { RetakeModal } from '../components/retake';
 import CaseCard from '../components/CaseCard';
+import { Button, Card, Input, Badge, Loading } from '../components/ui';
 
 interface Case {
   id: string;
@@ -216,211 +217,276 @@ const SimulationPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            {hasPreselectedFilters ? (
-              <>
-                <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    {filters.specialty} Cases
-                  </h1>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                    {filters.program_area}
-                  </span>
+    <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
+      {/* Medical Header with Hospital-like Design */}
+      <div className="bg-gradient-medical text-white shadow-medical-lg border-b border-medical-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
                 </div>
-                <p className="text-gray-600">
-                  Ready to practice? Choose a case below to start your simulation.
-                </p>
-              </>
-            ) : isUsingSpecialtyContext ? (
-              <>
-                <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    All {filters.specialty} Cases
+                <div>
+                  <h1 className="text-2xl lg:text-3xl font-bold">
+                    Virtual Patient Ward
                   </h1>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
-                    {filters.program_area}
-                  </span>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                    Smart Filter
-                  </span>
+                  <p className="text-medical-100 text-sm lg:text-base">
+                    Advanced Medical Simulation Environment
+                  </p>
                 </div>
-                <p className="text-gray-600">
-                  Showing all cases in {filters.specialty}. Want to see cases from other specialties?{' '}
-                  <button 
-                    onClick={() => {
-                      api.clearSpecialtyContext();
-                      setFilters({ program_area: '', specialty: '', search: '' });
-                    }}
-                    className="text-blue-600 hover:text-blue-800 underline"
+              </div>
+
+              {/* Live Status Indicator */}
+              <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-white/10 rounded-lg">
+                <div className="w-2 h-2 bg-stable-400 rounded-full animate-pulse" />
+                <span className="text-sm font-medium">System Online</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              {/* Quick Stats */}
+              <div className="hidden lg:flex items-center space-x-4 text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-white">{cases.length}</div>
+                  <div className="text-medical-100">Available Cases</div>
+                </div>
+                <div className="w-px h-6 bg-white/20" />
+                <div className="text-center">
+                  <div className="font-semibold text-white">
+                    {cases.filter(c => c.isCompleted).length}
+                  </div>
+                  <div className="text-medical-100">Completed</div>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="flex items-center space-x-2">
+                {(hasPreselectedFilters || isUsingSpecialtyContext) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/browse-cases')}
+                    className="text-white hover:bg-white/10"
                   >
-                    Clear filter
-                  </button>
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  All Patient Cases
-                </h1>
-                <p className="text-gray-600">
-                  {filters.program_area && filters.specialty 
-                    ? `Showing cases for ${filters.specialty} in ${filters.program_area}`
-                    : 'Browse all available cases or use filters to narrow your selection'
-                  }
-                </p>
-              </>
-            )}
-          </div>
-          <div className="flex items-center space-x-3">
-            {(hasPreselectedFilters || isUsingSpecialtyContext) && (
-              <Link 
-                to="/browse-cases"
-                className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1"
-              >
-                <span>←</span>
-                <span>Change Specialty</span>
-              </Link>
-            )}
-            {!hasPreselectedFilters && !isUsingSpecialtyContext && (filters.program_area || filters.specialty) && (
-              <Link 
-                to="/browse-cases"
-                className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1"
-              >
-                <span>←</span>
-                <span>Browse by Category</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      {!hasPreselectedFilters && !isUsingSpecialtyContext && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h3 className="text-lg font-semibold mb-4">Filter Cases</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Program Area */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <span className="flex items-center">
-                  Program Area
-                  <span className="ml-1 text-blue-600 text-xs">(Step 1)</span>
-                </span>
-              </label>
-              <select
-                value={filters.program_area}
-                onChange={(e) => setFilters({...filters, program_area: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Program Areas</option>
-                {categories.program_areas.map(area => (
-                  <option key={area} value={area}>{area}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Specialty */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <span className="flex items-center">
-                  Specialty
-                  <span className="ml-1 text-blue-600 text-xs">(Step 2)</span>
-                </span>
-              </label>
-              <select
-                value={filters.specialty}
-                onChange={(e) => setFilters({...filters, specialty: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!filters.program_area && availableSpecialties.length === 0}
-              >
-                <option value="">
-                  {filters.program_area ? 'All Specialties' : 'Select Program Area First'}
-                </option>
-                {availableSpecialties.map(specialty => (
-                  <option key={specialty} value={specialty}>{specialty}</option>
-                ))}
-              </select>
-              {filters.program_area && availableSpecialties.length === 0 && (
-                <p className="text-xs text-gray-500 mt-1">No specialties available for selected program area</p>
-              )}
-            </div>
-
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                value={filters.search}
-                onChange={(e) => setFilters({...filters, search: e.target.value})}
-                placeholder="Search cases..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Change Department
+                  </Button>
+                )}
+                {!hasPreselectedFilters && !isUsingSpecialtyContext && (filters.program_area || filters.specialty) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/browse-cases')}
+                    className="text-white hover:bg-white/10"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Browse Departments
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Filter Summary */}
-          {(filters.program_area || filters.specialty || filters.search) && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-sm text-blue-800 font-medium">Active filters:</span>
-                  {filters.program_area && (
-                    <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
-                      Program: {filters.program_area}
-                    </span>
-                  )}
-                  {filters.specialty && (
-                    <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
-                      Specialty: {filters.specialty}
-                    </span>
-                  )}
-                  {filters.search && (
-                    <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
-                      Search: "{filters.search}"
-                    </span>
-                  )}
+          {/* Department/Specialty Context Banner */}
+          {(hasPreselectedFilters || isUsingSpecialtyContext) && (
+            <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="primary" size="lg">
+                    {filters.specialty} Department
+                  </Badge>
+                  <Badge variant="secondary" size="sm">
+                    {filters.program_area}
+                  </Badge>
                 </div>
-                <button
-                  onClick={() => setFilters({ program_area: '', specialty: '', search: '' })}
-                  className="text-xs text-blue-600 hover:text-blue-800 underline"
-                >
-                  Clear all
-                </button>
+                <div className="text-medical-100 text-sm">
+                  Ready to begin patient assessment? Select a case below to start your simulation session.
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Simple search for preselected filters or specialty context */}
-      {(hasPreselectedFilters || isUsingSpecialtyContext) && (
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={filters.search}
-                onChange={(e) => setFilters({...filters, search: e.target.value})}
-                placeholder="Search within these cases..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Title for non-specialty context */}
+        {!hasPreselectedFilters && !isUsingSpecialtyContext && (
+          <div className="mb-8">
+            <div className="text-center">
+              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                Patient Case Library
+              </h1>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                {filters.program_area && filters.specialty
+                  ? `Medical cases for ${filters.specialty} in ${filters.program_area} program`
+                  : 'Comprehensive collection of virtual patient scenarios for medical training'
+                }
+              </p>
             </div>
-            {filters.search && (
-              <button
-                onClick={() => setFilters({...filters, search: ''})}
-                className="px-3 py-2 text-gray-600 hover:text-gray-800 text-sm"
-              >
-                Clear
-              </button>
-            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Enhanced Medical Filters */}
+        {!hasPreselectedFilters && !isUsingSpecialtyContext && (
+          <Card className="mb-8 border-l-4 border-l-medical-500">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-medical-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Medical Case Filters</h3>
+                  <p className="text-sm text-gray-600">Refine your search to find specific patient scenarios</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Program Area */}
+                <div>
+                  <label className="medical-label flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-medical-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Program Area
+                    <Badge variant="info" size="xs" className="ml-2">Step 1</Badge>
+                  </label>
+                  <select
+                    value={filters.program_area}
+                    onChange={(e) => setFilters({...filters, program_area: e.target.value})}
+                    className="medical-input mt-2"
+                  >
+                    <option value="">All Program Areas</option>
+                    {categories.program_areas.map(area => (
+                      <option key={area} value={area}>{area}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Specialty */}
+                <div>
+                  <label className="medical-label flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-medical-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Medical Specialty
+                    <Badge variant="info" size="xs" className="ml-2">Step 2</Badge>
+                  </label>
+                  <select
+                    value={filters.specialty}
+                    onChange={(e) => setFilters({...filters, specialty: e.target.value})}
+                    className="medical-input mt-2"
+                    disabled={!filters.program_area && availableSpecialties.length === 0}
+                  >
+                    <option value="">
+                      {filters.program_area ? 'All Specialties' : 'Select Program Area First'}
+                    </option>
+                    {availableSpecialties.map(specialty => (
+                      <option key={specialty} value={specialty}>{specialty}</option>
+                    ))}
+                  </select>
+                  {filters.program_area && availableSpecialties.length === 0 && (
+                    <p className="mt-2 text-xs text-warning-600 flex items-center">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      No specialties available for selected program area
+                    </p>
+                  )}
+                </div>
+
+                {/* Search */}
+                <div>
+                  <label className="medical-label flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-medical-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search Cases
+                  </label>
+                  <Input
+                    type="text"
+                    value={filters.search}
+                    onChange={(e) => setFilters({...filters, search: e.target.value})}
+                    placeholder="Search by patient name, condition, or symptoms..."
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {(filters.program_area || filters.specialty || filters.search) && (
+                <div className="mt-6 p-4 bg-medical-50 dark:bg-medical-900/20 rounded-lg border border-medical-200 dark:border-medical-800">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-medical-800 dark:text-medical-200">
+                        Active filters:
+                      </span>
+                      {filters.program_area && (
+                        <Badge variant="primary" className="cursor-pointer hover:bg-medical-600" onClick={() => setFilters({...filters, program_area: ''})}>
+                          Program: {filters.program_area} ×
+                        </Badge>
+                      )}
+                      {filters.specialty && (
+                        <Badge variant="primary" className="cursor-pointer hover:bg-medical-600" onClick={() => setFilters({...filters, specialty: ''})}>
+                          Specialty: {filters.specialty} ×
+                        </Badge>
+                      )}
+                      {filters.search && (
+                        <Badge variant="secondary" className="cursor-pointer hover:bg-gray-600" onClick={() => setFilters({...filters, search: ''})}>
+                          Search: "{filters.search}" ×
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFilters({ program_area: '', specialty: '', search: '' })}
+                      className="text-medical-600 hover:text-medical-800"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* Simple search for preselected filters or specialty context */}
+        {(hasPreselectedFilters || isUsingSpecialtyContext) && (
+          <Card className="mb-8 border-l-4 border-l-medical-500">
+            <div className="p-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    value={filters.search}
+                    onChange={(e) => setFilters({...filters, search: e.target.value})}
+                    placeholder="Search within these cases..."
+                  />
+                </div>
+                {filters.search && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFilters({...filters, search: ''})}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
 
       {/* Cases Grid */}
       {loading ? (
@@ -496,17 +562,138 @@ const SimulationPage: React.FC = () => {
         </div>
       )}
       
-      {/* Retake Modal */}
-      <RetakeModal
-        isOpen={showRetakeModal}
-        onClose={() => {
-          setShowRetakeModal(false);
-          setSelectedRetakeCase(null);
-        }}
-        caseId={selectedRetakeCase?.id || ''}
-        caseTitle={selectedRetakeCase?.title || ''}
-        onRetakeSuccess={handleRetakeSuccess}
-      />
+        {/* Cases Grid */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loading size="lg" variant="medical" />
+            <p className="text-gray-600 mt-4 text-lg">Loading patient cases...</p>
+            <p className="text-gray-500 text-sm">Preparing medical simulation environment</p>
+          </div>
+        ) : cases.length === 0 ? (
+          <Card className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-dark-surface rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-primary mb-2">
+                {(hasPreselectedFilters || isUsingSpecialtyContext) ? 'No Cases Available' : 'No Cases Found'}
+              </h3>
+              <p className="text-gray-600 dark:text-dark-secondary mb-6">
+                {(hasPreselectedFilters || isUsingSpecialtyContext) ? (
+                  <>
+                    No cases found in {filters.specialty}.
+                    {filters.search
+                      ? ' Try a different search term or browse other specialties.'
+                      : ' There are currently no cases available in this specialty.'
+                    }
+                  </>
+                ) : (
+                  'No cases found matching your criteria. Try adjusting your filters or search terms.'
+                )}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {filters.search && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setFilters({...filters, search: ''})}
+                  >
+                    Clear Search
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/browse-cases')}
+                >
+                  Browse Other Departments
+                </Button>
+                {isUsingSpecialtyContext && (
+                  <Button
+                    variant="success"
+                    onClick={() => {
+                      api.clearSpecialtyContext();
+                      setFilters({ program_area: '', specialty: '', search: '' });
+                    }}
+                  >
+                    Show All Cases
+                  </Button>
+                )}
+                {!hasPreselectedFilters && !isUsingSpecialtyContext && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setFilters({ program_area: '', specialty: '', search: '' })}
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Cases Stats */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-dark-card rounded-xl shadow-medical border border-gray-200 dark:border-dark-border">
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-medical-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-dark-primary">
+                    {cases.length} Total Cases
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-stable-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-dark-primary">
+                    {cases.filter(c => c.isCompleted).length} Completed
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-warning-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-dark-primary">
+                    {cases.filter(c => !c.isCompleted).length} Available
+                  </span>
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 dark:text-dark-secondary">Sort by:</span>
+                <select className="text-sm border border-gray-300 dark:border-dark-border rounded-md px-2 py-1 bg-white dark:bg-dark-surface">
+                  <option>Most Recent</option>
+                  <option>Difficulty</option>
+                  <option>Specialty</option>
+                  <option>Patient Age</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Cases Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {cases.map((case_) => (
+                <CaseCard
+                  key={case_.id}
+                  case_={case_}
+                  onStartSimulation={handleStartSimulation}
+                  onRetake={handleRetakeCase}
+                  startingSimulation={startingSimulation}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Retake Modal */}
+        <RetakeModal
+          isOpen={showRetakeModal}
+          onClose={() => {
+            setShowRetakeModal(false);
+            setSelectedRetakeCase(null);
+          }}
+          caseId={selectedRetakeCase?.id || ''}
+          caseTitle={selectedRetakeCase?.title || ''}
+          onRetakeSuccess={handleRetakeSuccess}
+        />
+      </div>
     </div>
   );
 };

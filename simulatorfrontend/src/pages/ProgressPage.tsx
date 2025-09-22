@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
 import { formatDate, formatScore, getPerformanceColor } from '../utils/helpers';
 import { ClinicianProgressResponse } from '../types';
+import { Button, Card, Loading, Alert } from '../components/ui';
 
 const ProgressPage: React.FC = () => {
   const { user } = useAuth();
@@ -141,15 +142,12 @@ const ProgressPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-gray-200 h-32 rounded-lg"></div>
-            ))}
+      <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center mb-8">
+            <Loading size="lg" variant="medical" />
+            <p className="text-gray-600 mt-4 text-lg">Loading your medical training progress...</p>
           </div>
-          <div className="h-64 bg-gray-200 rounded-lg"></div>
         </div>
       </div>
     );
@@ -157,16 +155,18 @@ const ProgressPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Progress</h2>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={fetchProgressData}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Alert variant="error" className="max-w-2xl mx-auto">
+            <h2 className="text-xl font-semibold mb-2">Error Loading Progress Data</h2>
+            <p className="mb-4">{error}</p>
+            <Button
+              variant="secondary"
+              onClick={fetchProgressData}
+            >
+              Try Again
+            </Button>
+          </Alert>
         </div>
       </div>
     );
@@ -175,73 +175,127 @@ const ProgressPage: React.FC = () => {
   const progressLevel = getProgressLevel(progressData?.overallAverageScore || 0);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Progress</h1>
-          <p className="text-gray-600">Track your learning journey and performance metrics</p>
-        </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          <button
-            onClick={handleDownloadPDF}
-            disabled={downloadingPDF || !progressData}
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {downloadingPDF ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Generating PDF...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
+      {/* Medical Progress Header */}
+      <div className="bg-gradient-medical text-white shadow-medical-lg border-b border-medical-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Download PDF Report</span>
-              </>
-            )}
-          </button>
+              </div>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold">Medical Training Progress</h1>
+                <p className="text-medical-100 text-sm lg:text-base">
+                  Advanced Analytics & Performance Tracking
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownloadPDF}
+                disabled={downloadingPDF || !progressData}
+                className="text-white hover:bg-white/10"
+              >
+                {downloadingPDF ? (
+                  <>
+                    <Loading size="xs" variant="spinner" />
+                    <span className="ml-2">Generating Report...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Report
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 rounded-xl shadow-md border border-blue-200 hover:shadow-lg transition-all duration-300">
-          <div className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">
-            {progressData?.totalCasesCompleted || 0}
-          </div>
-          <div className="text-xs sm:text-sm text-blue-700 font-medium">Cases Completed</div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Medical Performance Overview Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-medical-50 to-medical-100 border-l-4 border-l-medical-500 hover-lift">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-medical-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-medical-700 mb-1">
+                {progressData?.totalCasesCompleted || 0}
+              </div>
+              <div className="text-sm text-medical-600 font-medium">Cases Completed</div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-stable-50 to-stable-100 border-l-4 border-l-stable-500 hover-lift">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-stable-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-stable-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-stable-700 mb-1">
+                {progressData?.totalCasesAttempted || 0}
+              </div>
+              <div className="text-sm text-stable-600 font-medium">Cases Attempted</div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-warning-50 to-warning-100 border-l-4 border-l-warning-500 hover-lift">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className={`text-2xl font-bold mb-1 ${getPerformanceColor(progressData?.overallAverageScore || 0)}`}>
+                {formatScore(progressData?.overallAverageScore || 0)}
+              </div>
+              <div className="text-sm text-warning-600 font-medium">Average Score</div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-info-50 to-info-100 border-l-4 border-l-info-500 hover-lift">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-info-700 mb-1">
+                {progressData?.recentPerformance?.length || 0}
+              </div>
+              <div className="text-sm text-info-600 font-medium">Recent Activity</div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emergency-50 to-emergency-100 border-l-4 border-l-emergency-500 hover-lift col-span-2 md:col-span-1">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-emergency-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-emergency-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-emergency-700 mb-1">
+                {calculateTotalHours()}h
+              </div>
+              <div className="text-sm text-emergency-600 font-medium">Training Time</div>
+            </div>
+          </Card>
         </div>
-        
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 rounded-xl shadow-md border border-green-200 hover:shadow-lg transition-all duration-300">
-          <div className="text-xl sm:text-2xl font-bold text-green-600 mb-1">
-            {progressData?.totalCasesAttempted || 0}
-          </div>
-          <div className="text-xs sm:text-sm text-green-700 font-medium">Cases Attempted</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-xl shadow-md border border-purple-200 hover:shadow-lg transition-all duration-300">
-          <div className={`text-xl sm:text-2xl font-bold mb-1 ${getPerformanceColor(progressData?.overallAverageScore || 0)}`}>
-            {formatScore(progressData?.overallAverageScore || 0)}
-          </div>
-          <div className="text-xs sm:text-sm text-purple-700 font-medium">Average Score</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 sm:p-6 rounded-xl shadow-md border border-indigo-200 hover:shadow-lg transition-all duration-300">
-          <div className="text-xl sm:text-2xl font-bold text-indigo-600 mb-1">
-            {progressData?.recentPerformance?.length || 0}
-          </div>
-          <div className="text-xs sm:text-sm text-indigo-700 font-medium">Recent Cases</div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 sm:p-6 rounded-xl shadow-md border border-orange-200 hover:shadow-lg transition-all duration-300 col-span-2 sm:col-span-1">
-          <div className="text-xl sm:text-2xl font-bold text-orange-600 mb-1">
-            {calculateTotalHours()}h
-          </div>
-          <div className="text-xs sm:text-sm text-orange-700 font-medium">Practice Time</div>
-        </div>
-      </div>
 
       {/* Performance Level */}
       <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-200 mb-8">
@@ -420,21 +474,34 @@ const ProgressPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Call to Action */}
-      {(!progressData?.totalCasesCompleted || progressData.totalCasesCompleted === 0) && (
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-blue-800 mb-2">Ready to Start Learning?</h3>
-          <p className="text-blue-600 mb-4">
-            Complete your first patient case to begin tracking your progress.
-          </p>
-          <button
-            onClick={() => window.location.href = '/simulation'}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
-          >
-            Browse Cases
-          </button>
-        </div>
-      )}
+        {/* Call to Action */}
+        {(!progressData?.totalCasesCompleted || progressData.totalCasesCompleted === 0) && (
+          <Card className="mt-8 border-l-4 border-l-medical-500 bg-gradient-to-r from-medical-50 to-white">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-medical-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to Start Your Medical Training?</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                Complete your first patient case to begin tracking your progress and unlock advanced analytics.
+              </p>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => window.location.href = '/simulation'}
+                className="hover-lift"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Browse Patient Cases
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
