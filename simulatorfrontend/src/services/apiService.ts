@@ -2,7 +2,7 @@
 // Consolidated API service for the virtual patient frontend
 // This file consolidates functionality from both api.ts and apiService.ts
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5003';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 
 // Auth utilities
@@ -2870,20 +2870,6 @@ export const api = {
     }
   },
 
-  getAdminUserStats: async () => {
-    try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/stats`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch admin user stats');
-      }
-      const data = await response.json();
-      return data.data || data;
-    } catch (error) {
-      console.error('Error fetching admin user stats:', error);
-      throw error;
-    }
-  },
-
   deleteUser: async (userId: string): Promise<void> => {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
@@ -2894,6 +2880,55 @@ export const api = {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
+      throw error;
+    }
+  },
+
+  // Bulk operations for admin user management
+  bulkUpdateUserStatus: async (userIds: string[], isActive: boolean) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/bulk/status`, {
+        method: 'POST',
+        body: JSON.stringify({ userIds, isActive }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update user status');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      throw error;
+    }
+  },
+
+  bulkUpdateUserRole: async (userIds: string[], role: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/bulk/roles`, {
+        method: 'POST',
+        body: JSON.stringify({ userIds, role, operation: 'add' }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update user role');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      throw error;
+    }
+  },
+
+  getAdminUserStats: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/statistics`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user statistics');
+      }
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
       throw error;
     }
   },
@@ -3126,5 +3161,87 @@ export const api = {
   },
 
   // Add more API methods here as needed for other endpoints
+  createUser: async (userData: {
+    username: string;
+    email: string;
+    password: string;
+    primaryRole: string;
+    secondaryRoles?: string[];
+    isActive?: boolean;
+  }) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create user');
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  },
+
+  adminResetPassword: async (userId: string, newPassword: string) => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to reset user password');
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error resetting user password:', error);
+      throw error;
+    }
+  },
+
+  exportUsers: async (filters?: { role?: string; status?: string }) => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filters?.role) queryParams.append('role', filters.role);
+      if (filters?.status) queryParams.append('status', filters.status);
+
+      const response = await authenticatedFetch(
+        `${API_BASE_URL}/api/admin/users/export?${queryParams.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to export users');
+      }
+      return response.text(); // CSV data
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      throw error;
+    }
+  },
+
+  importUsers: async (csvFile: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', csvFile);
+
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/import`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to import users');
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error importing users:', error);
+      throw error;
+    }
+  },
 
 };

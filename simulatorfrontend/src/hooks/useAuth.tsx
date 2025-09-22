@@ -54,12 +54,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check for existing auth token on app load
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('currentUser');
-    
+
     if (token && userData) {
       try {
         // Check if token is still valid
         if (checkTokenExpiry()) {
-          setUser(JSON.parse(userData));
+          const user = JSON.parse(userData);
+          // Ensure user object has the correct role structure
+          const userWithRole = {
+            ...user,
+            role: user.primaryRole || user.role || 'user'
+          };
+          setUser(userWithRole);
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -67,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem('currentUser');
       }
     }
-    
+
     setLoading(false);
   }, []);
 
@@ -85,10 +91,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     const response = await api.login(email, password);
     const { token, user } = response;
-    
+
+    // Ensure user object has the correct role structure
+    const userWithRole = {
+      ...user,
+      role: user.primaryRole || user.role || 'user'
+    };
+
     localStorage.setItem('authToken', token);
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    setUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+    setUser(userWithRole);
   };
 
   const register = async (userData: {

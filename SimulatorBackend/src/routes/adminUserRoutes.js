@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
 import adminUserManagementService from '../services/AdminUserManagementService.js';
-import { requireAdmin, populateUser } from '../middleware/authMiddleware.js';
+import { requireAdmin } from '../middleware/authMiddleware.js';
+import { populateUser } from '../middleware/rbacMiddleware.js';
 import { UserRole, HealthcareDiscipline } from '../models/UserModel.js';
 
 const router = express.Router();

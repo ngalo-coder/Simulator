@@ -95,7 +95,44 @@ router.get('/stats/realtime', protect, isAdmin, async (req, res) => {
 // Get all users
 router.get('/users', protect, isAdmin, async (req, res) => {
   try {
-    // ... existing users code ...
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
+    // Build query filters
+    const query = {};
+    if (req.query.role) query.primaryRole = req.query.role;
+    if (req.query.status) query.status = req.query.status;
+    if (req.query.search) {
+      query.$or = [
+        { username: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+    if (req.query.discipline) query.discipline = req.query.discipline;
+    if (req.query.isActive !== undefined) query.isActive = req.query.isActive === 'true';
+
+    // Get users with pagination
+    const users = await User.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select('-password')
+      .lean();
+
+    const totalUsers = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.json({
+      success: true,
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        total: totalUsers,
+        limit
+      }
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
@@ -176,6 +213,54 @@ router.put('/cases/:caseId', protect, isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error updating case:', error);
     res.status(500).json({ error: 'Failed to update case' });
+  }
+});
+
+// Get user statistics
+router.get('/users/statistics', protect, isAdmin, async (req, res) => {
+  try {
+    // Get user counts by different criteria
+    const [
+      total,
+      active,
+      inactive,
+      students,
+      educators,
+      admins,
+      verified,
+      unverified
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isActive: true }),
+      User.countDocuments({ isActive: false }),
+      User.countDocuments({ primaryRole: 'student' }),
+      User.countDocuments({ primaryRole: 'educator' }),
+      User.countDocuments({ primaryRole: 'admin' }),
+      User.countDocuments({ emailVerified: true }),
+      User.countDocuments({ emailVerified: false })
+    ]);
+
+    const statistics = {
+      total,
+      active,
+      inactive,
+      students,
+      educators,
+      admins,
+      verified,
+      unverified
+    };
+
+    res.json({
+      success: true,
+      statistics
+    });
+  } catch (error) {
+    console.error('Error fetching user statistics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user statistics'
+    });
   }
 });
 

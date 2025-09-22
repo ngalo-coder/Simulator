@@ -4,15 +4,13 @@ import { UserRole, HealthcareDiscipline } from '../../models/UserModel.js';
 
 // Mock dependencies
 jest.mock('../../models/UserModel.js', () => ({
-  default: {
-    find: jest.fn(),
-    findById: jest.fn(),
-    findOne: jest.fn(),
-    findByIdAndDelete: jest.fn(),
-    countDocuments: jest.fn(),
-    updateMany: jest.fn(),
-    aggregate: jest.fn()
-  },
+  find: jest.fn(),
+  findById: jest.fn(),
+  findOne: jest.fn(),
+  findByIdAndDelete: jest.fn(),
+  countDocuments: jest.fn(),
+  updateMany: jest.fn(),
+  aggregate: jest.fn(),
   UserRole: {
     STUDENT: 'student',
     EDUCATOR: 'educator',
@@ -28,9 +26,7 @@ jest.mock('../../models/UserModel.js', () => ({
 }));
 
 jest.mock('../AuditLoggerService.js', () => ({
-  default: {
-    logAuthEvent: jest.fn()
-  }
+  logAuthEvent: jest.fn()
 }));
 
 import User from '../../models/UserModel.js';

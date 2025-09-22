@@ -1,10 +1,12 @@
 export interface User {
-  id: string;
+  _id: string;
+  id?: string; // For backward compatibility
   username: string;
   email: string;
   primaryRole: 'student' | 'educator' | 'admin';
-  discipline: 'medicine' | 'nursing' | 'laboratory' | 'radiology' | 'pharmacy';
-  profile: {
+  secondaryRoles?: string[];
+  discipline?: 'medicine' | 'nursing' | 'laboratory' | 'radiology' | 'pharmacy';
+  profile?: {
     firstName: string;
     lastName: string;
     institution: string;
@@ -12,11 +14,35 @@ export interface User {
     yearOfStudy?: number;
     competencyLevel?: 'novice' | 'advanced_beginner' | 'competent' | 'proficient' | 'expert';
   };
+  status?: string;
   isActive: boolean;
   emailVerified: boolean;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
+  totalCases?: number;
+  averageScore?: number;
+  privacySettings?: {
+    showInLeaderboard: boolean;
+    showRealName: boolean;
+    profileVisibility: string;
+  };
+}
+
+export interface UsersResponse {
+  users: User[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export interface PatientCase {
