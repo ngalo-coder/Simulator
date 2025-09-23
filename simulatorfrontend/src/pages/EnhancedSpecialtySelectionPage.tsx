@@ -131,7 +131,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const navigate = useNavigate();
   const {
     loading: specialtyLoading,
-    error: specialtyError,
     navigateToSpecialty,
     forceRefreshSpecialties
   } = useSpecialtyContext();

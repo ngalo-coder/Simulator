@@ -409,7 +409,7 @@ const ProgressPage: React.FC = () => {
 
           {progressData?.specialtyProgress && progressData.specialtyProgress.length > 0 ? (
             <div className="space-y-3 sm:space-y-4">
-              {progressData.specialtyProgress.map((specialty: { specialty: string; casesCompleted: number; averageScore: number }, index: number) => (
+              {progressData.specialtyProgress.map((specialty: { specialty: string; casesCompleted: number; averageScore: number }) => (
                 <Card variant="default" padding="sm" className="border-medical-100 bg-white/50 hover:bg-white/80 transition-all duration-300">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 space-y-1 sm:space-y-0">
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{specialty.specialty}</h3>
@@ -448,7 +448,7 @@ const ProgressPage: React.FC = () => {
 
           {progressData?.recentPerformance && progressData.recentPerformance.length > 0 ? (
             <div className="space-y-2 sm:space-y-3 max-h-80 overflow-y-auto">
-              {progressData.recentPerformance.slice(0, 8).map((metric: { caseTitle: string; completedAt: Date; score: number }, index: number) => (
+              {progressData.recentPerformance.slice(0, 8).map((metric: { caseTitle: string; completedAt: Date; score: number }) => (
                 <Card variant="default" padding="sm" className="bg-white/60 border-stable-100 hover:bg-white/90 hover:shadow-md transition-all duration-300">
                   <div className="flex justify-between items-center">
                     <div className="flex-1 min-w-0">

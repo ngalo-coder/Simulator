@@ -4,8 +4,6 @@ import Badge from './Badge';
 import Button from './Button';
 import {
   SpecialtyConfig,
-  getSpecialtyColor,
-  getSpecialtyIcon,
   getDifficultyColor,
   getDifficultyLabel
 } from '../../utils/specialtyConfig';
