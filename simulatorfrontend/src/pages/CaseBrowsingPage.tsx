@@ -39,17 +39,6 @@ const CaseBrowsingPage: React.FC = () => {
   const isSpecialtyContext = !!(currentSpecialty || params.specialty);
   const contextSpecialty = currentSpecialty || (params.specialty ? getSpecialtyFromSlug(params.specialty) : null);
 
-  // Program area configurations with descriptions and icons
-  const programAreaConfig: Record<string, { description: string; icon: string }> = {
-    'Basic Program': {
-      description: 'Foundational medical cases covering essential clinical skills and common presentations',
-      icon: '🏥'
-    },
-    'Specialty Program': {
-      description: 'Advanced cases in specialized medical fields requiring deeper clinical expertise',
-      icon: '🔬'
-    }
-  };
 
   // Specialty configurations with descriptions
   const specialtyConfig: Record<string, string> = {

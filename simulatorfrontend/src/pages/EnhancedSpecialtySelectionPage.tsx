@@ -12,11 +12,7 @@ import Button from '../components/ui/Button';
 import {
   SpecialtyConfig,
   getSpecialtyConfig,
-  getSpecialtyColor,
-  getSpecialtyIcon,
   getAvailableSpecialties,
-  getSpecialtiesByPhase,
-  getDifficultyColor,
   getDifficultyLabel
 } from '../utils/specialtyConfig';
 
@@ -134,14 +130,9 @@ interface UserProgress {
 const EnhancedSpecialtySelectionPage: React.FC = () => {
   const navigate = useNavigate();
   const {
-    currentSpecialty,
-    availableSpecialties,
-    specialtyRoutes,
     loading: specialtyLoading,
     error: specialtyError,
     navigateToSpecialty,
-    getSpecialtyFromSlug,
-    clearError,
     forceRefreshSpecialties
   } = useSpecialtyContext();
 
@@ -494,8 +485,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
 
   const renderSpecialtyCard = (specialty: SpecialtyConfig) => {
     const progress = userProgress[specialty.id];
-    const isCompleted = progress?.completionRate >= 100;
-    const isInProgress = progress?.isInProgress;
 
     let variant: 'default' | 'compact' | 'featured' = 'default';
     if (specialty.phase === 'current') {

@@ -27,17 +27,11 @@ const SkillBreakdown: React.FC<SkillBreakdownProps> = ({
   subtitle = "Breakdown of your performance across different medical skills",
   className = ""
 }) => {
-  const getSkillColor = (score: number): 'medical' | 'stable' | 'warning' | 'emergency' | 'info' => {
-    if (score >= 85) return 'stable';
-    if (score >= 70) return 'medical';
-    if (score >= 50) return 'warning';
-    return 'emergency';
-  };
 
   const getTrendIcon = (trend?: { value: number; direction: 'up' | 'down' | 'stable' }) => {
     if (!trend) return null;
 
-    const { direction, value } = trend;
+    const { direction } = trend;
     const iconClass = "w-4 h-4";
 
     switch (direction) {

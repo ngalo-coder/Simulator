@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/apiService';
-import { Button, Card, Badge, Loading, Alert } from '../components/ui';
+import { Button, Card, Badge, Alert } from '../components/ui';
 import {
-  SpecialtyConfig,
-  getSpecialtyConfig,
-  getAvailableSpecialties,
-  getSpecialtyColor,
-  getSpecialtyIcon
+  getAvailableSpecialties
 } from '../utils/specialtyConfig';
 
 interface SpecialtyVisibility {
@@ -39,12 +35,6 @@ const AdminSpecialtyManagement: React.FC = () => {
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterVisibility, setFilterVisibility] = useState('all');
 
-  // Program area options for filtering
-  const programAreaOptions = [
-    { value: 'all', label: 'All Programs' },
-    { value: 'basic', label: 'Basic Program' },
-    { value: 'specialty', label: 'Specialty Program' }
-  ];
 
   const visibilityOptions = [
     { value: 'all', label: 'All Specialties' },
@@ -208,11 +198,6 @@ const AdminSpecialtyManagement: React.FC = () => {
     });
   }, [specialties, visibilitySettings, searchTerm, filterProgram, filterVisibility]);
 
-  const getSpecialtyStatusColor = (isVisible: boolean) => {
-    return isVisible
-      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-  };
 
   const getSpecialtyStatusText = (isVisible: boolean) => {
     return isVisible ? 'Visible' : 'Hidden';
