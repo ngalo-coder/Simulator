@@ -26,7 +26,6 @@ const SimulationChatPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get specialty context from navigation state
   const specialtyContext = location.state?.specialtyContext;
 
   // Add custom styles for animations
@@ -53,6 +52,7 @@ const SimulationChatPage: React.FC = () => {
       document.head.removeChild(style);
     };
   }, []);
+
   const {} = useAuth();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,11 +62,9 @@ const SimulationChatPage: React.FC = () => {
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const [evaluation, setEvaluation] = useState<string>('');
   
-  // Retake functionality state
   const [showRetakeModal, setShowRetakeModal] = useState(false);
   const [showRetakeHistory, setShowRetakeHistory] = useState(false);
   
-  // Enhanced loading states for simulation startup - Requirements 2.2, 2.3, 2.4
   const [simulationStartupState, setSimulationStartupState] = useState<{
     phase: 'idle' | 'validating_case' | 'creating_session' | 'loading_patient' | 'initializing_chat' | 'complete';
     progress: number;
@@ -79,10 +77,8 @@ const SimulationChatPage: React.FC = () => {
     isLoading: false
   });
   
-  // Enhanced state management for different URL access patterns - Requirements 1.1, 1.2, 2.1
   const [urlAccessPattern, setUrlAccessPattern] = useState<'case-only' | 'case-with-session' | 'invalid'>('invalid');
   
-  // Comprehensive error handling state - Requirements 3.1, 3.2, 3.3, 3.4
   interface SimulationError {
     type: 'invalid_case' | 'network' | 'auth' | 'server' | 'timeout' | 'unknown';
     message: string;
@@ -99,13 +95,12 @@ const SimulationChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Helper function to normalize speaks_for values
   const normalizeSpeaksFor = (speaksFor: string | undefined): string | undefined => {
     if (!speaksFor) return speaksFor;
     return speaksFor.toLowerCase() === 'self' ? 'Self' : speaksFor;
   };
 
-  // Test the fix - this will log to console to verify the fix works
+  // Test the fix
   React.useEffect(() => {
     const testCases = ['self', 'Self', 'mother', 'father', undefined, ''];
     testCases.forEach(testCase => {
@@ -115,15 +110,13 @@ const SimulationChatPage: React.FC = () => {
     });
   }, []);
 
-  // Bookmark compatibility handler - Requirement 4.4
+  // Bookmark compatibility handler
   useEffect(() => {
-    // Ensure bookmark compatibility by validating and potentially correcting URLs
     const currentUrl = window.location.pathname;
     
     if (isValidSimulationUrl(currentUrl)) {
       console.log('✅ Valid simulation URL detected for bookmark compatibility');
       
-      // Update page title for better bookmark experience
       if (sessionData?.patientName) {
         document.title = `Simulation: ${sessionData.patientName} - Simuatech`;
       } else if (caseId) {
@@ -132,9 +125,8 @@ const SimulationChatPage: React.FC = () => {
     }
   }, [caseId, sessionId, sessionData?.patientName]);
 
-  // Enhanced URL validation and pattern detection - Requirements 1.1, 1.2, 4.4
+  // Enhanced URL validation and pattern detection
   useEffect(() => {
-    // Validate current URL for bookmark compatibility - Requirement 4.4
     const currentUrl = window.location.pathname;
     const urlValidation = parseSimulationUrl(currentUrl);
     
@@ -144,7 +136,6 @@ const SimulationChatPage: React.FC = () => {
       params: { caseId, sessionId } 
     });
 
-    // Ensure URL parameters match the parsed URL for consistency
     if (urlValidation.isValid) {
       if (urlValidation.caseId !== caseId || urlValidation.sessionId !== sessionId) {
         console.warn('⚠️ URL parameter mismatch detected', {
@@ -154,7 +145,6 @@ const SimulationChatPage: React.FC = () => {
       }
     }
 
-    // Set URL access pattern based on validation and parameters
     if (caseId && sessionId && urlValidation.sessionId) {
       setUrlAccessPattern('case-with-session');
       console.log('🔗 URL Pattern: case-with-session', { caseId, sessionId });
@@ -177,14 +167,11 @@ const SimulationChatPage: React.FC = () => {
       simulationError: simulationError?.type || null
     });
     
-    // Clear any previous startup errors - Requirement 3.1
     setSimulationError(null);
     setRetryCount(0);
     
-    // Handle different URL access patterns - Requirements 1.1, 1.2, 2.1
     switch (urlAccessPattern) {
       case 'case-only':
-        // Direct case access - automatically start new simulation
         if (!sessionData) {
           console.log('🚀 Case-only URL detected - Starting new simulation for case:', caseId);
           startNewSimulation();
@@ -192,11 +179,8 @@ const SimulationChatPage: React.FC = () => {
         break;
         
       case 'case-with-session':
-        // Existing session access - load session data
         if (!sessionData) {
           console.log('🔄 Case+Session URL detected - Loading existing session:', sessionId);
-          // For existing sessions, set minimal session data to prevent re-triggering
-          // This will be enhanced in future tasks for session resumption
           setSessionData({ 
             sessionId, 
             patientName: 'Loading...', 
@@ -207,7 +191,6 @@ const SimulationChatPage: React.FC = () => {
         break;
         
       case 'invalid':
-        // Invalid URL pattern - handle error - Requirement 3.1
         if (!caseId) {
           console.warn('⚠️ Invalid URL - No caseId provided, redirecting to simulation page');
           const error: SimulationError = {
@@ -231,14 +214,13 @@ const SimulationChatPage: React.FC = () => {
         console.log('⏳ URL pattern not yet determined, waiting...');
     }
 
-    // Cleanup function
     return () => {
       if (eventSourceRef.current) {
         console.log('🧹 Cleaning up EventSource');
         eventSourceRef.current.close();
       }
     };
-  }, [caseId, sessionId, urlAccessPattern]); // Include urlAccessPattern in dependencies
+  }, [caseId, sessionId, urlAccessPattern]); 
 
   useEffect(() => {
     scrollToBottom();
@@ -250,7 +232,6 @@ const SimulationChatPage: React.FC = () => {
     }
   };
 
-  // Enhanced error logging function - Requirement 3.4
   const logError = (errorType: string, details: any) => {
     const errorLog = {
       timestamp: new Date().toISOString(),
@@ -266,18 +247,14 @@ const SimulationChatPage: React.FC = () => {
     
     console.error('🚨 Simulation Error:', errorLog);
     
-    // In production, this would send to error tracking service
     if (import.meta.env.PROD) {
-      // Example: Send to error tracking service
       // errorTrackingService.log(errorLog);
     }
   };
 
-  // Create error object based on error type - Requirements 3.1, 3.2, 3.3
   const createErrorFromException = (error: any): SimulationError => {
     console.error('🔍 Analyzing error:', error);
     
-    // Network/Connection errors - Requirement 3.1
     if (error.message?.includes('fetch') || 
         error.message?.includes('network') || 
         error.message?.includes('Failed to fetch') ||
@@ -291,7 +268,6 @@ const SimulationChatPage: React.FC = () => {
       };
     }
     
-    // Authentication errors - Requirement 3.2
     if (error.message?.includes('401') || 
         error.message?.includes('authentication') || 
         error.message?.includes('unauthorized') ||
@@ -306,7 +282,6 @@ const SimulationChatPage: React.FC = () => {
       };
     }
     
-    // Invalid case errors - Requirement 3.3
     if (error.message?.includes('404') || 
         error.message?.includes('not found') ||
         error.message?.includes('Case not found') ||
@@ -321,7 +296,6 @@ const SimulationChatPage: React.FC = () => {
       };
     }
     
-    // Timeout errors
     if (error.message?.includes('timeout') || error.name === 'TimeoutError') {
       return {
         type: 'timeout',
@@ -332,7 +306,6 @@ const SimulationChatPage: React.FC = () => {
       };
     }
     
-    // Server errors (5xx)
     if (error.message?.includes('500') || 
         error.message?.includes('502') || 
         error.message?.includes('503') ||
@@ -346,7 +319,6 @@ const SimulationChatPage: React.FC = () => {
       };
     }
     
-    // Unknown errors
     return {
       type: 'unknown',
       message: error.message || 'Unknown error occurred',
@@ -356,7 +328,6 @@ const SimulationChatPage: React.FC = () => {
     };
   };
 
-  // Retry simulation startup - Requirement 3.1
   const retrySimulationStartup = async () => {
     if (!simulationError?.canRetry || isRetrying) return;
     
@@ -366,7 +337,6 @@ const SimulationChatPage: React.FC = () => {
     console.log(`🔄 Retrying simulation startup (attempt ${retryCount + 1})`);
     
     try {
-      // Clear previous error and reset startup state - Requirement 2.4
       setSimulationError(null);
       setSimulationStartupState({
         phase: 'idle',
@@ -375,12 +345,10 @@ const SimulationChatPage: React.FC = () => {
         isLoading: false
       });
       
-      // Add delay for network issues
       if (simulationError.type === 'network') {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
-      // Retry the simulation startup
       await startNewSimulation();
     } catch (error) {
       console.error('❌ Retry failed:', error);
@@ -407,14 +375,12 @@ const SimulationChatPage: React.FC = () => {
       return;
     }
 
-    // Prevent starting a new simulation if one is already in progress
     if (sessionData && !isSessionEnded && sessionData.sessionId) {
       console.log('⚠️ Simulation already in progress, not starting a new one');
       return;
     }
 
     try {
-      // Initialize enhanced loading state - Requirement 2.2
       setSimulationStartupState({
         phase: 'validating_case',
         progress: 10,
@@ -426,7 +392,6 @@ const SimulationChatPage: React.FC = () => {
       setSimulationError(null);
       console.log('🚀 Starting new simulation for case-only URL:', caseId);
       
-      // Simulate case validation phase - Requirement 2.2
       await new Promise(resolve => setTimeout(resolve, 800));
       
       setSimulationStartupState({
@@ -439,12 +404,10 @@ const SimulationChatPage: React.FC = () => {
       const response = await api.startSimulation(caseId);
       console.log('🔍 API Response received:', response);
 
-      // Validate API response - Requirement 3.1
       if (!response) {
         throw new Error('No response received from server');
       }
       
-      // Update progress for session creation - Requirement 2.3
       setSimulationStartupState({
         phase: 'loading_patient',
         progress: 60,
@@ -452,10 +415,8 @@ const SimulationChatPage: React.FC = () => {
         isLoading: true
       });
       
-      // Simulate patient data loading - Requirement 2.3
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Handle different possible response structures from backend - Requirement 2.1
       const sessionId = response.sessionId || response.session_id;
       const patientName = response.patientName || 
                          response.patient_name || 
@@ -473,7 +434,6 @@ const SimulationChatPage: React.FC = () => {
         throw new Error('No session ID received from server');
       }
 
-      // Enhanced session data structure for better state management - Requirements 1.2, 2.1
       const enhancedSessionData = {
         sessionId,
         caseId,
@@ -487,7 +447,6 @@ const SimulationChatPage: React.FC = () => {
 
       console.log('✅ Setting enhanced session data:', enhancedSessionData);
       
-      // Update progress for chat initialization - Requirement 2.3
       setSimulationStartupState({
         phase: 'initializing_chat',
         progress: 85,
@@ -495,14 +454,12 @@ const SimulationChatPage: React.FC = () => {
         isLoading: true
       });
       
-      // Simulate chat initialization - Requirement 2.3
       await new Promise(resolve => setTimeout(resolve, 500));
       
       setSessionData(enhancedSessionData);
 
       const messages: Message[] = [];
 
-      // Add system welcome message - Requirement 2.2
       const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
       const displayName = (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
       const systemMessage: Message = {
@@ -514,7 +471,6 @@ const SimulationChatPage: React.FC = () => {
       };
       messages.push(systemMessage);
 
-      // Add initial prompt from patient if available - Requirement 2.1, 2.2
       console.log('🔍 Checking for initial prompt:', {
         raw: initialPrompt,
         trimmed: initialPrompt?.trim(),
@@ -533,7 +489,7 @@ const SimulationChatPage: React.FC = () => {
         };
         messages.push(patientMessage);
       } else {
-        console.log('⚠️ No initial prompt, adding default greeting - Requirement 2.2');
+        console.log('⚠️ No initial prompt, adding default greeting');
         const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
         const displayName = (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
         const defaultMessage: Message = {
@@ -553,7 +509,6 @@ const SimulationChatPage: React.FC = () => {
         content: m.content.substring(0, 50) + '...'
       })));
 
-      // Complete startup process - Requirement 2.4
       setSimulationStartupState({
         phase: 'complete',
         progress: 100,
@@ -561,14 +516,11 @@ const SimulationChatPage: React.FC = () => {
         isLoading: false
       });
       
-      // Set messages immediately after setting session data
       setMessages(messages);
       
-      // Smooth transition to active state - Requirement 2.4
       setTimeout(() => {
         setMessages(() => [...messages]);
         
-        // Clear startup state after smooth transition
         setTimeout(() => {
           setSimulationStartupState({
             phase: 'idle',
@@ -579,22 +531,17 @@ const SimulationChatPage: React.FC = () => {
         }, 1000);
       }, 300);
 
-      // Enhanced automatic URL redirection with specialty context preservation - Requirements 1.2, 4.1, 4.2, 4.4
       console.log('🔄 Redirecting to session URL for consistency and bookmark compatibility');
       
-      // Create consistent session URL using utility function - Requirement 4.4
       const sessionUrl = createSimulationSessionUrl(caseId, sessionId);
       
-      // Preserve specialty context during URL redirection using utility - Requirements 4.1, 4.2
       const preservedState = preserveSpecialtyContext(location.state, {
         fromCaseOnlyUrl: true,
         originalCaseUrl: createSimulationCaseUrl(caseId),
         sessionStartedAt: new Date().toISOString()
       });
 
-      // Ensure specialty context exists even if not provided - Requirement 4.1
       if (!preservedState.specialtyContext) {
-        // Try to extract specialty from referrer or current URL
         const referrerSpecialty = document.referrer.includes('/') ? 
           document.referrer.split('/').pop()?.replace(/_/g, ' ') : null;
         
@@ -604,15 +551,11 @@ const SimulationChatPage: React.FC = () => {
         );
       }
 
-      // Use replace: true to maintain bookmark compatibility - users bookmarking the case-only URL
-      // will still work, but the URL will be updated to the session URL for consistency
       navigate(sessionUrl, { 
         replace: true,
         state: preservedState
       });
 
-      // Update browser history for bookmark compatibility - Requirement 4.4
-      // This ensures that if users bookmark the page after redirection, they get the session URL
       updateBrowserHistoryForBookmarks(
         sessionUrl,
         `Simulation: ${enhancedSessionData.patientName}`,
@@ -622,11 +565,9 @@ const SimulationChatPage: React.FC = () => {
     } catch (error) {
       console.error('❌ Error starting simulation:', error);
       
-      // Create comprehensive error object - Requirements 3.1, 3.2, 3.3, 3.4
       const simulationError = createErrorFromException(error);
       setSimulationError(simulationError);
       
-      // Log detailed error information for debugging - Requirement 3.4
       logError('Simulation startup failed', {
         error: error instanceof Error ? error.message : String(error),
         errorType: simulationError.type,
@@ -635,10 +576,8 @@ const SimulationChatPage: React.FC = () => {
         stack: error instanceof Error ? error.stack : undefined
       });
       
-      // Enhanced automatic redirects with specialty context preservation - Requirements 4.1, 4.2
       if (!simulationError.canRetry && simulationError.action === 'redirect') {
         setTimeout(() => {
-          // Preserve specialty context during error redirects - Requirement 4.1
           const redirectState = {
             specialtyContext: location.state?.specialtyContext,
             fromSimulationError: true,
@@ -650,14 +589,12 @@ const SimulationChatPage: React.FC = () => {
           } else if (specialtyContext?.returnUrl) {
             navigate(specialtyContext.returnUrl, { state: redirectState });
           } else {
-            // Default fallback with specialty context if available
             const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
             navigate(fallbackUrl, { state: redirectState });
           }
-        }, 4000); // Increased delay to allow user to read error message
+        }, 4000);
       }
       
-      // Handle authentication redirects
       if (simulationError.action === 'login') {
         setTimeout(() => {
           navigate('/login');
@@ -666,7 +603,6 @@ const SimulationChatPage: React.FC = () => {
       
     } finally {
       setIsLoading(false);
-      // Reset startup state on error - Requirement 2.4
       setSimulationStartupState({
         phase: 'idle',
         progress: 0,
@@ -706,7 +642,6 @@ const SimulationChatPage: React.FC = () => {
 
     console.log('🗨️ User message added, starting streaming...');
 
-    // Test backend connectivity first
     console.log('🔍 Testing backend connectivity...');
     try {
       const testResponse = await fetch(`${import.meta.env.VITE_API_URL}/health`, {
@@ -722,7 +657,6 @@ const SimulationChatPage: React.FC = () => {
     } catch (error) {
       console.error('Error sending message:', error);
 
-      // Enhanced error handling for message sending - Requirements 3.1, 3.2, 3.4
       let errorText = "I apologize, but I'm having trouble responding right now. Please try again.";
 
       if (error instanceof Error) {
@@ -760,7 +694,6 @@ const SimulationChatPage: React.FC = () => {
         }
       }
 
-      // Add error message with enhanced formatting
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -792,12 +725,8 @@ const SimulationChatPage: React.FC = () => {
 
       const eventSourceUrl = `${import.meta.env.VITE_API_URL}/api/simulation/ask?${queryParams.toString()}`;
       console.log('🔗 Creating EventSource connection to:', eventSourceUrl);
-      console.log('🔑 Using token:', token.substring(0, 20) + '...');
-      console.log('📝 Session ID:', sessionId);
-      console.log('❓ Question:', question);
 
       const eventSource = new EventSource(eventSourceUrl);
-
       eventSourceRef.current = eventSource;
 
       let assistantMessage: Message = {
@@ -809,7 +738,6 @@ const SimulationChatPage: React.FC = () => {
           const speaksFor = sessionData?.speaks_for;
           const patientName = sessionData?.patientName || 'Patient';
           const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
-          // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
           return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
         })(),
       };
@@ -830,9 +758,6 @@ const SimulationChatPage: React.FC = () => {
           switch (data.type) {
             case 'chunk':
               if (!hasStarted) {
-                // Update the assistant message with the correct speaker name from the backend
-                // If speaks_for is present and not "Self", use it (e.g., "Mother" for parent speaking for child)
-                // Otherwise use the patient's name
                 const normalizedSpeaksFor = normalizeSpeaksFor(data.speaks_for);
                 const speakerName = (normalizedSpeaksFor && normalizedSpeaksFor !== 'Self')
                   ? normalizedSpeaksFor
@@ -843,8 +768,6 @@ const SimulationChatPage: React.FC = () => {
               }
 
               assistantMessage.content += data.content;
-              // Use speaks_for if available and not "Self" (for cases where someone speaks for the patient)
-              // Otherwise use the patient's name
               const normalizedSpeaksFor = normalizeSpeaksFor(data.speaks_for);
               const speakerName = (normalizedSpeaksFor && normalizedSpeaksFor !== 'Self')
                 ? normalizedSpeaksFor
@@ -878,7 +801,6 @@ const SimulationChatPage: React.FC = () => {
         } catch (err) {
           console.error('Error parsing SSE data:', err, 'Raw data:', event.data);
           
-          // Enhanced error logging for SSE parsing - Requirement 3.4
           logError('EventSource - Data parsing error', {
             error: err instanceof Error ? err.message : String(err),
             rawData: event.data,
@@ -894,24 +816,20 @@ const SimulationChatPage: React.FC = () => {
       eventSource.onerror = (err) => {
         console.error('❌ EventSource error:', err);
         console.error('🔍 EventSource readyState:', eventSource.readyState);
-        console.error('🌐 EventSource URL:', eventSource.url);
 
-        // Enhanced error logging for streaming - Requirement 3.4
         const errorDetails = {
           readyState: eventSource.readyState,
           connectionEstablished,
           sessionId,
           question: question.substring(0, 100) + '...',
           timestamp: new Date().toISOString(),
-          url: eventSource.url
+          url: eventSourceUrl
         };
 
         if (!connectionEstablished) {
-          // Connection failed to establish - Requirement 3.1
           logError('EventSource - Failed to establish connection', errorDetails);
           reject(new Error('Failed to establish connection to server'));
         } else {
-          // Connection was established but then failed - Requirement 3.1
           logError('EventSource - Connection lost', errorDetails);
           reject(new Error('Connection to server was lost'));
         }
@@ -919,11 +837,11 @@ const SimulationChatPage: React.FC = () => {
         eventSource.close();
       };
 
-      // Enhanced cleanup timeout with logging - Requirement 3.4
+      // Enhanced cleanup timeout with logging
       setTimeout(() => {
         if (eventSource.readyState !== EventSource.CLOSED) {
           console.log('Request timeout, closing EventSource');
-          
+
           logError('EventSource - Request timeout', {
             sessionId,
             question: question.substring(0, 100) + '...',
@@ -931,11 +849,11 @@ const SimulationChatPage: React.FC = () => {
             connectionEstablished,
             timeoutDuration: 60000
           });
-          
+
           eventSource.close();
           reject(new Error('Request timeout - no response from server'));
         }
-      }, 60000); // Increased timeout to 60 seconds
+      }, 60000);
     });
   };
 
@@ -949,10 +867,8 @@ const SimulationChatPage: React.FC = () => {
       setIsSessionEnded(true);
       setEvaluation(response.evaluation || 'Session completed successfully.');
 
-      // Log completion for debugging progress tracking
-      console.log('✅ Session completed successfully. Progress should be updated.');
+      console.log('✅ Session completed successfully.');
 
-      // Log session completion as info, not error
       console.log('📊 Session ended successfully', {
         sessionId: sessionData.sessionId,
         caseId,
@@ -963,7 +879,6 @@ const SimulationChatPage: React.FC = () => {
     } catch (error) {
       console.error('Error ending session:', error);
       
-      // Enhanced error handling for session ending - Requirements 3.1, 3.4
       logError('Failed to end session', {
         error: error instanceof Error ? error.message : String(error),
         sessionId: sessionData.sessionId,
@@ -971,7 +886,6 @@ const SimulationChatPage: React.FC = () => {
         stack: error instanceof Error ? error.stack : undefined
       });
       
-      // Show user-friendly error message
       const errorMessage: Message = {
         id: 'session-end-error-' + Date.now(),
         role: 'assistant',
@@ -981,7 +895,6 @@ const SimulationChatPage: React.FC = () => {
       };
       setMessages((prev) => [...prev, errorMessage]);
       
-      // Still mark session as ended to allow user to continue
       setIsSessionEnded(true);
       setEvaluation('Session ended with errors. Your progress may still be saved.');
       
@@ -997,7 +910,7 @@ const SimulationChatPage: React.FC = () => {
     }
   };
 
-  // Enhanced error display with comprehensive error handling - Requirements 3.1, 3.2, 3.3, 3.4
+  // Enhanced error display
   if (simulationError) {
     const getErrorIcon = (type: string) => {
       switch (type) {
@@ -1043,7 +956,6 @@ const SimulationChatPage: React.FC = () => {
             {simulationError.userMessage}
           </p>
 
-          {/* Error details for debugging (dev mode only) */}
           {import.meta.env.DEV && (
             <div className="mb-6 p-3 bg-gray-100 rounded text-left text-sm">
               <strong>Debug Info:</strong><br />
@@ -1055,7 +967,6 @@ const SimulationChatPage: React.FC = () => {
           )}
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {/* Retry button for retryable errors */}
             {simulationError.canRetry && (
               <button
                 onClick={retrySimulationStartup}
@@ -1076,7 +987,6 @@ const SimulationChatPage: React.FC = () => {
               </button>
             )}
 
-            {/* Action buttons based on error type */}
             {simulationError.action === 'login' && (
               <button
                 onClick={() => navigate('/login')}
@@ -1090,7 +1000,6 @@ const SimulationChatPage: React.FC = () => {
             {simulationError.action === 'redirect' && (
               <button
                 onClick={() => {
-                  // Enhanced navigation with specialty context preservation - Requirements 4.1, 4.2
                   const navigationState = {
                     specialtyContext: location.state?.specialtyContext,
                     fromSimulationError: true,
@@ -1102,7 +1011,6 @@ const SimulationChatPage: React.FC = () => {
                   } else if (specialtyContext?.returnUrl) {
                     navigate(specialtyContext.returnUrl, { state: navigationState });
                   } else {
-                    // Enhanced fallback with specialty context preservation
                     const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
                     navigate(fallbackUrl, { state: navigationState });
                   }
@@ -1114,11 +1022,9 @@ const SimulationChatPage: React.FC = () => {
               </button>
             )}
 
-            {/* Always show a back button */}
             {simulationError.action === 'none' && (
               <button
                 onClick={() => {
-                  // Enhanced navigation with specialty context preservation - Requirements 4.1, 4.2
                   const navigationState = {
                     specialtyContext: location.state?.specialtyContext,
                     fromSimulationError: true,
@@ -1128,7 +1034,6 @@ const SimulationChatPage: React.FC = () => {
                   if (specialtyContext?.returnUrl) {
                     navigate(specialtyContext.returnUrl, { state: navigationState });
                   } else {
-                    // Enhanced fallback with specialty context preservation
                     const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
                     navigate(fallbackUrl, { state: navigationState });
                   }
@@ -1141,7 +1046,6 @@ const SimulationChatPage: React.FC = () => {
             )}
           </div>
 
-          {/* Auto-redirect message */}
           {!simulationError.canRetry && simulationError.action === 'redirect' && (
             <div className="mt-4 text-sm text-gray-500">
               Automatically redirecting in a few seconds...
@@ -1158,12 +1062,11 @@ const SimulationChatPage: React.FC = () => {
     );
   }
 
-  // Enhanced loading screen with detailed progress - Requirements 2.2, 2.3, 2.4
+  // Enhanced loading screen
   if ((isLoading && messages.length === 0) || simulationStartupState.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-lg">
-          {/* Animated Logo/Icon */}
           <div className="relative mb-6">
             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
               <span className="text-white font-bold text-2xl">ST</span>
@@ -1183,7 +1086,6 @@ const SimulationChatPage: React.FC = () => {
             )}
           </div>
 
-          {/* Progress Bar - Requirement 2.2 */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">
@@ -1204,7 +1106,6 @@ const SimulationChatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Phase-specific content - Requirement 2.3 */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
               {simulationStartupState.phase === 'validating_case' && 'Validating Case'}
@@ -1235,7 +1136,6 @@ const SimulationChatPage: React.FC = () => {
               )}
             </p>
 
-            {/* Animated steps indicator - Requirement 2.3 */}
             <div className="flex justify-center space-x-2 mt-4">
               {['validating_case', 'creating_session', 'loading_patient', 'initializing_chat', 'complete'].map((phase, index) => (
                 <div
@@ -1252,7 +1152,6 @@ const SimulationChatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Loading animation */}
           <div className="mt-6 flex justify-center">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -1261,7 +1160,6 @@ const SimulationChatPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Debug info in development */}
           {import.meta.env.DEV && (
             <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-left">
               <strong>Debug:</strong><br />
@@ -1277,60 +1175,52 @@ const SimulationChatPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-br from-blue-50 via-white to-indigo-50 -mx-4 sm:-mx-6 lg:-mx-8 -my-8">
-      {/* Enhanced Header with Patient Info */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-medical-600 via-medical-500 to-stable-500 text-white shadow-medical-lg border-b border-medical-700">
         <div className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xs sm:text-sm">ST</span>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+                  <span className="text-medical-700 font-bold text-xs sm:text-sm">🏥</span>
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Simuatech</h1>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Medical Simulation Platform</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-white">Simuatech</h1>
+                  <p className="text-xs text-medical-100 hidden sm:block">Advanced Medical Simulation Platform</p>
                 </div>
               </div>
 
-              {/* Enhanced session status with startup feedback - Requirements 2.2, 2.4 */}
               {(sessionData || simulationStartupState.isLoading) && (
-                <div className="flex items-center space-x-2 sm:space-x-3 sm:ml-8 sm:pl-8 sm:border-l border-gray-200">
+                <div className="flex items-center space-x-2 sm:space-x-3 sm:ml-8 sm:pl-8 sm:border-l border-white/20">
                   <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    simulationStartupState.isLoading 
-                      ? 'bg-gradient-to-br from-blue-400 to-blue-500 animate-pulse' 
-                      : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                    simulationStartupState.isLoading
+                      ? 'bg-white/20 animate-pulse border-2 border-white/40'
+                      : 'bg-white/20 border-2 border-white/40'
                   }`}>
                     <span className="text-white text-sm sm:text-lg">
                       {simulationStartupState.isLoading ? '⏳' : '👤'}
                     </span>
                   </div>
                   <div className="hidden sm:block">
-                    <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                      {simulationStartupState.isLoading 
+                    <p className="font-semibold text-white text-sm sm:text-base">
+                      {simulationStartupState.isLoading
                         ? (simulationStartupState.phase === 'loading_patient' ? 'Loading Patient...' : 'Setting Up...')
                         : (() => {
                             const speaksFor = sessionData?.speaks_for;
                             const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
                             const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
-                            // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
                             return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
                           })()
                       }
-                      {/* Enhanced Debug info */}
-                      {import.meta.env.DEV && (
-                        <span className="text-xs text-red-500 ml-2">
-                          (Debug: pattern={urlAccessPattern}, patientName={sessionData?.patientName}, initialPrompt={!!sessionData?.initialPrompt}, startup={simulationStartupState.phase})
-                        </span>
-                      )}
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-600 flex items-center">
+                    <p className="text-xs sm:text-sm text-medical-100 flex items-center">
                       <span className={`w-2 h-2 rounded-full mr-2 ${
-                        simulationStartupState.isLoading 
-                          ? 'bg-blue-400 animate-bounce' 
-                          : 'bg-green-400 animate-pulse'
+                        simulationStartupState.isLoading
+                          ? 'bg-medical-200 animate-bounce'
+                          : 'bg-stable-200 animate-pulse'
                       }`}></span>
-                      {simulationStartupState.isLoading 
+                      {simulationStartupState.isLoading
                         ? simulationStartupState.message || 'Initializing...'
                         : 'Active Session'
                       }
@@ -1342,15 +1232,17 @@ const SimulationChatPage: React.FC = () => {
 
             <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
               <div className="text-left sm:text-right sm:mr-4 hidden sm:block">
-                <p className="text-xs text-gray-500">Session Time</p>
-                <p className="text-sm font-mono text-gray-700">{new Date().toLocaleTimeString()}</p>
+                <p className="text-xs text-medical-100">Session Time</p>
+                <time className="text-sm font-mono text-white">
+                  {new Date().toLocaleTimeString()}
+                </time>
               </div>
 
               {!isSessionEnded && (
                 <button
                   onClick={endSession}
                   disabled={isLoading}
-                  className="px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg text-sm"
+                  className="px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg text-sm border border-red-400"
                 >
                   <span className="flex items-center space-x-1 sm:space-x-2">
                     <span>🏁</span>
@@ -1361,7 +1253,6 @@ const SimulationChatPage: React.FC = () => {
               )}
               <button
                 onClick={() => {
-                  // Enhanced navigation with specialty context preservation - Requirements 4.1, 4.2
                   const navigationState = {
                     specialtyContext: location.state?.specialtyContext,
                     fromSimulation: true,
@@ -1369,16 +1260,14 @@ const SimulationChatPage: React.FC = () => {
                     caseId: caseId
                   };
 
-                  // Navigate back to specialty context if available, otherwise general simulation page
                   if (specialtyContext?.returnUrl) {
                     navigate(specialtyContext.returnUrl, { state: navigationState });
                   } else {
-                    // Enhanced fallback with specialty context preservation
                     const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
                     navigate(fallbackUrl, { state: navigationState });
                   }
                 }}
-                className="px-2 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm"
+                className="px-2 py-1 sm:px-4 sm:py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200 shadow-md hover:shadow-lg text-sm border border-white/20"
               >
                 <span className="flex items-center space-x-1 sm:space-x-2">
                   <span>←</span>
@@ -1390,29 +1279,29 @@ const SimulationChatPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced Progress Indicator with startup feedback - Requirements 2.2, 2.4 */}
         {!isSessionEnded && (
           <div className="px-3 sm:px-6 pb-3">
-            <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-              <span>
-                {simulationStartupState.isLoading ? 'Startup Progress' : 'Session Progress'}
+            <div className="flex items-center justify-between text-xs text-medical-100 mb-2">
+              <span className="flex items-center">
+                <span className="w-2 h-2 bg-medical-200 rounded-full mr-2"></span>
+                {simulationStartupState.isLoading ? 'System Startup' : 'Clinical Progress'}
               </span>
               <span>
-                {simulationStartupState.isLoading 
+                {simulationStartupState.isLoading
                   ? `${simulationStartupState.progress}%`
                   : `${messages.filter((m) => m.role === 'user').length} questions`
                 }
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div className="w-full bg-white/20 rounded-full h-1.5">
               <div
                 className={`h-1.5 rounded-full transition-all duration-500 ${
-                  simulationStartupState.isLoading 
-                    ? 'bg-gradient-to-r from-blue-400 to-blue-600' 
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                  simulationStartupState.isLoading
+                    ? 'bg-gradient-to-r from-medical-200 to-medical-400'
+                    : 'bg-gradient-to-r from-medical-300 to-stable-400'
                 }`}
                 style={{
-                  width: simulationStartupState.isLoading 
+                  width: simulationStartupState.isLoading
                     ? `${simulationStartupState.progress}%`
                     : `${Math.min(
                         (messages.filter((m) => m.role === 'user').length / 10) * 100,
@@ -1421,422 +1310,325 @@ const SimulationChatPage: React.FC = () => {
                 }}
               ></div>
             </div>
-            
-            {/* Startup completion notification - Requirement 2.4 */}
+
             {simulationStartupState.phase === 'complete' && (
-              <div className="mt-2 text-xs text-green-600 flex items-center animate-fade-in">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                Simulation ready! You can now start chatting with the patient.
+              <div className="mt-2 text-xs text-stable-200 flex items-center animate-fade-in">
+                <span className="w-2 h-2 bg-stable-300 rounded-full mr-2 animate-pulse"></span>
+                Patient ready for consultation. Begin clinical assessment.
               </div>
             )}
           </div>
         )}
-      </div>
+      </header>
 
-      {/* Enhanced Messages with Better Visual Design */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {messages.map((message, index) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            } animate-fade-in`}
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div
-              className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] sm:max-w-none ${
-                message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-              }`}
-            >
-              {/* Avatar */}
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Chat Area */}
+        <main className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+            {messages.map((message, index) => (
               <div
-                className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
-                    : message.speaks_for === 'System'
-                    ? 'bg-gradient-to-br from-green-500 to-emerald-600'
-                    : 'bg-gradient-to-br from-purple-500 to-pink-600'
-                }`}
+                key={message.id}
+                className={`flex ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                } animate-fade-in`}
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <span className="text-white text-xs sm:text-sm font-medium">
-                  {message.role === 'user' ? '👨‍⚕️' : message.speaks_for === 'System' ? 'ℹ️' : '🤒'}
-                </span>
-              </div>
-
-              {/* Message Bubble */}
-              <div
-                className={`flex-1 sm:max-w-md lg:max-w-lg ${
-                  message.role === 'user' ? 'text-right' : 'text-left'
-                }`}
-              >
-                {/* Speaker Label */}
-                {message.role === 'assistant' && message.speaks_for && (
-                  <div
-                    className={`text-xs mb-1 sm:mb-2 font-semibold ${
-                      message.speaks_for === 'System' ? 'text-green-700' : 'text-purple-700'
-                    }`}
-                  >
-                    {message.speaks_for === 'System' ? 'System Guide' : message.speaks_for}
-                  </div>
-                )}
-
-                {/* Message Content */}
-                <div
-                  className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl shadow-md ${
+                <div className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] sm:max-w-none ${
+                  message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                }`}>
+                  <div className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                      ? 'bg-gradient-to-br from-medical-500 to-medical-600'
                       : message.speaks_for === 'System'
-                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 text-gray-800 border-l-4 border-green-400'
-                      : 'bg-white text-gray-900 border border-gray-200 shadow-lg'
-                  }`}
-                >
-                  <div
-                    className={`whitespace-pre-wrap text-sm sm:text-base ${
-                      message.speaks_for === 'System' ? 'leading-relaxed' : ''
-                    }`}
-                  >
-                    {message.content}
+                      ? 'bg-gradient-to-br from-stable-500 to-stable-600'
+                      : 'bg-gradient-to-br from-warning-500 to-warning-600'
+                  }`}>
+                    <span className="text-white text-xs sm:text-sm font-medium">
+                      {message.role === 'user' ? '👨‍⚕️' : message.speaks_for === 'System' ? 'ℹ️' : '🤒'}
+                    </span>
+                  </div>
+
+                  <div className={`flex-1 sm:max-w-md lg:max-w-lg ${
+                    message.role === 'user' ? 'text-right' : 'text-left'
+                  }`}>
+                    {message.role === 'assistant' && message.speaks_for && (
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <div className={`text-xs font-semibold ${
+                          message.speaks_for === 'System' ? 'text-stable-700' : 'text-warning-700'
+                        }`}>
+                          {message.speaks_for === 'System' ? 'System Guide' : message.speaks_for}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl shadow-md ${
+                      message.role === 'user'
+                        ? 'bg-gradient-to-br from-medical-500 to-medical-600 text-white'
+                        : message.speaks_for === 'System'
+                        ? 'bg-gradient-to-br from-stable-50 to-stable-100 text-gray-800 border-l-4 border-stable-400'
+                        : 'bg-white text-gray-900 border border-gray-200 shadow-lg'
+                    }`}>
+                      <div className={`whitespace-pre-wrap text-sm sm:text-base ${
+                        message.speaks_for === 'System' ? 'leading-relaxed' : ''
+                      }`}>
+                        {message.content}
+                      </div>
+                    </div>
+
+                    <div className={`flex items-center justify-between mt-1 sm:mt-2`}>
+                      <div className={`text-xs ${
+                        message.role === 'user' ? 'text-medical-300' : 'text-gray-500'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Timestamp */}
-                <div
-                  className={`text-xs mt-1 sm:mt-2 ${
-                    message.role === 'user' ? 'text-blue-600' : 'text-gray-500'
-                  }`}
-                >
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            ))}
 
-        {isLoading && messages.length > 0 && (
-          <div className="flex justify-start animate-fade-in max-w-[85%] sm:max-w-none">
-            <div className="flex items-start space-x-2 sm:space-x-3">
-              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                <span className="text-white text-xs sm:text-sm font-medium">🤒</span>
-              </div>
-              <div className="flex-1 sm:max-w-md lg:max-w-lg">
-                <div className="text-xs mb-1 sm:mb-2 font-semibold text-purple-700">
-                  {(() => {
-                    const speaksFor = sessionData?.speaks_for;
-                    const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
-                    const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
-                    // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-                    return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
-                  })()}
-                </div>
-                <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    {/* Enhanced typing animation - Requirement 2.4 */}
-                    <div className="flex space-x-1">
-                      <div
-                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                        style={{ animationDelay: '0ms' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                        style={{ animationDelay: '150ms' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                        style={{ animationDelay: '300ms' }}
-                      ></div>
+            {isLoading && messages.length > 0 && (
+              <div className="flex justify-start animate-fade-in max-w-[85%] sm:max-w-none">
+                <div className="flex items-start space-x-2 sm:space-x-3">
+                  <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <span className="text-white text-xs sm:text-sm font-medium">🤒</span>
+                  </div>
+                  <div className="flex-1 sm:max-w-md lg:max-w-lg">
+                    <div className="text-xs mb-1 sm:mb-2 font-semibold text-purple-700">
+                      {(() => {
+                        const speaksFor = sessionData?.speaks_for;
+                        const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                        const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
+                        return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
+                      })()}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-600 font-medium">
-                        {(() => {
-                          const speaksFor = sessionData?.speaks_for;
-                          const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
-                          const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
-                          // If speaks_for is "Self" or empty, use patient name; otherwise use speaks_for
-                          return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
-                        })()}{' '}
-                        {!isSessionEnded ? 'is thinking...' : 'Generating report...'}
-                      </span>
-                      {/* Progress indicator for response generation - Requirement 2.4 */}
-                      <div className="mt-1">
-                        <div className="w-24 bg-gray-200 rounded-full h-1">
-                          <div className="bg-purple-400 h-1 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                    <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-lg px-3 py-2 sm:px-4 sm:py-3 rounded-2xl pulse-glow">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-600 font-medium">
+                            {(() => {
+                              const speaksFor = sessionData?.speaks_for;
+                              const patientName = sessionData?.patientName || sessionData?.patient_name || sessionData?.name || 'Patient';
+                              const normalizedSpeaksFor = normalizeSpeaksFor(speaksFor);
+                              return (!normalizedSpeaksFor || normalizedSpeaksFor === 'Self') ? patientName : normalizedSpeaksFor;
+                            })()}{' '}
+                            {!isSessionEnded ? 'is thinking...' : 'Generating report...'}
+                          </span>
+                          <div className="mt-1">
+                            <div className="w-24 bg-gray-200 rounded-full h-1">
+                              <div className="bg-purple-400 h-1 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
-        )}
 
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Enhanced Evaluation Report */}
-      {isSessionEnded && evaluation && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border-t border-blue-200 p-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-2xl">📋</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">Session Evaluation Report</h3>
-                    <p className="text-sm text-gray-600">
-                      Patient: {sessionData?.patientName || 'Patient'} • Completed:{' '}
-                      {new Date().toLocaleDateString()}
+          {/* Session Report */}
+          {isSessionEnded && evaluation && (
+            <div className="bg-gradient-to-br from-medical-50 via-white to-stable-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-t border-medical-200 dark:border-medical-800 shadow-medical-lg">
+              <div className="p-4 sm:p-6">
+                <div className="max-w-4xl mx-auto">
+                  <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-medical-500 to-medical-600 rounded-medical-xl flex items-center justify-center mx-auto mb-6 shadow-medical-lg">
+                      <span className="text-white text-3xl">📊</span>
+                    </div>
+                    <h2 className="text-3xl font-bold text-medical-900 dark:text-medical-100 mb-3">
+                      Session Complete
+                    </h2>
+                    <p className="text-medical-700 dark:text-medical-300 text-lg">
+                      Your simulation session has ended successfully
                     </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">Session ID</div>
-                  <div className="text-xs font-mono text-gray-700">
-                    {sessionData?.sessionId?.slice(-8) || 'N/A'}
-                  </div>
-                </div>
-              </div>
 
-              <div className="border-t border-gray-200 pt-6">
-                <div className="prose prose-sm max-w-none">
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                      <span className="mr-2">🎯</span>
-                      Performance Summary
-                    </h4>
-                    <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                      {evaluation}
+                  <div className="bg-white dark:bg-gray-800 rounded-medical-xl shadow-medical-lg border border-medical-200 dark:border-medical-700 p-6 mb-8">
+                    <h3 className="text-xl font-semibold text-medical-900 dark:text-medical-100 mb-6 flex items-center">
+                      <span className="w-10 h-10 bg-gradient-to-br from-medical-500 to-medical-600 rounded-medical-lg flex items-center justify-center mr-4 shadow-medical">
+                        📋
+                      </span>
+                      Performance Report
+                    </h3>
+
+                    <div className="prose prose-medical dark:prose-invert max-w-none">
+                      <div className="whitespace-pre-wrap text-medical-800 dark:text-medical-200 leading-relaxed text-base">
+                        {evaluation}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4 mt-6">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h5 className="font-semibold text-green-800 mb-2 flex items-center">
-                        <span className="mr-2">✅</span>
-                        Strengths
-                      </h5>
-                      <p className="text-sm text-green-700">
-                        Review your evaluation above for specific strengths identified during this
-                        session.
-                      </p>
-                    </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-medical-xl shadow-medical-lg border border-medical-200 dark:border-medical-700 p-6 mb-8">
+                    <h3 className="text-xl font-semibold text-medical-900 dark:text-medical-100 mb-6 flex items-center">
+                      <span className="w-10 h-10 bg-gradient-to-br from-stable-500 to-stable-600 rounded-medical-lg flex items-center justify-center mr-4 shadow-stable">
+                        📈
+                      </span>
+                      Session Summary
+                    </h3>
 
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <h5 className="font-semibold text-amber-800 mb-2 flex items-center">
-                        <span className="mr-2">💡</span>
-                        Areas for Improvement
-                      </h5>
-                      <p className="text-sm text-amber-700">
-                        Check your evaluation for recommendations on areas to focus on for future
-                        cases.
-                      </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div className="text-center p-6 bg-gradient-to-br from-medical-50 to-medical-100 dark:from-medical-900/30 dark:to-medical-800/30 rounded-medical-lg border border-medical-200 dark:border-medical-700">
+                        <div className="text-3xl font-bold text-medical-600 dark:text-medical-400 mb-2">
+                          {messages.filter(m => m.role === 'user').length}
+                        </div>
+                        <div className="text-sm font-medium text-medical-700 dark:text-medical-300">
+                          Questions Asked
+                        </div>
+                      </div>
+
+                      <div className="text-center p-6 bg-gradient-to-br from-stable-50 to-stable-100 dark:from-stable-900/30 dark:to-stable-800/30 rounded-medical-lg border border-stable-200 dark:border-stable-700">
+                        <div className="text-3xl font-bold text-stable-600 dark:text-stable-400 mb-2">
+                          {messages.filter(m => m.role === 'assistant').length}
+                        </div>
+                        <div className="text-sm font-medium text-stable-700 dark:text-stable-300">
+                          Patient Responses
+                        </div>
+                      </div>
+
+                      <div className="text-center p-6 bg-gradient-to-br from-info-50 to-info-100 dark:from-info-900/30 dark:to-info-800/30 rounded-medical-lg border border-info-200 dark:border-info-700">
+                        <div className="text-3xl font-bold text-info-600 dark:text-info-400 mb-2">
+                          {sessionData?.startedAt ?
+                            Math.round((Date.now() - new Date(sessionData.startedAt).getTime()) / 60000)
+                            : 'N/A'
+                          }
+                        </div>
+                        <div className="text-sm font-medium text-info-700 dark:text-info-300">
+                          Minutes Duration
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h5 className="font-semibold text-blue-800 mb-2 flex items-center">
-                      <span className="mr-2">🚀</span>
-                      Next Steps
-                    </h5>
-                    <div className="text-sm text-blue-700 space-y-2">
-                      <p>• Review your performance metrics in the Progress section</p>
-                      <p>• Try similar cases to reinforce your learning</p>
-                      <p>• Challenge yourself with more complex cases</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col space-y-4 mt-6 pt-4 border-t border-gray-200">
-                {/* Retake section */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <div className="flex-1 mb-3 sm:mb-0">
-                    <h4 className="font-medium text-orange-800 mb-1">Want to improve your performance?</h4>
-                    <p className="text-sm text-orange-600">
-                      Retake this case with personalized learning recommendations and track your improvement.
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => setShowRetakeHistory(!showRetakeHistory)}
-                      className="px-3 py-2 bg-white text-orange-700 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors text-sm"
-                    >
-                      View History
-                    </button>
-                    <button
-                      onClick={() => setShowRetakeModal(true)}
-                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm flex items-center space-x-2"
-                    >
-                      <span>🔄</span>
-                      <span>Retake Case</span>
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Retake History (collapsible) */}
-                {showRetakeHistory && (
-                  <div className="animate-fade-in">
-                    <RetakeHistory 
-                      caseId={caseId || ''} 
-                      className=""
-                    />
-                  </div>
-                )}
-                
-                {/* Action buttons */}
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-gray-500">
-                    This evaluation was generated by Simuatech AI to help improve your clinical
-                    skills.
-                  </div>
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => navigate('/progress')}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      View Progress
-                    </button>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
                       onClick={() => {
-                        // Navigate back to specialty context if available, otherwise general simulation page
+                        const navigationState = {
+                          specialtyContext: location.state?.specialtyContext,
+                          fromSimulation: true,
+                          sessionId: sessionData?.sessionId,
+                          caseId: caseId,
+                          completedSession: true
+                        };
+
                         if (specialtyContext?.returnUrl) {
-                          navigate(specialtyContext.returnUrl);
+                          navigate(specialtyContext.returnUrl, { state: navigationState });
                         } else {
-                          navigate('/simulation');
+                          const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
+                          navigate(fallbackUrl, { state: navigationState });
                         }
                       }}
-                      className="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+                      className="px-8 py-4 bg-gradient-to-r from-medical-500 to-medical-600 text-white rounded-medical-lg hover:from-medical-600 hover:to-medical-700 transition-all duration-200 shadow-medical-lg hover:shadow-medical-lg transform hover:scale-[1.02] flex items-center justify-center space-x-3 font-semibold"
                     >
-                      Try Another Case
+                      <span className="text-lg">←</span>
+                      <span>Back to Cases</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowRetakeModal(true)}
+                      className="px-8 py-4 bg-gradient-to-r from-stable-500 to-stable-600 text-white rounded-medical-lg hover:from-stable-600 hover:to-stable-700 transition-all duration-200 shadow-stable hover:shadow-stable-lg transform hover:scale-[1.02] flex items-center justify-center space-x-3 font-semibold"
+                    >
+                      <span className="text-lg">🔄</span>
+                      <span>Retake This Case</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        // Copy report to clipboard
+                        navigator.clipboard.writeText(evaluation).then(() => {
+                          // Show brief success message
+                          const successMsg: Message = {
+                            id: 'copy-success-' + Date.now(),
+                            role: 'assistant',
+                            content: '✅ **Report Copied!**\n\nYour session report has been copied to the clipboard.',
+                            timestamp: new Date(),
+                            speaks_for: 'System',
+                          };
+                          setMessages(prev => [...prev, successMsg]);
+                        }).catch(() => {
+                          const errorMsg: Message = {
+                            id: 'copy-error-' + Date.now(),
+                            role: 'assistant',
+                            content: '❌ **Copy Failed**\n\nUnable to copy report to clipboard. Please select and copy manually.',
+                            timestamp: new Date(),
+                            speaks_for: 'System',
+                          };
+                          setMessages(prev => [...prev, errorMsg]);
+                        });
+                      }}
+                      className="px-8 py-4 bg-gradient-to-r from-info-500 to-info-600 text-white rounded-medical-lg hover:from-info-600 hover:to-info-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center justify-center space-x-3 font-semibold"
+                    >
+                      <span className="text-lg">📋</span>
+                      <span>Copy Report</span>
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Compact Smart Suggestions - Mobile Optimized */}
-      {messages.length <= 2 && !isSessionEnded && (
-        <div className="bg-blue-50 border-t border-blue-200 px-3 sm:px-6 py-2 sm:py-3">
-          <div className="max-w-4xl mx-auto">
-            {/* Hide label on mobile, show only on larger screens */}
-            <div className="hidden sm:flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">💡</span>
-                <span className="text-sm font-medium text-blue-800">Quick Starters:</span>
-              </div>
-            </div>
-
-            {/* Mobile: Show only 2 most important suggestions */}
-            <div className="flex sm:hidden flex-wrap gap-1">
-              {[
-                'What brings you in today?',
-                'Describe your symptoms',
-              ].map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => setInputMessage(suggestion)}
-                  className="text-xs px-2 py-1 bg-white text-blue-700 rounded-full border border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-
-            {/* Desktop: Show all suggestions */}
-            <div className="hidden sm:flex flex-wrap gap-2">
-              {[
-                'What brings you in today?',
-                'Can you describe your symptoms?',
-                'When did this start?',
-                'Any medical history I should know?',
-              ].map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => setInputMessage(suggestion)}
-                  className="text-xs px-3 py-1 bg-white text-blue-700 rounded-full border border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200"
-                >
-                  "{suggestion}"
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Input Section */}
-      {!isSessionEnded && (
-        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
-          <div className="p-3 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-end space-y-3 sm:space-y-0 sm:space-x-4">
-              <div className="flex-1 w-full">
-                <div className="relative">
-                  <textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={
-                      messages.length <= 1
-                        ? "Start with: 'What brings you in today?'"
-                        : 'Ask your next question...'
-                    }
-                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 resize-none transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
-                    rows={2}
-                    disabled={isLoading}
-                  />
-                  <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                    {inputMessage.length}/500
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 space-y-1 sm:space-y-0">
-                  <div className="text-xs text-gray-500 flex items-center">
-                    <span className="hidden sm:inline">💡 Press Enter to send, Shift+Enter for new line</span>
-                    <span className="sm:hidden">💡 Enter to send</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500">
-                    <span className="flex items-center">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                      AI Ready
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={sendMessage}
-                disabled={!inputMessage.trim() || isLoading}
-                className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2 text-sm sm:text-base"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    <span>Sending...</span>
-                    {/* Enhanced loading feedback - Requirement 2.4 */}
-                    <div className="hidden sm:flex items-center ml-2">
-                      <div className="w-1 h-1 bg-white rounded-full animate-pulse mx-0.5"></div>
-                      <div className="w-1 h-1 bg-white rounded-full animate-pulse mx-0.5" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-1 h-1 bg-white rounded-full animate-pulse mx-0.5" style={{ animationDelay: '0.4s' }}></div>
+          {/* Input Section */}
+          {!isSessionEnded && (
+            <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+              <div className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-end space-y-3 sm:space-y-0 sm:space-x-4">
+                  <div className="flex-1 w-full">
+                    <div className="relative">
+                      <textarea
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={
+                          messages.length <= 1
+                            ? "Start with: 'What brings you in today?'"
+                            : 'Ask your next question...'
+                        }
+                        className="w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-medical-500 focus:ring-4 focus:ring-medical-100 resize-none transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
+                        rows={2}
+                        disabled={isLoading}
+                      />
+                      <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                        {inputMessage.length}/500
+                      </div>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <span>Send</span>
-                    <span>📤</span>
-                  </>
-                )}
-              </button>
+                  </div>
+
+                  <button
+                    onClick={sendMessage}
+                    disabled={!inputMessage.trim() || isLoading}
+                    className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-medical-500 to-medical-600 text-white rounded-2xl hover:from-medical-600 hover:to-medical-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2 text-sm sm:text-base"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send</span>
+                        <span>📤</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      
+          )}
+        </main>
+      </div>
+
       {/* Retake Modal */}
       <RetakeModal
         isOpen={showRetakeModal}
@@ -1845,7 +1637,6 @@ const SimulationChatPage: React.FC = () => {
         caseTitle={sessionData?.caseTitle || sessionData?.case_title || 'Unknown Case'}
         previousSessionId={sessionData?.sessionId}
         onRetakeSuccess={(newSessionId) => {
-          // Navigate to the new retake session
           const newUrl = `/simulation/${caseId}/session/${newSessionId}`;
           navigate(newUrl, {
             state: {
