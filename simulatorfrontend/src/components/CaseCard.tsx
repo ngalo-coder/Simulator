@@ -77,10 +77,10 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
       // Internal Medicine - Blue theme
       'internal medicine': {
         bg: 'bg-blue-100',
-        text: 'text-blue-800',
-        border: 'border-blue-200',
+        text: 'text-medical-800',
+        border: 'border-medical-200',
         icon: '🩺',
-        gradient: 'from-blue-50 to-blue-100'
+        gradient: 'from-medical-50 to-medical-100'
       },
       // Cardiology - Red theme
       'cardiology': {
@@ -183,17 +183,17 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
     // Return specific style or default blue theme
     return specialtyStyles[normalizedSpecialty] || {
       bg: 'bg-blue-100',
-      text: 'text-blue-800',
-      border: 'border-blue-200',
+      text: 'text-medical-800',
+      border: 'border-medical-200',
       icon: '🏥',
-      gradient: 'from-blue-50 to-blue-100'
+      gradient: 'from-medical-50 to-medical-100'
     };
   };
 
   return (
-    <div data-testid="case-card" className="relative rounded-2xl shadow-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20">
+    <div data-testid="case-card" className="relative rounded-2xl shadow-xl border border-medical-200 bg-gradient-to-br from-medical-50 to-medical-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20">
       {/* Decorative background */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 70%)'}} />
+      <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #2196F3 0%, transparent 70%)'}} />
 
       <div className="relative p-6 flex flex-col min-h-[300px]">
         {/* Header Section */}
@@ -244,9 +244,9 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
         {/* Stats Section */}
         {case_.isCompleted && case_.bestScore && (
           <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
+            <div className="bg-medical-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
               <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Best Score</div>
-              <div className="text-lg font-bold text-blue-800 dark:text-blue-200">{case_.bestScore}%</div>
+              <div className="text-lg font-bold text-medical-800 dark:text-blue-200">{case_.bestScore}%</div>
             </div>
             {case_.lastCompletedAt && (
               <div className="bg-gray-50 dark:bg-gray-700/20 rounded-lg p-2 text-center">
@@ -265,7 +265,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
           <button
             onClick={() => onStartSimulation(case_)}
             disabled={startingSimulation}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg dark:from-blue-700 dark:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 dark:focus:ring-blue-500 dark:focus:ring-offset-0"
+            className="w-full bg-gradient-to-r from-medical-500 to-medical-600 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg dark:from-blue-700 dark:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 dark:focus:ring-blue-500 dark:focus:ring-offset-0"
           >
             {startingSimulation ? (
               <>

@@ -43,7 +43,7 @@ const RegisterPage: React.FC = () => {
       case 1: return { text: 'Very Weak', color: 'text-red-600' };
       case 2: return { text: 'Weak', color: 'text-orange-600' };
       case 3: return { text: 'Fair', color: 'text-yellow-600' };
-      case 4: return { text: 'Good', color: 'text-blue-600' };
+      case 4: return { text: 'Good', color: 'text-medical-600' };
       case 5: return { text: 'Strong', color: 'text-green-600' };
       default: return { text: '', color: '' };
     }
@@ -93,12 +93,12 @@ const RegisterPage: React.FC = () => {
   const strengthInfo = getPasswordStrengthText(passwordStrength);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 -mx-4 sm:-mx-6 lg:-mx-8 -my-8 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-medical-100 -mx-4 sm:-mx-6 lg:-mx-8 -my-8 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-br from-medical-500 to-medical-600 rounded-medical-xl flex items-center justify-center shadow-medical-lg">
               <span className="text-white text-2xl font-bold">🏥</span>
             </div>
           </div>
@@ -134,7 +134,7 @@ const RegisterPage: React.FC = () => {
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
                   placeholder="Enter your first name"
                   required
                 />
@@ -150,7 +150,7 @@ const RegisterPage: React.FC = () => {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
                   placeholder="Enter your last name"
                   required
                 />
@@ -167,7 +167,7 @@ const RegisterPage: React.FC = () => {
                 name="institution"
                 value={formData.institution}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
                 placeholder="Enter your institution name"
                 required
               />
@@ -184,7 +184,7 @@ const RegisterPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
                   placeholder="Enter your email address"
                   required
                 />
@@ -205,7 +205,7 @@ const RegisterPage: React.FC = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
                   placeholder="Create a strong password"
                   required
                 />
@@ -231,7 +231,7 @@ const RegisterPage: React.FC = () => {
                         passwordStrength <= 1 ? 'bg-red-500' :
                         passwordStrength === 2 ? 'bg-orange-500' :
                         passwordStrength === 3 ? 'bg-yellow-500' :
-                        passwordStrength === 4 ? 'bg-blue-500' : 'bg-green-500'
+                        passwordStrength === 4 ? 'bg-medical-500' : 'bg-green-500'
                       }`}
                       style={{ width: `${(passwordStrength / 5) * 100}%` }}
                     ></div>
@@ -257,7 +257,7 @@ const RegisterPage: React.FC = () => {
                       ? 'border-red-300 focus:ring-red-500'
                       : formData.confirmPassword && formData.password === formData.confirmPassword
                       ? 'border-green-300 focus:ring-green-500'
-                      : 'border-gray-300 focus:ring-blue-500'
+                      : 'border-gray-300 focus:ring-medical-500'
                   }`}
                   placeholder="Confirm your password"
                   required
@@ -281,7 +281,7 @@ const RegisterPage: React.FC = () => {
           <button
               type="submit"
               disabled={loading || formData.password !== formData.confirmPassword || !formData.firstName || !formData.lastName || !formData.institution || !formData.email}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="w-full bg-gradient-to-r from-medical-500 to-medical-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-medical-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -297,7 +297,7 @@ const RegisterPage: React.FC = () => {
           <div className="mt-4 text-center text-sm">
             <Link 
               to="/login" 
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-medical-600 hover:text-medical-800 font-medium"
             >
               Already have an account? Sign in
             </Link>

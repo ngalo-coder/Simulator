@@ -219,7 +219,7 @@ const SimulationPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-medical-50 via-white to-stable-50">
       {/* Medical Header with Hospital-like Design */}
-      <div className="bg-gradient-medical text-white shadow-medical-lg border-b border-medical-200">
+      <div className="bg-gradient-to-r from-medical-500 to-medical-600 text-white shadow-medical-lg border-b border-medical-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center space-x-4">
@@ -491,7 +491,7 @@ const SimulationPage: React.FC = () => {
       {/* Cases Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-600 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading cases...</p>
         </div>
       ) : cases.length === 0 ? (
@@ -516,7 +516,7 @@ const SimulationPage: React.FC = () => {
                 )}
                 <Link
                   to="/browse-cases"
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                  className="bg-medical-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
                 >
                   Browse Other Specialties
                 </Link>
@@ -541,7 +541,7 @@ const SimulationPage: React.FC = () => {
               </p>
               <button
                 onClick={() => setFilters({ program_area: '', specialty: '', search: '' })}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                className="bg-medical-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
               >
                 Clear All Filters
               </button>

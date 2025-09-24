@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
-import { RetakeModal, RetakeHistory } from '../components/retake';
+import { RetakeModal } from '../components/retake';
 import { 
   createSimulationSessionUrl, 
   createSimulationCaseUrl, 
@@ -63,7 +63,6 @@ const SimulationChatPage: React.FC = () => {
   const [evaluation, setEvaluation] = useState<string>('');
   
   const [showRetakeModal, setShowRetakeModal] = useState(false);
-  const [showRetakeHistory, setShowRetakeHistory] = useState(false);
   
   const [simulationStartupState, setSimulationStartupState] = useState<{
     phase: 'idle' | 'validating_case' | 'creating_session' | 'loading_patient' | 'initializing_chat' | 'complete';

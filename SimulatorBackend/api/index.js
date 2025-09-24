@@ -164,6 +164,7 @@ const loadRoutes = async () => {
     const performanceRoutes = await import('../src/routes/performanceRoutes.js');
     const leaderboardRoutes = await import('../src/routes/leaderboardRoutes.js');
     const analyticsRoutes = await import('../src/routes/analyticsRoutes.js');
+    const feedbackRoutes = await import('../src/routes/feedbackRoutes.js');
 
     // Register routes
     app.use('/api/auth', authRoutes.default);
@@ -176,6 +177,7 @@ const loadRoutes = async () => {
     app.use('/api/performance', performanceRoutes.default);
     app.use('/api/leaderboard', leaderboardRoutes.default);
     app.use('/api/analytics', analyticsRoutes.default);
+    app.use('/api/feedback', feedbackRoutes.default);
     
     routesLoaded = true;
     console.log('All routes loaded successfully');

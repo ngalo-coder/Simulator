@@ -12,6 +12,7 @@ import SimulationChatPage from './pages/SimulationChatPage';
 import LazySpecialtyPage from './components/LazySpecialtyPage';
 import ProgressPage from './pages/ProgressPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import FeedbackPage from './pages/FeedbackPage';
 import AdminPage from './pages/AdminPage';
 
 // Import components
@@ -92,6 +93,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <LeaderboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/feedback"
+                  element={
+                    <ProtectedRoute>
+                      <FeedbackPage />
                     </ProtectedRoute>
                   }
                 />
