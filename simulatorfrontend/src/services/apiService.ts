@@ -2714,6 +2714,20 @@ export const api = {
     }
   },
 
+  getAdminProgramAreasWithCounts: async () => {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/program-areas/counts`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch program areas with counts');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching program areas with counts:', error);
+      throw error;
+    }
+  },
+
   updateAdminSpecialty: async (specialtyId: string, specialtyData: any) => {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/specialties/${specialtyId}`, {

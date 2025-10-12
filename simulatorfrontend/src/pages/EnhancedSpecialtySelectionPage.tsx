@@ -27,6 +27,7 @@ const EnhancedProgramCard: React.FC<{
   features: string[];
   isPopular?: boolean;
   isNew?: boolean;
+  casesCount?: number;
   onClick: () => void;
 }> = ({
   title,
@@ -38,6 +39,7 @@ const EnhancedProgramCard: React.FC<{
   features,
   isPopular,
   isNew,
+  casesCount,
   onClick
 }) => {
   const colorClasses = {
@@ -64,6 +66,9 @@ const EnhancedProgramCard: React.FC<{
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">{title}</h3>
+            {typeof casesCount === 'number' && (
+              <div className="text-sm text-gray-600">{casesCount} case{casesCount !== 1 ? 's' : ''}</div>
+            )}
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 {difficulty}
@@ -143,6 +148,9 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const [userProgress, setUserProgress] = useState<Record<string, UserProgress>>({});
   const [specialtyVisibility, setSpecialtyVisibility] = useState<Record<string, { isVisible: boolean; programArea: string }>>({});
 
+  // Program areas counts from backend
+  const [programAreaCounts, setProgramAreaCounts] = useState<Record<string, number>>({});
+
   // Filter states (only used in specialty step)
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('');
@@ -159,8 +167,8 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       return visibility?.isVisible && visibility?.programArea === 'basic';
     });
 
-    if (basicSpecialties.length > 0) {
-      config['Basic Program'] = {
+    // Always show Basic Program card (even if there are zero visible specialties)
+    config['Basic Program'] = {
         description: 'Foundational medical cases covering essential clinical skills and common presentations across multiple specialties',
         icon: (
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,9 +185,9 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           'Patient communication'
         ],
         isPopular: true,
-        specialties: basicSpecialties.map(s => s.id)
+        specialties: basicSpecialties.map(s => s.id),
+        casesCount: programAreaCounts['Basic Program'] ?? basicSpecialties.reduce((acc, s) => acc + (s.caseCount || 0), 0)
       };
-    }
 
     // Specialty Program - includes specialties visible in specialty program
     const specialtySpecialties = getAvailableSpecialties().filter(specialty => {
@@ -187,8 +195,8 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       return visibility?.isVisible && visibility?.programArea === 'specialty';
     });
 
-    if (specialtySpecialties.length > 0) {
-      config['Specialty Program'] = {
+    // Always show Specialty Program card
+    config['Specialty Program'] = {
         description: 'Advanced cases in specialized medical fields requiring deeper clinical expertise and complex decision-making',
         icon: (
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,9 +213,9 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           'Multi-system involvement'
         ],
         isNew: true,
-        specialties: specialtySpecialties.map(s => s.id)
+        specialties: specialtySpecialties.map(s => s.id),
+        casesCount: programAreaCounts['Specialty Program'] ?? specialtySpecialties.reduce((acc, s) => acc + (s.caseCount || 0), 0)
       };
-    }
 
     return config;
   }, [specialtyVisibility]);
@@ -275,7 +283,24 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   useEffect(() => {
     loadUserProgress();
     loadSpecialtyVisibility();
+    loadProgramAreasCounts();
   }, []);
+
+  const loadProgramAreasCounts = async () => {
+    try {
+      const resp = await api.getAdminProgramAreasWithCounts();
+      // Backend may return { data: { programAreas: [...] } } or { programAreas: [...] }
+      const areas = resp?.data?.programAreas || resp?.programAreas || [];
+      const counts: Record<string, number> = {};
+      areas.forEach((pa: any) => {
+        const name = pa.name || pa._id || pa.id;
+        counts[name] = typeof pa.casesCount === 'number' ? pa.casesCount : (pa.caseCount || 0);
+      });
+      setProgramAreaCounts(counts);
+    } catch (error) {
+      console.warn('Could not load program area counts', error);
+    }
+  };
 
   const loadUserProgress = async () => {
     try {
@@ -664,6 +689,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
                 difficulty={config.difficulty}
                 prerequisites={config.prerequisites}
                 features={config.features}
+                casesCount={config.casesCount}
                 isPopular={'isPopular' in config ? config.isPopular : false}
                 isNew={'isNew' in config ? config.isNew : false}
                 onClick={() => handleProgramAreaSelect(programKey)}
