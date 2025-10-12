@@ -2614,61 +2614,54 @@ export const api = {
 
   getSpecialtyVisibility: async () => {
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`);
-
-      // If admin endpoint denies access (non-admin user), try fallbacks to avoid breaking the UI.
-      if (!response.ok) {
-        console.warn('Admin specialty visibility endpoint returned', response.status);
-
-        // First fallback (development only): use the dev-only public endpoint
-        if ((response.status === 401 || response.status === 403) && import.meta.env.DEV) {
-          try {
-            const pub = await fetch(`${API_BASE_URL}/api/admin/specialties/visibility-public`);
-            if (!pub.ok) throw new Error('Public visibility endpoint failed');
-            const pubData = await pub.json();
-            return pubData.data || pubData;
-          } catch (pubErr) {
-            console.error('Dev public visibility fallback failed:', pubErr);
-            // Continue to next fallback
-          }
+      // Prefer public visibility endpoint (no admin token required). This ensures student views follow admin settings.
+      try {
+        const pub = await fetch(`${API_BASE_URL}/api/admin/specialties/visibility-public`);
+        if (pub.ok) {
+          const pubData = await pub.json();
+          return pubData.data || pubData;
         }
-
-        // Second fallback (non-admin friendly): derive visible specialties from case-categories endpoint
-        // This endpoint is usually accessible to non-admin authenticated users and returns specialties with cases.
-        if (response.status === 401 || response.status === 403) {
-          try {
-            const catResp = await authenticatedFetch(`${API_BASE_URL}/api/simulation/case-categories`);
-            if (catResp.ok) {
-              const catData = await catResp.json();
-              const names = (catData.data && catData.data.specialties) || catData.specialties || [];
-              const normalize = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
-              const visibilitySettings = {
-                specialties: names.map((name: string) => ({
-                  specialtyId: normalize(name),
-                  isVisible: true,
-                  programArea: 'basic'
-                }))
-              };
-              console.warn('Using case-categories fallback for specialty visibility (non-admin user).');
-              return visibilitySettings;
-            }
-          } catch (catErr) {
-            console.error('Case-categories fallback failed:', catErr);
-            // Fall through to throw
-          }
-        }
-
-        // No fallbacks succeeded - return an empty visibility payload so the UI can gracefully
-        // fall back to its own defaults (frontend will default missing specialties to hidden).
-        console.warn('All fallbacks for specialty visibility failed; returning empty visibility list.');
-        return { specialties: [] };
+        console.warn('Public visibility endpoint returned', pub.status);
+      } catch (pubErr) {
+        console.warn('Public visibility fetch failed:', pubErr);
       }
 
-      const data = await response.json();
-      return data.data || data;
+      // If public endpoint not available, attempt admin endpoint (authenticated)
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`);
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.data || data;
+      }
+
+      // Fallback to case-categories-derived visibility for non-admin users
+      try {
+        const catResp = await authenticatedFetch(`${API_BASE_URL}/api/simulation/case-categories`);
+        if (catResp.ok) {
+          const catData = await catResp.json();
+          const names = (catData.data && catData.data.specialties) || catData.specialties || [];
+          const normalize = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
+          const visibilitySettings = {
+            specialties: names.map((name: string) => ({
+              specialtyId: normalize(name),
+              isVisible: true,
+              programArea: 'basic'
+            }))
+          };
+          console.warn('Using case-categories fallback for specialty visibility (non-admin user).');
+          return visibilitySettings;
+        }
+      } catch (catErr) {
+        console.error('Case-categories fallback failed:', catErr);
+      }
+
+      // If everything fails, return empty payload so frontend defaults to hidden
+      console.warn('All visibility endpoints failed; returning empty visibility list.');
+      return { specialties: [] };
     } catch (error) {
       console.error('Error fetching specialty visibility:', error);
-      throw error;
+      // Return empty list on unexpected errors to avoid breaking the UI
+      return { specialties: [] };
     }
   },
 

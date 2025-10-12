@@ -409,11 +409,19 @@ router.get('/specialties/visibility', protect, isAdmin, async (req, res) => {
 });
 
 // Development-only public visibility endpoint (for debugging local dev)
-// WARNING: This endpoint intentionally bypasses admin checks but is restricted to development mode only.
+// Public visibility endpoint - returns minimal, non-sensitive visibility settings to clients.
+// This endpoint is read-only and intentionally bypasses admin checks because visibility is
+// not sensitive data but rather global display configuration. Admin updates will invalidate
+// the in-memory cache so clients receive fresh data.
+let _specialtyVisibilityCache = null;
+let _specialtyVisibilityCacheTs = 0;
+const VIS_CACHE_TTL = 30 * 1000; // 30 seconds
+
 router.get('/specialties/visibility-public', async (req, res) => {
   try {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({ success: false, message: 'Not allowed' });
+    const now = Date.now();
+    if (_specialtyVisibilityCache && now - _specialtyVisibilityCacheTs < VIS_CACHE_TTL) {
+      return res.json({ success: true, data: _specialtyVisibilityCache });
     }
 
     const specialties = await Specialty.find({}).select('name isVisible programArea lastModified modifiedBy');
@@ -426,6 +434,9 @@ router.get('/specialties/visibility-public', async (req, res) => {
         modifiedBy: specialty.modifiedBy
       }))
     };
+
+    _specialtyVisibilityCache = visibilitySettings;
+    _specialtyVisibilityCacheTs = now;
 
     res.json({ success: true, data: visibilitySettings });
   } catch (error) {
@@ -482,6 +493,13 @@ router.put('/specialties/visibility', protect, isAdmin, async (req, res) => {
       data: visibilitySettings,
       message: 'Specialty visibility settings updated successfully'
     });
+    // Invalidate public visibility cache so clients get fresh data
+    try {
+      _specialtyVisibilityCache = null;
+      _specialtyVisibilityCacheTs = 0;
+    } catch (e) {
+      // ignore
+    }
   } catch (error) {
     console.error('Error updating specialty visibility settings:', error);
     res.status(500).json({
