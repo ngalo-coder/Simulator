@@ -161,6 +161,49 @@ export class CaseService {
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
+    // Enforce global specialty visibility: only include cases whose specialty is visible
+    const visibleSpecialties = await Specialty.find({ active: true, isVisible: true }).distinct('name');
+
+    if (visibleSpecialties && visibleSpecialties.length > 0) {
+      // If a specialty filter is provided in the query, ensure it intersects with visible ones
+      if (query['case_metadata.specialty']) {
+        const requested = query['case_metadata.specialty'];
+        if (typeof requested === 'string') {
+          // If the requested specialty is not visible, return empty result
+          if (!visibleSpecialties.includes(requested)) {
+            return {
+              cases: [],
+              currentPage: pageNum,
+              totalPages: 0,
+              totalCases: 0
+            };
+          }
+        } else if (requested && requested.$in) {
+          // Narrow down $in list to visible specialties
+          requested.$in = requested.$in.filter(s => visibleSpecialties.includes(s));
+          // If no intersection remains, return empty
+          if (!requested.$in || requested.$in.length === 0) {
+            return {
+              cases: [],
+              currentPage: pageNum,
+              totalPages: 0,
+              totalCases: 0
+            };
+          }
+        }
+      } else {
+        query['case_metadata.specialty'] = { $in: visibleSpecialties };
+      }
+    } else {
+      // If no specialties are visible, return empty result set
+      return {
+        cases: [],
+        currentPage: pageNum,
+        totalPages: 0,
+        totalCases: 0
+      };
+    }
+
     const [casesFromDB, totalCases] = await Promise.all([
       Case.find(query).select(this.CASE_FIELDS).sort({ 'case_metadata.case_id': 1 }).skip(skip).limit(limitNum).lean(),
       Case.countDocuments(query)
@@ -181,7 +224,7 @@ export class CaseService {
       Case.distinct('case_metadata.program_area'),
       Case.distinct('case_metadata.specialty', baseQuery),
       Case.distinct('case_metadata.specialized_area'),
-      Specialty.find({ active: true }, 'name programArea').lean()
+      Specialty.find({ active: true, isVisible: true }, 'name programArea').lean()
     ]);
 
     // Filter specialties by program area if specified
@@ -215,8 +258,8 @@ export class CaseService {
       }, {});
     }
 
-    // Also include specialties from cases that might not be in the Specialty collection
-    // But only if they exist as active specialties in the Specialty collection
+  // Also include specialties from cases that might not be in the Specialty collection
+  // But only if they exist as active and visible specialties in the Specialty collection
     const caseSpecialtyNames = caseSpecialties.filter(s => s?.trim());
 
     // Filter case specialties to only include those that are active in the Specialty collection

@@ -42,7 +42,7 @@ import LearningModule from './src/models/LearningModuleModel.js'; // Import to r
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 5001;
 
 // Initialize database connection on startup (Railway-friendly)
 let dbConnected = false;

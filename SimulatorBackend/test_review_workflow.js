@@ -7,7 +7,7 @@ import CaseReview from './src/models/CaseReviewModel.js';
 
 dotenv.config();
 
-const BASE_URL = 'http://localhost:5003';
+const BASE_URL = 'http://localhost:5001';
 
 // Test data
 const testUsers = {

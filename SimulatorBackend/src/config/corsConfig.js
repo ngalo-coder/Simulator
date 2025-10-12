@@ -15,7 +15,7 @@ const allowedOrigins = [
   'http://localhost:3002',
   'http://localhost:3003',
   'http://localhost:5001',
-  'http://localhost:5003',
+  'http://localhost:5001',
   'http://localhost:5173',
   'http://localhost:5174',
   'https://simulator-gamma-six.vercel.app',

@@ -408,6 +408,32 @@ router.get('/specialties/visibility', protect, isAdmin, async (req, res) => {
   }
 });
 
+// Development-only public visibility endpoint (for debugging local dev)
+// WARNING: This endpoint intentionally bypasses admin checks but is restricted to development mode only.
+router.get('/specialties/visibility-public', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ success: false, message: 'Not allowed' });
+    }
+
+    const specialties = await Specialty.find({}).select('name isVisible programArea lastModified modifiedBy');
+    const visibilitySettings = {
+      specialties: specialties.map(specialty => ({
+        specialtyId: specialty.name.toLowerCase().replace(/\s+/g, '_'),
+        isVisible: specialty.isVisible,
+        programArea: specialty.programArea,
+        lastModified: specialty.lastModified,
+        modifiedBy: specialty.modifiedBy
+      }))
+    };
+
+    res.json({ success: true, data: visibilitySettings });
+  } catch (error) {
+    console.error('Error fetching public specialty visibility:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch specialty visibility' });
+  }
+});
+
 // Update specialty visibility settings
 router.put('/specialties/visibility', protect, isAdmin, async (req, res) => {
   try {

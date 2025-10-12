@@ -24,12 +24,12 @@ dotenv.config();
     console.log('Testing case categories API...');
     
     // Test Basic Program
-    const basicProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Basic+Program');
+  const basicProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Basic+Program');
     const basicProgramData = await basicProgramResponse.json();
     console.log('Basic Program specialties (with cases):', basicProgramData.specialties);
     
     // Test Specialty Program
-    const specialtyProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Specialty+Program');
+  const specialtyProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Specialty+Program');
     const specialtyProgramData = await specialtyProgramResponse.json();
     console.log('Specialty Program specialties (with cases):', specialtyProgramData.specialties);
     

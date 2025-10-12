@@ -37,7 +37,7 @@ dotenv.config();
     console.log('Testing case categories API with authentication...');
     
     // First, get a valid JWT token by logging in
-    const loginResponse = await fetch('http://localhost:5003/api/auth/login', {
+  const loginResponse = await fetch('http://localhost:5001/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ dotenv.config();
     if (!loginResponse.ok) {
       console.log('Login failed, trying with test user credentials...');
       // Try with test user from our test registration
-      const testLoginResponse = await fetch('http://localhost:5003/api/auth/login', {
+  const testLoginResponse = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ dotenv.config();
       const token = testLoginData.token;
       
       // Test Basic Program with authenticated request
-      const basicProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Basic+Program', {
+  const basicProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Basic+Program', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ dotenv.config();
       }
       
       // Test Specialty Program with authenticated request
-      const specialtyProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Specialty+Program', {
+  const specialtyProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Specialty+Program', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ dotenv.config();
       const token = loginData.token;
       
       // Test Basic Program with authenticated request
-      const basicProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Basic+Program', {
+  const basicProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Basic+Program', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ dotenv.config();
       }
       
       // Test Specialty Program with authenticated request
-      const specialtyProgramResponse = await fetch('http://localhost:5003/api/simulation/case-categories?program_area=Specialty+Program', {
+  const specialtyProgramResponse = await fetch('http://localhost:5001/api/simulation/case-categories?program_area=Specialty+Program', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

@@ -91,7 +91,7 @@ npm start
 
 ```env
 # Server Configuration
-PORT=5003
+PORT=5001
 NODE_ENV=development
 
 # Database

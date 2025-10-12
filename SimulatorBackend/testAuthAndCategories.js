@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-const API_BASE = 'http://localhost:5003/api';
+const API_BASE = 'http://localhost:5001/api';
 
 async function testAuthAndCategories() {
   console.log('Testing authentication and case categories API...\n');
