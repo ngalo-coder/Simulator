@@ -2616,9 +2616,11 @@ export const api = {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`);
 
-      // If admin endpoint denies access (non-admin user), try dev-only public endpoint as a fallback
+      // If admin endpoint denies access (non-admin user), try fallbacks to avoid breaking the UI.
       if (!response.ok) {
         console.warn('Admin specialty visibility endpoint returned', response.status);
+
+        // First fallback (development only): use the dev-only public endpoint
         if ((response.status === 401 || response.status === 403) && import.meta.env.DEV) {
           try {
             const pub = await fetch(`${API_BASE_URL}/api/admin/specialties/visibility-public`);
@@ -2627,11 +2629,37 @@ export const api = {
             return pubData.data || pubData;
           } catch (pubErr) {
             console.error('Dev public visibility fallback failed:', pubErr);
-            throw pubErr;
+            // Continue to next fallback
           }
         }
 
-        throw new Error('Failed to fetch specialty visibility settings');
+        // Second fallback (non-admin friendly): derive visible specialties from case-categories endpoint
+        // This endpoint is usually accessible to non-admin authenticated users and returns specialties with cases.
+        if (response.status === 401 || response.status === 403) {
+          try {
+            const catResp = await authenticatedFetch(`${API_BASE_URL}/api/simulation/case-categories`);
+            if (catResp.ok) {
+              const catData = await catResp.json();
+              const names = (catData.data && catData.data.specialties) || catData.specialties || [];
+              const normalize = (s: string) => (s || '').toLowerCase().replace(/\s+/g, '_');
+              const visibilitySettings = {
+                specialties: names.map((name: string) => ({
+                  specialtyId: normalize(name),
+                  isVisible: true,
+                  programArea: 'basic'
+                }))
+              };
+              console.warn('Using case-categories fallback for specialty visibility (non-admin user).');
+              return visibilitySettings;
+            }
+          } catch (catErr) {
+            console.error('Case-categories fallback failed:', catErr);
+            // Fall through to throw
+          }
+        }
+
+        // No fallbacks succeeded
+        throw new Error('Failed to fetch specialty visibility settings (admin endpoint denied access)');
       }
 
       const data = await response.json();
