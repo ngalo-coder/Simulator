@@ -18,7 +18,6 @@ const allowedOrigins = [
   'http://localhost:5001',
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://simulator-gamma-six.vercel.app',
   /^https:\/\/.*-.*\.vercel\.app$/, // All Vercel preview and production deployments
   // Additional origins from environment
   ...(process.env.ADDITIONAL_ORIGINS?.split(',').filter(Boolean) || [])

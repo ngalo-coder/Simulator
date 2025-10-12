@@ -59,7 +59,6 @@ const allowedOrigins = [
   'https://simuatech.netlify.app',
   'https://simulatorbackend.onrender.com',
   'https://simulator-l9qx.onrender.com',
-  'https://simulator-gamma-six.vercel.app',
   // Local development
   'http://localhost:3000',
   'http://localhost:3001',
