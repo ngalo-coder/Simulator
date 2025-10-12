@@ -2615,9 +2615,25 @@ export const api = {
   getSpecialtyVisibility: async () => {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/specialties/visibility`);
+
+      // If admin endpoint denies access (non-admin user), try dev-only public endpoint as a fallback
       if (!response.ok) {
+        console.warn('Admin specialty visibility endpoint returned', response.status);
+        if ((response.status === 401 || response.status === 403) && import.meta.env.DEV) {
+          try {
+            const pub = await fetch(`${API_BASE_URL}/api/admin/specialties/visibility-public`);
+            if (!pub.ok) throw new Error('Public visibility endpoint failed');
+            const pubData = await pub.json();
+            return pubData.data || pubData;
+          } catch (pubErr) {
+            console.error('Dev public visibility fallback failed:', pubErr);
+            throw pubErr;
+          }
+        }
+
         throw new Error('Failed to fetch specialty visibility settings');
       }
+
       const data = await response.json();
       return data.data || data;
     } catch (error) {

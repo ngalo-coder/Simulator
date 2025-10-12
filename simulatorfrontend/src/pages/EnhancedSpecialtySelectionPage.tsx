@@ -326,21 +326,53 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       const response = await api.getSpecialtyVisibility();
       const visibilityMap: Record<string, { isVisible: boolean; programArea: string }> = {};
 
+      // Build lookup of frontend specialties by id and by normalized name
+      const frontendSpecialties = getAvailableSpecialties();
+      const frontendById: Record<string, any> = {};
+      const frontendByNormalizedName: Record<string, any> = {};
+      const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '_');
+      frontendSpecialties.forEach(s => {
+        frontendById[s.id] = s;
+        frontendByNormalizedName[normalize(s.name)] = s;
+      });
+
       response.specialties.forEach((setting: any) => {
+        // Always map the raw backend specialtyId as a source of truth
         visibilityMap[setting.specialtyId] = {
           isVisible: setting.isVisible,
           programArea: setting.programArea
         };
+
+        // Also try to map the backend id to a frontend config id so the UI uses frontend IDs
+        // backend id may already be a normalized name or may match frontend id
+        const normalized = normalize(setting.specialtyId);
+        if (frontendById[setting.specialtyId]) {
+          visibilityMap[frontendById[setting.specialtyId].id] = {
+            isVisible: setting.isVisible,
+            programArea: setting.programArea
+          };
+        } else if (frontendByNormalizedName[setting.specialtyId]) {
+          visibilityMap[frontendByNormalizedName[setting.specialtyId].id] = {
+            isVisible: setting.isVisible,
+            programArea: setting.programArea
+          };
+        } else if (frontendByNormalizedName[normalized]) {
+          visibilityMap[frontendByNormalizedName[normalized].id] = {
+            isVisible: setting.isVisible,
+            programArea: setting.programArea
+          };
+        }
       });
 
       // Set defaults for specialties not in the response
       getAvailableSpecialties().forEach(specialty => {
         if (!visibilityMap[specialty.id]) {
-          // Only set defaults for specialties that are truly missing from the database
-          // Don't override existing database data with phase-based defaults
+          // If the backend did not report this specialty, assume it is hidden by default
+          // (backend is authoritative). Also warn so we can detect ID mismatches.
+          console.warn(`Specialty visibility missing from backend response for id= ${specialty.id}; defaulting to hidden.`);
           visibilityMap[specialty.id] = {
-            isVisible: true,
-            programArea: 'basic' // Default to basic program for new specialties
+            isVisible: false,
+            programArea: 'basic' // Default to basic program when unknown
           };
         }
       });
@@ -352,7 +384,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       const defaultVisibility: Record<string, { isVisible: boolean; programArea: string }> = {};
       getAvailableSpecialties().forEach(specialty => {
         defaultVisibility[specialty.id] = {
-          isVisible: true,
+          isVisible: false,
           programArea: 'basic' // Default to basic program for error cases
         };
       });

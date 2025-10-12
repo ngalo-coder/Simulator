@@ -46,6 +46,7 @@ npm install
 npm start
 ```
 - [ ] Server starts on port 5003
+ - [ ] Server starts on port 5001
 - [ ] Health endpoint `/health` returns 200
 - [ ] API documentation available at `/api-docs`
 
@@ -133,9 +134,9 @@ npm run dev
 
 ### **Check Backend Response Format:**
 ```bash
-curl -X GET http://localhost:5003/api/simulation/cases \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  | jq '.'
+curl -X GET http://localhost:5001/api/simulation/cases \
+   -H "Authorization: Bearer YOUR_TOKEN" \
+   | jq '.'
 ```
 
 ### **Check Frontend Console:**

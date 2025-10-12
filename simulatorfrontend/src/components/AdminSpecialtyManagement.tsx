@@ -23,8 +23,9 @@ const AdminSpecialtyManagement: React.FC = () => {
   const [specialties, setSpecialties] = useState<SpecialtyConfig[]>([]);
   const [visibilitySettings, setVisibilitySettings] = useState<Record<string, SpecialtyVisibility>>({});
 
-  // Program area options
+  // Program area options (include 'all' so filterProgram can be 'all')
   const programAreas = [
+    { value: 'all', label: 'All Programs' },
     { value: 'basic', label: 'Basic Program' },
     { value: 'specialty', label: 'Specialty Program' }
   ];
@@ -60,16 +61,36 @@ const AdminSpecialtyManagement: React.FC = () => {
       const response: SpecialtyVisibilityResponse = await api.getSpecialtyVisibility();
       const visibilityMap: Record<string, SpecialtyVisibility> = {};
 
+      // Build frontend lookup to map backend specialtyId to frontend config ids
+      const frontendSpecialties = getAvailableSpecialties();
+      const frontendById: Record<string, any> = {};
+      const frontendByNormalizedName: Record<string, any> = {};
+      const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '_');
+      frontendSpecialties.forEach(s => {
+        frontendById[s.id] = s;
+        frontendByNormalizedName[normalize(s.name)] = s;
+      });
+
       response.specialties.forEach(setting => {
         visibilityMap[setting.specialtyId] = setting;
+
+        const normalized = normalize(setting.specialtyId);
+        if (frontendById[setting.specialtyId]) {
+          visibilityMap[frontendById[setting.specialtyId].id] = setting;
+        } else if (frontendByNormalizedName[setting.specialtyId]) {
+          visibilityMap[frontendByNormalizedName[setting.specialtyId].id] = setting;
+        } else if (frontendByNormalizedName[normalized]) {
+          visibilityMap[frontendByNormalizedName[normalized].id] = setting;
+        }
       });
 
       // Set default visibility for specialties not in the response
       allSpecialties.forEach(specialty => {
         if (!visibilityMap[specialty.id]) {
+          console.warn(`Admin visibility missing from backend for id=${specialty.id}; defaulting to hidden.`);
           visibilityMap[specialty.id] = {
             specialtyId: specialty.id,
-            isVisible: true, // Default to visible
+            isVisible: false, // Default to hidden when backend did not report
             programArea: 'basic', // Default to basic program for new specialties
             lastModified: new Date(),
             modifiedBy: 'system'
@@ -89,7 +110,7 @@ const AdminSpecialtyManagement: React.FC = () => {
       allSpecialties.forEach(specialty => {
         defaultVisibility[specialty.id] = {
           specialtyId: specialty.id,
-          isVisible: true,
+          isVisible: false,
           programArea: 'basic', // Default to basic program for error cases
           lastModified: new Date(),
           modifiedBy: 'system'
@@ -173,25 +194,31 @@ const AdminSpecialtyManagement: React.FC = () => {
 
   // Filter specialties based on search and filters
   const filteredSpecialties = useMemo(() => {
+    const term = searchTerm ? searchTerm.trim().toLowerCase() : '';
+
     return specialties.filter(specialty => {
       const visibility = visibilitySettings[specialty.id];
 
-      // Search filter
-      if (searchTerm) {
-        const matchesSearch = specialty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              specialty.description.toLowerCase().includes(searchTerm.toLowerCase());
+      // If visibility is missing for some reason, treat as default visible/basic
+      const programArea = visibility?.programArea || 'basic';
+      const isVisible = visibility?.isVisible ?? true;
+
+      // Search filter (safe access to description)
+      if (term) {
+        const name = specialty.name ? specialty.name.toLowerCase() : '';
+        const desc = specialty.description ? specialty.description.toLowerCase() : '';
+        const matchesSearch = name.includes(term) || desc.includes(term);
         if (!matchesSearch) return false;
       }
 
-      // Program filter
-      if (filterProgram !== 'all') {
-        const matchesProgram = visibility.programArea === filterProgram;
-        if (!matchesProgram) return false;
+      // Program filter (treat 'all' as match)
+      if (filterProgram && filterProgram !== 'all') {
+        if (programArea !== filterProgram) return false;
       }
 
       // Visibility filter
-      if (filterVisibility !== 'all') {
-        const matchesVisibility = filterVisibility === 'visible' ? visibility.isVisible : !visibility.isVisible;
+      if (filterVisibility && filterVisibility !== 'all') {
+        const matchesVisibility = filterVisibility === 'visible' ? isVisible : !isVisible;
         if (!matchesVisibility) return false;
       }
 

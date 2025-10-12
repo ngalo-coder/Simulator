@@ -1,5 +1,5 @@
 // Test script to verify frontend registration format works correctly
-const API_BASE_URL = 'http://localhost:5003';
+const API_BASE_URL = 'http://localhost:5001';
 
 async function testFrontendRegistration() {
   // This simulates the data structure that the frontend sends

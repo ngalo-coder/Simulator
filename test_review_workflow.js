@@ -7,7 +7,7 @@ import CaseReview from './SimulatorBackend/src/models/CaseReviewModel.js';
 
 dotenv.config({ path: './SimulatorBackend/.env' });
 
-const BASE_URL = 'http://localhost:5003';
+const BASE_URL = 'http://localhost:5001';
 
 // Test data
 const testUsers = {

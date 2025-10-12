@@ -1,5 +1,5 @@
 // Test script to verify user registration works correctly
-const API_BASE_URL = 'http://localhost:5003';
+const API_BASE_URL = 'http://localhost:5001';
 
 async function testRegistration() {
   const testUserData = {

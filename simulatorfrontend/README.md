@@ -80,7 +80,7 @@ npm run preview
 ### Environment Variables
 
 ```env
-VITE_API_URL=http://localhost:5003
+VITE_API_URL=http://localhost:5001
 VITE_APP_NAME=Simuatech
 VITE_APP_VERSION=1.0.0
 ```
