@@ -2658,8 +2658,10 @@ export const api = {
           }
         }
 
-        // No fallbacks succeeded
-        throw new Error('Failed to fetch specialty visibility settings (admin endpoint denied access)');
+        // No fallbacks succeeded - return an empty visibility payload so the UI can gracefully
+        // fall back to its own defaults (frontend will default missing specialties to hidden).
+        console.warn('All fallbacks for specialty visibility failed; returning empty visibility list.');
+        return { specialties: [] };
       }
 
       const data = await response.json();
