@@ -59,11 +59,15 @@ const EnhancedProgramCard: React.FC<EnhancedProgramCardProps> = ({
 
   const currentScheme = colorSchemes[colorScheme];
 
+
   return (
     <Card
       variant="elevated"
-      className={`group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${currentScheme.bg} ${currentScheme.border} ${className}`}
+      className={`group relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200 ${currentScheme.bg} ${currentScheme.border} ${className}`}
       onClick={onClick}
+      role={onClick ? 'button' : 'group'}
+      aria-label={onClick ? `${title} program card` : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {/* Header with Icon and Badges */}
       <div className="relative p-6 pb-4">
@@ -93,7 +97,7 @@ const EnhancedProgramCard: React.FC<EnhancedProgramCardProps> = ({
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">
             {title}
           </h3>
-          <p className="text-gray-600 text-sm leading-relaxed">
+          <p className="text-gray-600 text-sm leading-relaxed" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {description}
           </p>
         </div>

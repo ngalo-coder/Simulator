@@ -191,7 +191,16 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
   };
 
   return (
-    <div data-testid="case-card" className="relative rounded-2xl shadow-xl border border-medical-200 bg-gradient-to-br from-medical-50 to-medical-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20">
+    <div
+      data-testid="case-card"
+      role="group"
+      aria-label={case_.title || 'Clinical case card'}
+      tabIndex={0}
+      className="relative rounded-2xl shadow-xl border border-medical-200 bg-gradient-to-br from-medical-50 to-medical-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20 focus:outline-none focus:ring-4 focus:ring-blue-200"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onStartSimulation(case_);
+      }}
+    >
       {/* Decorative background */}
       <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #2196F3 0%, transparent 70%)'}} />
 
@@ -200,7 +209,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
         <div className="flex justify-between items-start mb-3">
           {/* Case Title */}
           <div className="flex-1 mr-2">
-            <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white">
+            <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white line-clamp-2">
               {getCleanTitle()}
             </h3>
           </div>
@@ -237,7 +246,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
               <span>🟨</span>
               <span>Chief Complaint:</span>
             </div>
-            <p className="text-yellow-900 text-sm leading-relaxed dark:text-yellow-100">{case_.chief_complaint}</p>
+            <p className="text-yellow-900 text-sm leading-relaxed dark:text-yellow-100 line-clamp-3">{case_.chief_complaint}</p>
           </div>
         )}
 

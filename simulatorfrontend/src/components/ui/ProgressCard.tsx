@@ -89,15 +89,25 @@ const ProgressCard: React.FC<ProgressCardProps> = ({
 
   const currentColor = colorClasses[color];
 
+  const getContrastColor = () => '#111827';
+
+  const contrast = getContrastColor();
+
   return (
     <Card
       variant="elevated"
-      className={`${currentColor.bg} ${currentColor.border} hover-lift transition-all duration-300 ${className}`}
+      className={`${currentColor.bg} ${currentColor.border} hover-lift transition-all duration-300 transform hover:scale-102 hover:shadow-lg ${className}`}
       padding="none"
+      role="group"
+      aria-label={`${title} progress card`}
     >
       <div className={`${sizeClasses[size]} text-center`}>
         {/* Icon */}
-        <div className={`${iconSizeClasses[size]} ${currentColor.icon} rounded-lg flex items-center justify-center mx-auto mb-3 shadow-sm`}>
+        <div
+          className={`${iconSizeClasses[size]} ${currentColor.icon} rounded-lg flex items-center justify-center mx-auto mb-3 shadow-sm`}
+          style={{ color: contrast }}
+          aria-hidden={true}
+        >
           {icon}
         </div>
 
@@ -113,7 +123,10 @@ const ProgressCard: React.FC<ProgressCardProps> = ({
 
         {/* Subtitle */}
         {subtitle && (
-          <div className="text-xs text-gray-600 dark:text-gray-300">
+          <div
+            className="text-xs text-gray-600 dark:text-gray-300"
+            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+          >
             {subtitle}
           </div>
         )}

@@ -55,6 +55,22 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
       : `linear-gradient(135deg, ${specialty.color}08 0%, ${specialty.color}05 100%)`
   };
 
+  // compute readable contrast color (black/white) for small elements
+  const getContrastColor = (hexColor: string) => {
+    try {
+      const c = hexColor.replace('#', '');
+      const r = parseInt(c.substring(0, 2), 16);
+      const g = parseInt(c.substring(2, 4), 16);
+      const b = parseInt(c.substring(4, 6), 16);
+      // Perceived luminance
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.6 ? '#111827' : '#ffffff';
+    } catch (e) {
+      return '#111827';
+    }
+  };
+  const contrastColor = getContrastColor(specialty.color || '#111827');
+
   const renderProgressRing = () => {
     if (!showProgress) return null;
 
@@ -89,7 +105,11 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-semibold" style={{ color: specialty.color }}>
+          <span
+            className="text-xs font-semibold"
+            style={{ color: contrastColor }}
+            aria-label={`Completion ${Math.round(progress.completionRate)} percent`}
+          >
             {Math.round(progress.completionRate)}%
           </span>
         </div>
@@ -216,7 +236,9 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
       hover={true}
       interactive={true}
       onClick={onClick}
-      className={`relative overflow-hidden transition-all duration-300 ${className}`}
+      className={`relative overflow-hidden transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-sm ${className}`}
+      role={onClick ? 'button' : 'group'}
+      aria-label={onClick ? `${specialty.name} specialty card` : undefined}
       style={cardStyles}
     >
       {/* Header Section */}
@@ -224,7 +246,8 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
         <div className="flex items-center gap-3">
           <div
             className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl shadow-sm"
-            style={{ backgroundColor: `${specialty.color}15` }}
+            style={{ backgroundColor: `${specialty.color}20`, color: contrastColor }}
+            aria-hidden={true}
           >
             {specialty.icon}
           </div>
@@ -245,7 +268,15 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
 
       {/* Description */}
       {variant !== 'compact' && (
-        <p className="text-gray-700 text-sm mb-3 leading-relaxed">
+        <p
+          className="text-gray-700 text-sm mb-3 leading-relaxed"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          }}
+        >
           {specialty.description}
         </p>
       )}
@@ -260,11 +291,7 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
           </Badge>
         )}
       </div>
-
-      {/* Recommendations */}
       {renderRecommendations()}
-
-      {/* Progress Stats */}
       {showProgress && variant !== 'compact' && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="flex justify-between items-center text-sm">
