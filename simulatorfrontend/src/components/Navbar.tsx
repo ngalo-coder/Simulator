@@ -113,11 +113,21 @@ const Navbar: React.FC = () => {
               className="flex items-center space-x-3 group"
               aria-label="Simuatech - Medical Simulation Platform"
             >
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
-                <span className="text-white font-bold text-lg">S</span>
+              <div className="relative">
+                <img
+                  src="/logo.jpeg"
+                  alt="Simuatech Logo"
+                  className="
+                    w-10 h-10 object-contain rounded-lg transition-all duration-300
+                    group-hover:scale-105 group-hover:shadow-lg
+                    filter drop-shadow-sm
+                    dark:brightness-90 dark:contrast-110
+                  "
+                />
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-200">
                   Simuatech
                 </h1>
               </div>
