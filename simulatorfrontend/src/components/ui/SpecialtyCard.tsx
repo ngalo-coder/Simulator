@@ -15,6 +15,17 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
   onClick,
   className = ''
 }) => {
+  const getVariantClasses = () => {
+    switch (variant) {
+      case 'compact':
+        return 'p-3';
+      case 'featured':
+        return 'p-6 ring-2 ring-blue-200 dark:ring-blue-800';
+      default:
+        return 'p-4';
+    }
+  };
+
   return (
     <Card
       variant="elevated"
@@ -22,7 +33,7 @@ const SpecialtyCard: React.FC<SpecialtyCardProps> = ({
       hover={true}
       interactive={true}
       onClick={onClick}
-      className={`transition-all duration-200 hover:shadow-md ${className}`}
+      className={`transition-all duration-200 hover:shadow-md ${getVariantClasses()} ${className}`}
     >
       <div className="flex items-center gap-3">
         <div

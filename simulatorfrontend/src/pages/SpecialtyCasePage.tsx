@@ -4,7 +4,6 @@ import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
-import { INTERNAL_MEDICINE_SUB_CATEGORIES } from '../utils/internalMedicineCategories';
 
 interface Case {
   id: string;
@@ -41,13 +40,10 @@ const SpecialtyCasePage: React.FC = memo(() => {
     startingSimulation,
     handleFilterChange,
     handlePageChange,
-    clearAllFilters,
     handleStartSimulation: optimizedStartSimulation,
     retryFetch,
   } = useOptimizedSpecialtyPage();
 
-  // State for UI
-  const [retryCount, setRetryCount] = React.useState(0);
 
 
   // Memoized specialty slug for performance
@@ -166,7 +162,6 @@ const SpecialtyCasePage: React.FC = memo(() => {
           <div className="flex justify-center space-x-3">
             <button
               onClick={() => {
-                setRetryCount(prev => prev + 1);
                 retryFetch();
               }}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"

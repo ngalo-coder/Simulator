@@ -10,8 +10,7 @@ import Button from '../components/ui/Button';
 import {
   SpecialtyConfig,
   getSpecialtyConfig,
-  getAvailableSpecialties,
-  getDifficultyLabel
+  getAvailableSpecialties
 } from '../utils/specialtyConfig';
 
 // Simplified Program Area Card Component
@@ -63,28 +62,17 @@ const SimpleProgramCard: React.FC<{
   );
 };
 
-interface UserProgress {
-  completedCases: number;
-  totalCases: number;
-  completionRate: number;
-  lastAccessed?: Date;
-  isInProgress?: boolean;
-}
 
 const EnhancedSpecialtySelectionPage: React.FC = () => {
   const navigate = useNavigate();
   const {
     loading: specialtyLoading,
-    navigateToSpecialty,
-    forceRefreshSpecialties
+    navigateToSpecialty
   } = useSpecialtyContext();
 
   // State management
   const [step, setStep] = useState<'program' | 'specialty'>('program');
   const [selectedProgramArea, setSelectedProgramArea] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [userProgress, setUserProgress] = useState<Record<string, UserProgress>>({});
   const [specialtyVisibility, setSpecialtyVisibility] = useState<Record<string, { isVisible: boolean; programArea: string }>>({});
 
   // Program areas counts from backend
@@ -166,25 +154,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     return config.specialties.map((id: string) => getSpecialtyConfig(id)).filter(Boolean) as SpecialtyConfig[];
   }, [selectedProgramArea]);
 
-  // Filter options for specialty step
-  const difficultyOptions = [
-    { value: 'beginner', label: 'Beginner', count: programSpecialties.filter(s => s.difficulty === 'beginner').length },
-    { value: 'intermediate', label: 'Intermediate', count: programSpecialties.filter(s => s.difficulty === 'intermediate').length },
-    { value: 'advanced', label: 'Advanced', count: programSpecialties.filter(s => s.difficulty === 'advanced').length }
-  ];
-
-  const durationOptions = [
-    { value: '20-30 min', label: '20-30 minutes', count: programSpecialties.filter(s => s.estimatedDuration === '20-30 min').length },
-    { value: '30-45 min', label: '30-45 minutes', count: programSpecialties.filter(s => s.estimatedDuration === '30-45 min').length },
-    { value: '45-60 min', label: '45-60 minutes', count: programSpecialties.filter(s => s.estimatedDuration === '45-60 min').length },
-    { value: '60+ min', label: '60+ minutes', count: programSpecialties.filter(s => s.estimatedDuration === '60+ min').length }
-  ];
-
-  const phaseOptions = [
-    { value: 'current', label: 'Available Now', count: programSpecialties.filter(s => s.phase === 'current').length },
-    { value: 'phase1', label: 'Phase 1', count: programSpecialties.filter(s => s.phase === 'phase1').length },
-    { value: 'phase2', label: 'Phase 2', count: programSpecialties.filter(s => s.phase === 'phase2').length }
-  ];
 
   // Filter specialties based on search term
   const filteredSpecialties = useMemo(() => {
@@ -196,9 +165,8 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     );
   }, [programSpecialties, searchTerm]);
 
-  // Load user progress data and specialty visibility
+  // Load specialty visibility and program area counts
   useEffect(() => {
-    loadUserProgress();
     loadSpecialtyVisibility();
     loadProgramAreasCounts();
   }, []);
@@ -219,49 +187,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     }
   };
 
-  const loadUserProgress = async () => {
-    try {
-      setLoading(true);
-      // In real app, this would fetch from API
-      // For now, we'll create more realistic progress data
-      const mockProgress: Record<string, UserProgress> = {};
-
-      getAvailableSpecialties().forEach(specialty => {
-        // Create more realistic progress based on specialty
-        let baseProgress = 0;
-        switch (specialty.id) {
-          case 'internal_medicine':
-            baseProgress = 65; // Most progress in Internal Medicine
-            break;
-          case 'gastroenterology':
-            baseProgress = 30; // Some progress in GI
-            break;
-          case 'ophthalmology':
-            baseProgress = 15; // Less progress in Ophthalmology
-            break;
-          default:
-            baseProgress = Math.floor(Math.random() * 40); // Random for others
-        }
-
-        // Add some randomization but keep it realistic
-        const progress = Math.max(0, Math.min(100, baseProgress + (Math.random() - 0.5) * 20));
-
-        mockProgress[specialty.id] = {
-          completedCases: Math.floor((progress / 100) * specialty.caseCount),
-          totalCases: specialty.caseCount,
-          completionRate: progress,
-          lastAccessed: progress > 0 ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) : undefined,
-          isInProgress: progress > 0 && progress < 100
-        };
-      });
-
-      setUserProgress(mockProgress);
-    } catch (error) {
-      console.error('Error loading user progress:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadSpecialtyVisibility = async () => {
     try {
@@ -334,72 +259,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     }
   };
 
-  // Function to refresh progress for a specific specialty
-  const refreshSpecialtyProgress = async (specialtyId: string) => {
-    try {
-      // In real app, this would fetch updated progress from API
-      const specialty = getSpecialtyConfig(specialtyId);
-      if (!specialty) return;
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Update progress for this specialty
-      setUserProgress(prev => {
-        const currentProgress = prev[specialtyId];
-        if (!currentProgress) return prev;
-
-        // Simulate slight progress change (in real app, this would be actual data)
-        const progressChange = (Math.random() - 0.5) * 10;
-        const newProgress = Math.max(0, Math.min(100, currentProgress.completionRate + progressChange));
-
-        return {
-          ...prev,
-          [specialtyId]: {
-            ...currentProgress,
-            completedCases: Math.floor((newProgress / 100) * specialty.caseCount),
-            completionRate: newProgress,
-            lastAccessed: new Date(),
-            isInProgress: newProgress > 0 && newProgress < 100
-          }
-        };
-      });
-    } catch (error) {
-      console.error('Error refreshing specialty progress:', error);
-    }
-  };
-
-  // Function to update progress when case status changes
-  const updateProgressFromCaseStatus = (specialtyId: string, caseCompleted: boolean) => {
-    setUserProgress(prev => {
-      const specialty = getSpecialtyConfig(specialtyId);
-      if (!specialty || !prev[specialtyId]) return prev;
-
-      const currentProgress = prev[specialtyId];
-      const totalCases = specialty.caseCount;
-
-      // Calculate new completion rate based on case status change
-      let newCompletedCases = currentProgress.completedCases;
-      if (caseCompleted) {
-        newCompletedCases = Math.min(totalCases, newCompletedCases + 1);
-      } else {
-        newCompletedCases = Math.max(0, newCompletedCases - 1);
-      }
-
-      const newCompletionRate = (newCompletedCases / totalCases) * 100;
-
-      return {
-        ...prev,
-        [specialtyId]: {
-          ...currentProgress,
-          completedCases: newCompletedCases,
-          completionRate: newCompletionRate,
-          lastAccessed: new Date(),
-          isInProgress: newCompletionRate > 0 && newCompletionRate < 100
-        }
-      };
-    });
-  };
 
   const handleProgramAreaSelect = (programArea: string) => {
     setSelectedProgramArea(programArea);
@@ -410,15 +269,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     navigateToSpecialty(specialty.name);
   };
 
-  const handleContinueLearning = (specialty: SpecialtyConfig) => {
-    // Navigate to continue the specific specialty
-    navigateToSpecialty(specialty.name);
-  };
-
-  const handleViewCases = (specialty: SpecialtyConfig) => {
-    // Navigate to view all cases in the specialty
-    navigateToSpecialty(specialty.name);
-  };
 
   const handleBackToPrograms = () => {
     setStep('program');
@@ -426,32 +276,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     setSearchTerm('');
   };
 
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await forceRefreshSpecialties();
-      await loadUserProgress();
-      await loadSpecialtyVisibility();
-    } catch (error) {
-      console.error('Failed to refresh:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
-  // Expose functions for external use (when case status changes)
-  React.useEffect(() => {
-    // Make functions available globally for debugging/testing
-    (window as any).refreshSpecialtyProgress = refreshSpecialtyProgress;
-    (window as any).updateProgressFromCaseStatus = updateProgressFromCaseStatus;
-    (window as any).loadUserProgress = loadUserProgress;
-
-    return () => {
-      delete (window as any).refreshSpecialtyProgress;
-      delete (window as any).updateProgressFromCaseStatus;
-      delete (window as any).loadUserProgress;
-    };
-  }, []);
 
   const renderSpecialtyCard = (specialty: SpecialtyConfig) => {
     return (
@@ -471,24 +296,8 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     </SpecialtyGrid>
   );
 
-  const renderEmptyState = () => (
-    <Card variant="elevated" padding="lg" className="text-center">
-      <div className="text-6xl mb-4">🔍</div>
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-        No Specialties Found
-      </h3>
-      <p className="text-gray-600 mb-4">
-        No specialties match your current filters. Try adjusting your search criteria.
-      </p>
-      <Button variant="primary" onClick={() => {
-        setSearchTerm('');
-      }}>
-        Clear Filters
-      </Button>
-    </Card>
-  );
 
-  if (loading || specialtyLoading) {
+  if (specialtyLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
@@ -537,7 +346,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       {/* Specialty Selection */}
       {step === 'specialty' && (
         <div>
-          {loading ? (
+          {specialtyLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading specialties...</p>

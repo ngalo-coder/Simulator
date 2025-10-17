@@ -4,7 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
 import PrivacySettingsModal from '../components/PrivacySettings';
 import DataExportModal from '../components/DataExportModal';
-import { ProgressCard, EnhancedProgressBar, SkillBreakdown, ActivityTimeline, MilestoneTracker } from '../components/ui';
 
 interface ProgressData {
   progress: {
@@ -27,8 +26,6 @@ const DashboardPage: React.FC = () => {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showDataExport, setShowDataExport] = useState(false);
-  const [downloadingPDF, setDownloadingPDF] = useState(false);
-  const [pdfError, setPdfError] = useState<string>('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -65,26 +62,7 @@ const DashboardPage: React.FC = () => {
     fetchDashboardData();
   }, [user?.id]);
 
-  const handleDownloadPDF = async () => {
-    try {
-      setDownloadingPDF(true);
-      setPdfError('');
-      await api.downloadProgressPDF();
-      // Success feedback could be added here if needed
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-      setPdfError('Failed to download progress report. Please try again.');
-    } finally {
-      setDownloadingPDF(false);
-    }
-  };
 
-  // Function to get score background based on value
-  const getScoreBg = (score: number) => {
-    if (score >= 90) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-    if (score >= 70) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-    return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
