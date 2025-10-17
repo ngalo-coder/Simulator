@@ -176,12 +176,10 @@ export async function getPatientResponseStream(
   try {
     log.info('Requesting patient response stream from AI.');
     const stream = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'meta-llama/llama-3-8b-instruct',
       messages: [{ role: 'system', content: prompt }],
       temperature: 0.7,
       max_tokens: 150,
-      temperature: 0.7,
-      max_tokens: 100,
       stream: true,
     });
 
@@ -195,10 +193,17 @@ export async function getPatientResponseStream(
       keys: Object.keys(patient),
     });
 
+    console.log('🔄 Starting to process streaming chunks...');
+    let chunkCount = 0;
+
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
+        chunkCount++;
         fullResponse += content;
+
+        console.log(`📦 Processing chunk ${chunkCount}: "${content}"`);
+
         const chunkData = {
           type: 'chunk',
           content,
@@ -211,9 +216,13 @@ export async function getPatientResponseStream(
           chunkData.speaks_for = patient.speaks_for;
         }
 
-        res.write(`data: ${JSON.stringify(chunkData)}\n\n`);
+        const dataToSend = `data: ${JSON.stringify(chunkData)}\n\n`;
+        console.log(`📤 Sending chunk data: ${dataToSend.substring(0, 100)}...`);
+        res.write(dataToSend);
       }
     }
+
+    console.log(`✅ Finished processing ${chunkCount} chunks. Total response length: ${fullResponse.length}`);
     log.info('Successfully streamed patient response.');
 
     if (fullResponse) {
@@ -239,14 +248,16 @@ export async function getPatientResponseStream(
       res.write(`data: ${JSON.stringify({ type: 'session_end', content: 'SESSION_END' })}\n\n`);
     }
   } catch (error) {
+    console.error('❌ Error in AI streaming:', error);
     log.error(error, 'Error calling OpenRouter stream API.');
     res.write(
       `data: ${JSON.stringify({
         type: 'error',
-        content: 'An error occurred with the AI service.',
+        content: `An error occurred with the AI service: ${error.message}`,
       })}\n\n`
     );
   } finally {
+    console.log('🔚 Ending streaming response');
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     res.end();
   }
@@ -466,7 +477,7 @@ export async function getEvaluation(caseData, conversationHistory, parentLog) {
   try {
     log.info('Requesting comprehensive clinical reasoning evaluation from AI.');
     const response = await openai.chat.completions.create({
-      model: 'openai/gpt-4o',
+      model: 'meta-llama/llama-3-8b-instruct',
       messages: [{ role: 'system', content: evaluationPrompt }],
       temperature: 0.4, // Lower temperature for more consistent evaluations
       max_tokens: 2000, // Increased tokens for detailed evaluation

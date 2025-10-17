@@ -5,9 +5,7 @@ import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyCard from '../components/ui/SpecialtyCard';
 import SpecialtyGrid from '../components/ui/SpecialtyGrid';
 import SpecialtyCardSkeleton from '../components/ui/SpecialtyCardSkeleton';
-import SpecialtySearchAndFilter from '../components/ui/SpecialtySearchAndFilter';
 import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import {
   SpecialtyConfig,
@@ -16,17 +14,12 @@ import {
   getDifficultyLabel
 } from '../utils/specialtyConfig';
 
-// Enhanced Program Area Card Component
-const EnhancedProgramCard: React.FC<{
+// Simplified Program Area Card Component
+const SimpleProgramCard: React.FC<{
   title: string;
   description: string;
   icon: React.ReactNode;
   colorScheme: 'basic' | 'specialty';
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  prerequisites: string[];
-  features: string[];
-  isPopular?: boolean;
-  isNew?: boolean;
   casesCount?: number;
   onClick: () => void;
 }> = ({
@@ -34,17 +27,12 @@ const EnhancedProgramCard: React.FC<{
   description,
   icon,
   colorScheme,
-  difficulty,
-  prerequisites,
-  features,
-  isPopular,
-  isNew,
   casesCount,
   onClick
 }) => {
   const colorClasses = {
-    basic: 'border-l-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50',
-    specialty: 'border-l-purple-500 bg-gradient-to-br from-purple-50 to-purple-100/50'
+    basic: 'border-blue-200 bg-blue-50 hover:bg-blue-100',
+    specialty: 'border-purple-200 bg-purple-50 hover:bg-purple-100'
   };
 
   return (
@@ -54,72 +42,23 @@ const EnhancedProgramCard: React.FC<{
       hover={true}
       interactive={true}
       onClick={onClick}
-      className={`relative overflow-hidden transition-all duration-300 ${colorClasses[colorScheme]}`}
+      className={`transition-all duration-200 ${colorClasses[colorScheme]}`}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-3xl shadow-lg ${
-            colorScheme === 'basic' ? 'bg-blue-100' : 'bg-purple-100'
-          }`}>
-            {icon}
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">{title}</h3>
-            {typeof casesCount === 'number' && (
-              <div className="text-sm text-gray-600">{casesCount} case{casesCount !== 1 ? 's' : ''}</div>
-            )}
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {difficulty}
-              </Badge>
-              {isPopular && (
-                <Badge variant="info" className="text-xs">Popular</Badge>
-              )}
-              {isNew && (
-                <Badge variant="success" className="text-xs">New</Badge>
-              )}
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-xl ${
+          colorScheme === 'basic' ? 'bg-blue-200' : 'bg-purple-200'
+        }`}>
+          {icon}
         </div>
-      </div>
-
-      {/* Description */}
-      <p className="text-gray-700 mb-4 leading-relaxed">{description}</p>
-
-      {/* Features */}
-      <div className="mb-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-2">Features:</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          {features.map((feature, index) => (
-            <li key={index} className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
-              {feature}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Prerequisites */}
-      {prerequisites.length > 0 && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-xs text-yellow-800">
-            <strong>Prerequisites:</strong> {prerequisites.join(', ')}
-          </p>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+          <p className="text-sm text-gray-600 mb-2">{description}</p>
+          {typeof casesCount === 'number' && (
+            <div className="text-xs text-gray-500">{casesCount} cases available</div>
+          )}
         </div>
-      )}
-
-      {/* Action Button */}
-      <Button
-        variant="primary"
-        className="w-full mt-4"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-      >
-        Explore {title} →
-      </Button>
+        <div className="text-2xl">→</div>
+      </div>
     </Card>
   );
 };
@@ -151,11 +90,8 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   // Program areas counts from backend
   const [programAreaCounts, setProgramAreaCounts] = useState<Record<string, number>>({});
 
-  // Filter states (only used in specialty step)
+  // Simple search state
   const [searchTerm, setSearchTerm] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState('');
-  const [durationFilter, setDurationFilter] = useState('');
-  const [phaseFilter, setPhaseFilter] = useState('');
 
   // Dynamic program area configurations based on specialty visibility
   const programAreaConfig = useMemo(() => {
@@ -250,34 +186,15 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     { value: 'phase2', label: 'Phase 2', count: programSpecialties.filter(s => s.phase === 'phase2').length }
   ];
 
-  // Filter specialties based on current filters
+  // Filter specialties based on search term
   const filteredSpecialties = useMemo(() => {
-    return programSpecialties.filter(specialty => {
-      // Search filter
-      if (searchTerm) {
-        const matchesSearch = specialty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             specialty.description.toLowerCase().includes(searchTerm.toLowerCase());
-        if (!matchesSearch) return false;
-      }
+    if (!searchTerm) return programSpecialties;
 
-      // Difficulty filter
-      if (difficultyFilter && specialty.difficulty !== difficultyFilter) {
-        return false;
-      }
-
-      // Duration filter
-      if (durationFilter && specialty.estimatedDuration !== durationFilter) {
-        return false;
-      }
-
-      // Phase filter
-      if (phaseFilter && specialty.phase !== phaseFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [programSpecialties, searchTerm, difficultyFilter, durationFilter, phaseFilter]);
+    return programSpecialties.filter(specialty =>
+      specialty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      specialty.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [programSpecialties, searchTerm]);
 
   // Load user progress data and specialty visibility
   useEffect(() => {
@@ -507,9 +424,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     setStep('program');
     setSelectedProgramArea('');
     setSearchTerm('');
-    setDifficultyFilter('');
-    setDurationFilter('');
-    setPhaseFilter('');
   };
 
   const handleRefresh = async () => {
@@ -540,26 +454,11 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   }, []);
 
   const renderSpecialtyCard = (specialty: SpecialtyConfig) => {
-    const progress = userProgress[specialty.id];
-
-    let variant: 'default' | 'compact' | 'featured' = 'default';
-    if (specialty.phase === 'current') {
-      variant = 'featured';
-    } else if (filteredSpecialties.length > 6) {
-      variant = 'compact';
-    }
-
     return (
       <SpecialtyCard
         key={specialty.id}
         specialty={specialty}
-        userProgress={progress}
-        variant={variant}
-        showProgress={true}
-        showRecommendations={true}
         onClick={() => handleSpecialtyClick(specialty)}
-        onContinue={() => handleContinueLearning(specialty)}
-        onViewCases={() => handleViewCases(specialty)}
       />
     );
   };
@@ -583,9 +482,6 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       </p>
       <Button variant="primary" onClick={() => {
         setSearchTerm('');
-        setDifficultyFilter('');
-        setDurationFilter('');
-        setPhaseFilter('');
       }}>
         Clear Filters
       </Button>
@@ -605,176 +501,35 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {step === 'program' ? 'Choose Program Area' : `Choose Specialty - ${selectedProgramArea}`}
-            </h1>
-            <p className="text-gray-600">
-              {step === 'program'
-                ? 'Select a program area to explore available medical cases'
-                : `Select a specialty within ${selectedProgramArea}`
-              }
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center space-x-2"
-            >
-              <svg
-                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>Refresh</span>
-            </Button>
-
-            {step === 'specialty' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToPrograms}
-                className="flex items-center space-x-2"
-              >
-                <span>←</span>
-                <span>Back to Programs</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Breadcrumb */}
-      <div className="mb-6">
-        <nav className="flex items-center space-x-2 text-sm text-gray-600">
-          <span
-            className={`${step === 'program' ? 'font-semibold text-blue-600' : 'hover:text-blue-600 cursor-pointer'}`}
-            onClick={step === 'specialty' ? handleBackToPrograms : undefined}
-          >
-            Program Area
-          </span>
-          {step === 'specialty' && (
-            <>
-              <span>→</span>
-              <span className="font-semibold text-blue-600">
-                {selectedProgramArea} → Specialty
-              </span>
-            </>
-          )}
-        </nav>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Simple Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          {step === 'program' ? 'Choose Your Learning Path' : `Choose Specialty`}
+        </h1>
+        <p className="text-gray-600">
+          {step === 'program'
+            ? 'Select a program to start your medical training'
+            : `Select a specialty within ${selectedProgramArea}`
+          }
+        </p>
       </div>
 
       {/* Program Area Selection */}
       {step === 'program' && (
-        <div className="space-y-6">
-          {/* Program Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(programAreaConfig).map(([programKey, config]) => (
-              <EnhancedProgramCard
+              <SimpleProgramCard
                 key={programKey}
                 title={programKey}
                 description={config.description}
                 icon={config.icon}
                 colorScheme={config.colorScheme}
-                difficulty={config.difficulty}
-                prerequisites={config.prerequisites}
-                features={config.features}
                 casesCount={config.casesCount}
-                isPopular={'isPopular' in config ? config.isPopular : false}
-                isNew={'isNew' in config ? config.isNew : false}
                 onClick={() => handleProgramAreaSelect(programKey)}
               />
             ))}
-          </div>
-
-          {/* Featured Specialties Preview */}
-          <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                Featured Specialties This Week
-              </h3>
-              <p className="text-gray-600">
-                Popular specialties and new additions to help you advance your skills
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getAvailableSpecialties()
-                .filter(specialty => {
-                  const visibility = specialtyVisibility[specialty.id];
-                  return visibility?.isVisible && (visibility?.programArea === 'basic' || visibility?.programArea === 'specialty');
-                })
-                .slice(0, 3)
-                .map((specialty, index) => {
-                  const progress = userProgress[specialty.id];
-                  const isNew = index === 0;
-                  const isPopular = specialty.caseCount > 25;
-
-                  return (
-                    <div
-                      key={specialty.id}
-                      className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => {
-                        // Find which program contains this specialty
-                        const programWithSpecialty = Object.entries(programAreaConfig)
-                          .find(([_, config]) => config.specialties.includes(specialty.id));
-
-                        if (programWithSpecialty) {
-                          handleProgramAreaSelect(programWithSpecialty[0]);
-                        }
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-                            style={{ backgroundColor: `${specialty.color}15` }}
-                          >
-                            {specialty.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{specialty.name}</h4>
-                            <p className="text-sm text-gray-600">{specialty.caseCount} cases</p>
-                          </div>
-                        </div>
-                        {isNew && (
-                          <Badge variant="info" className="text-xs">NEW</Badge>
-                        )}
-                        {isPopular && (
-                          <Badge variant="warning" className="text-xs">🔥</Badge>
-                        )}
-                      </div>
-                      {progress && (
-                        <div className="mt-2">
-                          <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <span>Progress</span>
-                            <span>{Math.round(progress.completionRate)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className="h-1.5 rounded-full transition-all duration-300"
-                              style={{
-                                width: `${progress.completionRate}%`,
-                                backgroundColor: specialty.color
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
           </div>
         </div>
       )}
@@ -801,146 +556,43 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
               </Button>
             </Card>
           ) : (
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Sidebar with Filters */}
-              <div className="lg:w-80 flex-shrink-0">
-                <SpecialtySearchAndFilter
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  difficultyFilter={difficultyFilter}
-                  onDifficultyChange={setDifficultyFilter}
-                  durationFilter={durationFilter}
-                  onDurationChange={setDurationFilter}
-                  specialtyFilter=""
-                  onSpecialtyChange={() => {}}
-                  phaseFilter={phaseFilter}
-                  onPhaseChange={setPhaseFilter}
-                  difficultyOptions={difficultyOptions}
-                  durationOptions={durationOptions}
-                  specialtyOptions={[]}
-                  phaseOptions={phaseOptions}
-                  resultsCount={filteredSpecialties.length}
-                  totalCount={programSpecialties.length}
+            <div className="max-w-4xl mx-auto">
+              {/* Simple Search */}
+              <div className="mb-6">
+                <input
+                  type="text"
+                  placeholder="Search specialties..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              {/* Main Content Area */}
-              <div className="flex-1">
-                {/* Active Filters */}
-                {(searchTerm || difficultyFilter || durationFilter || phaseFilter) && (
-                  <div className="mb-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm text-gray-600">Active filters:</span>
-                      {searchTerm && (
-                        <Badge variant="info" className="cursor-pointer" onClick={() => setSearchTerm('')}>
-                          Search: "{searchTerm}" ×
-                        </Badge>
-                      )}
-                      {difficultyFilter && (
-                        <Badge variant="info" className="cursor-pointer" onClick={() => setDifficultyFilter('')}>
-                          {getDifficultyLabel(difficultyFilter as any)} ×
-                        </Badge>
-                      )}
-                      {durationFilter && (
-                        <Badge variant="info" className="cursor-pointer" onClick={() => setDurationFilter('')}>
-                          {durationFilter} ×
-                        </Badge>
-                      )}
-                      {phaseFilter && (
-                        <Badge variant="info" className="cursor-pointer" onClick={() => setPhaseFilter('')}>
-                          {phaseFilter} ×
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Specialty Grid */}
-                {filteredSpecialties.length === 0 ? (
-                  renderEmptyState()
-                ) : (
-                  <SpecialtyGrid
-                    columns={{
-                      mobile: 1,
-                      tablet: filteredSpecialties.length > 4 ? 2 : 1,
-                      desktop: filteredSpecialties.length > 6 ? 3 : 2,
-                      large: filteredSpecialties.length > 8 ? 4 : 3
-                    }}
-                    gap="md"
-                  >
-                    {filteredSpecialties.map(renderSpecialtyCard)}
-                  </SpecialtyGrid>
-                )}
-
-                {/* Load More / Pagination could go here */}
-                {filteredSpecialties.length > 0 && filteredSpecialties.length < programSpecialties.length && (
-                  <div className="mt-8 text-center">
-                    <p className="text-gray-600">
-                      Showing {filteredSpecialties.length} of {programSpecialties.length} specialties
-                    </p>
-                  </div>
-                )}
-              </div>
+              {/* Specialty Grid */}
+              {filteredSpecialties.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">🔍</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Specialties Found</h3>
+                  <p className="text-gray-600">Try adjusting your search terms.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredSpecialties.map(renderSpecialtyCard)}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Quick Access Section */}
-      <div className="mt-12">
-        <Card variant="elevated" padding="lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              variant="outline"
-              className="justify-start"
-              onClick={() => navigate('/simulation')}
-            >
-              <span className="mr-2">📚</span>
-              Browse All Cases
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start"
-              onClick={() => navigate('/dashboard')}
-            >
-              <span className="mr-2">🏠</span>
-              Back to Dashboard
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start"
-              onClick={() => {
-                const inProgress = Object.entries(userProgress)
-                  .filter(([_, progress]) => progress.isInProgress)
-                  .map(([id]) => getSpecialtyConfig(id))
-                  .filter(Boolean);
-
-                if (inProgress.length > 0) {
-                  handleSpecialtyClick(inProgress[0]!);
-                }
-              }}
-            >
-              <span className="mr-2">▶️</span>
-              Continue Learning
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <span className="mr-2">🔄</span>
-              {refreshing ? 'Syncing...' : 'Sync Progress'}
-            </Button>
-          </div>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>💡 Tip:</strong> Click "Sync Progress" if you notice your completion status isn't updating after working on cases.
-              Progress is automatically calculated based on your case completion status.
-            </p>
-          </div>
-        </Card>
+      {/* Simple Navigation */}
+      <div className="mt-8 text-center">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/dashboard')}
+        >
+          ← Back to Dashboard
+        </Button>
       </div>
     </div>
   );

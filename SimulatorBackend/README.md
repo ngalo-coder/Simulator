@@ -224,12 +224,12 @@ DELETE /api/admin/users/:id     # Delete user
 // AI Service supports multiple providers
 const aiProviders = {
   openai: {
-    model: 'gpt-4',
+    model: 'deepseek/deepseek-v3-0324:free',
     temperature: 0.7,
     maxTokens: 1000
   },
   openrouter: {
-    model: 'openai/gpt-4',
+    model: 'deepseek/deepseek-v3-0324:free',
     temperature: 0.7,
     maxTokens: 1000
   }

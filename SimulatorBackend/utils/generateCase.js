@@ -5,6 +5,57 @@ const chance = new Chance();
 
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+// Utility function to convert first-person complaints to clinical terms
+const normalizeComplaint = (complaint) => {
+  if (!complaint || typeof complaint !== 'string') {
+    return 'Clinical symptoms';
+  }
+
+  const firstPersonPatterns = [
+    /^i've?\s+/i,           // "I've " or "I"
+    /^i\s+/i,               // "I "
+    /^my\s+/i,              // "My "
+    /^i've?\s+been\s+/i,     // "I've been "
+    /^i'm\s+/i,             // "I'm "
+    /^i've?\s+had\s+/i,      // "I've had "
+    /^i've?\s+been\s+feeling\s+/i, // "I've been feeling "
+    /^i've?\s+been\s+having\s+/i,  // "I've been having "
+  ];
+
+  let needsConversion = false;
+  for (const pattern of firstPersonPatterns) {
+    if (pattern.test(complaint)) {
+      needsConversion = true;
+      break;
+    }
+  }
+
+  if (needsConversion) {
+    let clinicalComplaint = complaint
+      .replace(/^i've?\s+/gi, '')           // Remove "I've" or "I"
+      .replace(/^my\s+/gi, '')              // Remove "My"
+      .replace(/^i'm\s+/gi, '')             // Remove "I'm"
+      .replace(/i've?\s+been\s+/gi, '')     // Remove "I've been"
+      .replace(/i've?\s+had\s+/gi, '')      // Remove "I've had"
+      .replace(/i've?\s+been\s+feeling\s+/gi, '') // Remove "I've been feeling"
+      .replace(/i've?\s+been\s+having\s+/gi, '')  // Remove "I've been having"
+      .replace(/\s+for\s+the\s+past\s+[^.]*?/gi, '') // Remove "for the past X months"
+      .replace(/\s+since\s+[^.]*?/gi, '')           // Remove "since X"
+      .replace(/\s+and\s+i\s+[^.]*$/gi, '')         // Remove trailing "and I..." clauses
+      .trim();
+
+    // If the result is empty or too short, use a generic clinical term
+    if (clinicalComplaint.length < 3) {
+      clinicalComplaint = 'Clinical symptoms';
+    }
+
+    // Capitalize first letter for proper clinical presentation
+    return clinicalComplaint.charAt(0).toUpperCase() + clinicalComplaint.slice(1);
+  }
+
+  return complaint;
+};
+
 const hiddenDiagnoses = {
   "Chest pain": "Acute Myocardial Infarction",
   "Abdominal pain": "Appendicitis",
@@ -54,17 +105,29 @@ function generateCase(index, specialty, program_area) {
                       complaint.includes("head") ? "head" : 
                       complaint.includes("eye") || complaint.includes("vision") ? "right eye" : "unspecified";
       
-      let description = `A ${age}-year-old ${gender.toLowerCase()} patient presenting with ${complaint.toLowerCase()}`;
-      
-      // Add clinical context
-      if (onset.includes('sudden')) {
-        description += ' of sudden onset';
+      // Handle first-person complaints by converting to clinical presentation
+      const clinicalComplaint = normalizeComplaint(complaint);
+
+      // Create clinical description with fallback
+      let description;
+      try {
+        description = `A ${age}-year-old ${gender.toLowerCase()} patient presenting with ${clinicalComplaint.toLowerCase()}`;
+
+        // Add clinical context
+        if (onset.includes('sudden')) {
+          description += ', acute onset';
+        }
+        if (location !== 'unspecified') {
+          description += `, affecting the ${location}`;
+        }
+
+        description += '.';
+      } catch (error) {
+        // Fallback to a generic but proper clinical description
+        description = `A ${age}-year-old ${gender.toLowerCase()} patient presenting with clinical symptoms requiring evaluation.`;
       }
-      if (location !== 'unspecified') {
-        description += ` affecting the ${location}`;
-      }
-      
-      return description + '.';
+
+      return description;
     })(),
     system_instruction: "You are a highly realistic AI-simulated patient for a medical training application. You must portray the patient as defined below and strictly adhere to the specialty of '" + specialty + "'. Never introduce symptoms or diagnoses outside this area. Only reveal what is asked for. Avoid offering medical suggestions or diagnosis.",
     case_metadata: {
@@ -141,4 +204,6 @@ function generateCase(index, specialty, program_area) {
   };
 }
 
+// Export the utility function for use in other modules
+export { normalizeComplaint };
 export default generateCase;

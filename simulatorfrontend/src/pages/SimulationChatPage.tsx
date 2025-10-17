@@ -99,6 +99,16 @@ const SimulationChatPage: React.FC = () => {
     return speaksFor.toLowerCase() === 'self' ? 'Self' : speaksFor;
   };
 
+  const formatMessageContent = (content: string): string => {
+    return content
+      // Convert *text* to <em>text</em> for italics
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      // Convert **text** to <strong>text</strong> for bold
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      // Convert line breaks to <br> tags
+      .replace(/\n/g, '<br>');
+  };
+
   // Test the fix
   React.useEffect(() => {
     const testCases = ['self', 'Self', 'mother', 'father', undefined, ''];
@@ -1368,11 +1378,14 @@ const SimulationChatPage: React.FC = () => {
                         ? 'bg-gradient-to-br from-stable-50 to-stable-100 text-gray-800 border-l-4 border-stable-400'
                         : 'bg-white text-gray-900 border border-gray-200 shadow-lg'
                     }`}>
-                      <div className={`whitespace-pre-wrap text-sm sm:text-base ${
-                        message.speaks_for === 'System' ? 'leading-relaxed' : ''
-                      }`}>
-                        {message.content}
-                      </div>
+                      <div
+                        className={`text-sm sm:text-base ${
+                          message.speaks_for === 'System' ? 'leading-relaxed' : ''
+                        }`}
+                        dangerouslySetInnerHTML={{
+                          __html: formatMessageContent(message.content)
+                        }}
+                      />
                     </div>
 
                     <div className={`flex items-center justify-between mt-1 sm:mt-2`}>
@@ -1464,9 +1477,12 @@ const SimulationChatPage: React.FC = () => {
                     </h3>
 
                     <div className="prose prose-medical dark:prose-invert max-w-none">
-                      <div className="whitespace-pre-wrap text-medical-800 dark:text-medical-200 leading-relaxed text-base">
-                        {evaluation}
-                      </div>
+                      <div
+                        className="text-medical-800 dark:text-medical-200 leading-relaxed text-base"
+                        dangerouslySetInnerHTML={{
+                          __html: formatMessageContent(evaluation)
+                        }}
+                      />
                     </div>
                   </div>
 

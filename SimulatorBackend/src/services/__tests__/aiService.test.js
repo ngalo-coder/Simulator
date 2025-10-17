@@ -101,7 +101,7 @@ describe('aiService', () => {
       );
 
       expect(OpenAI.prototype.chat.completions.create).toHaveBeenCalledWith({
-        model: 'openai/gpt-4o',
+        model: 'deepseek/deepseek-v3-0324:free',
         messages: [{ role: 'system', content: expect.any(String) }],
         temperature: 0.7,
         max_tokens: 100,
@@ -212,7 +212,7 @@ KEY RECOMMENDATIONS:
       const result = await getEvaluation(mockCaseData, mockConversationHistory);
 
       expect(OpenAI.prototype.chat.completions.create).toHaveBeenCalledWith({
-        model: 'openai/gpt-4o',
+        model: 'deepseek/deepseek-v3-0324:free',
         messages: [{ role: 'system', content: expect.any(String) }],
         temperature: 0.4,
         max_tokens: 2000

@@ -316,7 +316,7 @@ export async function getNursingEvaluation(caseData, conversationHistory, parent
     const { openai } = await import('./aiService.js');
     
     const response = await openai.chat.completions.create({
-      model: 'openai/gpt-4o',
+      model: 'deepseek/deepseek-v3-0324:free',
       messages: [{ role: 'system', content: evaluationPrompt }],
       temperature: 0.4,
       max_tokens: 2500,
