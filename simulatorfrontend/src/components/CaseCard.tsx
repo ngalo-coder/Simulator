@@ -196,94 +196,169 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
       role="group"
       aria-label={case_.title || 'Clinical case card'}
       tabIndex={0}
-      className="relative rounded-2xl shadow-xl border border-medical-200 bg-gradient-to-br from-medical-50 to-medical-100 group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 dark:border-blue-500/30 dark:from-blue-900/30 dark:to-blue-800/20 focus:outline-none focus:ring-4 focus:ring-blue-200"
+      className="relative rounded-2xl shadow-lg border border-gray-200 bg-white group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-blue-500"
       onKeyDown={(e) => {
         if (e.key === 'Enter') onStartSimulation(case_);
       }}
     >
-      {/* Decorative background */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-300 dark:opacity-10 dark:group-hover:opacity-20" style={{background: 'radial-gradient(circle at 80% 20%, #2196F3 0%, transparent 70%)'}} />
+      {/* Enhanced decorative background */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100 to-purple-100 opacity-30 group-hover:opacity-40 transition-opacity duration-300 rounded-full transform translate-x-16 -translate-y-16"></div>
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-100 to-pink-100 opacity-20 group-hover:opacity-30 transition-opacity duration-300 rounded-full transform -translate-x-12 translate-y-12"></div>
 
-      <div className="relative p-6 flex flex-col min-h-[300px]">
-        {/* Header Section */}
-        <div className="flex justify-between items-start mb-3">
+      <div className="relative p-4 sm:p-6 flex flex-col h-full">
+        {/* Enhanced Header Section */}
+        <div className="mb-6">
           {/* Case Title */}
-          <div className="flex-1 mr-2">
-            <h3 className="text-lg font-bold text-gray-900 leading-tight dark:text-white line-clamp-2">
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-gray-900 leading-tight dark:text-white line-clamp-3 group-hover:text-blue-900 transition-colors duration-200">
               {getCleanTitle()}
             </h3>
           </div>
-          
-          {/* Completion Status Badge */}
-          {case_.isCompleted && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700/50">
-                ✓
-              </span>
-            </div>
-          )}
-        </div>
 
-        {/* Specialty Card */}
-        <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-          <div className="flex items-center justify-end">
-            {case_.specialty && (() => {
-              const tagStyle = getSpecialtyTagStyle(case_.specialty);
-              return (
-                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border} border shadow-sm dark:bg-opacity-20 dark:border-opacity-30`}>
-                  <span className="hidden xs:inline">{tagStyle.icon}</span>
-                  <span className="dark:text-white">{case_.specialty}</span>
-                </span>
-              );
-            })()}
-          </div>
-        </div>
+          {/* Patient Information Card */}
+          <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-600 rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* Patient Avatar */}
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-200 to-purple-200 rounded-full flex items-center justify-center shadow-sm">
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
 
-        {/* Chief Complaint */}
-        {case_.chief_complaint && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-3 mb-4 dark:bg-yellow-900/20 dark:border-yellow-600">
-            <div className="flex items-center gap-2 text-yellow-800 font-semibold mb-1 text-sm dark:text-yellow-200">
-              <span>🟨</span>
-              <span>Chief Complaint:</span>
-            </div>
-            <p className="text-yellow-900 text-sm leading-relaxed dark:text-yellow-100 line-clamp-3">{case_.chief_complaint}</p>
-          </div>
-        )}
-
-        {/* Stats Section */}
-        {case_.isCompleted && case_.bestScore && (
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="bg-medical-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
-              <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Best Score</div>
-              <div className="text-lg font-bold text-medical-800 dark:text-blue-200">{case_.bestScore}%</div>
-            </div>
-            {case_.lastCompletedAt && (
-              <div className="bg-gray-50 dark:bg-gray-700/20 rounded-lg p-2 text-center">
-                <div className="text-xs text-gray-600 dark:text-gray-300 font-medium">Last Taken</div>
-                <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  {new Date(case_.lastCompletedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {/* Patient Details */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  {case_.patient_age && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Age:</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{case_.patient_age} years</span>
+                    </div>
+                  )}
+                  {case_.patient_gender && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Gender:</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{case_.patient_gender}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+
+              {/* Completion Status Badge */}
+              {case_.isCompleted && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700/50">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Completed
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Specialty Badge */}
+        <div className="mb-6">
+          {case_.specialty && (() => {
+            const tagStyle = getSpecialtyTagStyle(case_.specialty);
+            return (
+              <div className="inline-flex items-center gap-2">
+                <div className={`w-8 h-8 ${tagStyle.bg} rounded-lg flex items-center justify-center shadow-sm`}>
+                  <span className="text-sm">{tagStyle.icon}</span>
+                </div>
+                <span className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border} border shadow-sm`}>
+                  {case_.specialty}
+                </span>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Enhanced Chief Complaint */}
+        {case_.chief_complaint && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6 dark:from-amber-900/20 dark:to-orange-900/20 dark:border-amber-700/50 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-200 to-orange-200 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-bold text-amber-800 dark:text-amber-200">Chief Complaint</span>
+                </div>
+                <p className="text-amber-900 text-sm leading-relaxed dark:text-amber-100 line-clamp-4">{case_.chief_complaint}</p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Buttons Section */}
-        <div className="mt-auto space-y-2">
+        {/* Enhanced Stats Section */}
+        {case_.isCompleted && (case_.bestScore || case_.lastCompletedAt) && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Performance Summary</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {case_.bestScore && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700/50 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-blue-600 dark:text-blue-300 font-medium">Best Score</div>
+                      <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">{case_.bestScore}%</div>
+                    </div>
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {case_.lastCompletedAt && (
+                <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-700/50 dark:to-slate-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300 font-medium">Last Completed</div>
+                      <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                        {new Date(case_.lastCompletedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </div>
+                    </div>
+                    <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-slate-200 dark:from-gray-600 dark:to-slate-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Buttons Section */}
+        <div className="mt-auto space-y-3">
           {/* Start Simulation Button */}
           <button
             onClick={() => onStartSimulation(case_)}
             disabled={startingSimulation}
-            className="w-full bg-gradient-to-r from-medical-500 to-medical-600 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg dark:from-blue-700 dark:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 dark:focus:ring-blue-500 dark:focus:ring-offset-0"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-2xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group/btn"
           >
             {startingSimulation ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>Starting...</span>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                <span>Starting Simulation...</span>
               </>
             ) : (
               <>
-                <span className="text-lg">🔵</span>
+                <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center group-hover/btn:scale-110 transition-transform">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 8a9 9 0 110-18 9 9 0 010 18z" />
+                  </svg>
+                </div>
                 <span>{case_.isCompleted ? 'Start New Attempt' : 'Start Simulation'}</span>
               </>
             )}
@@ -294,9 +369,13 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
             <button
               onClick={() => onRetake(case_)}
               disabled={startingSimulation}
-              className="w-full bg-gradient-to-r from-orange-100 to-orange-200 hover:from-orange-200 hover:to-orange-300 text-orange-700 py-2.5 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow dark:from-orange-900/30 dark:to-orange-800/30 dark:text-orange-200 dark:hover:from-orange-800/40 dark:hover:to-orange-700/40 dark:focus:ring-orange-500 dark:focus:ring-offset-0"
+              className="w-full bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 disabled:from-gray-100 disabled:to-gray-200 text-amber-800 disabled:text-gray-500 py-3 px-6 rounded-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-3 shadow-md hover:shadow-lg border border-amber-200 hover:border-amber-300"
             >
-              <span>🔄</span>
+              <div className="w-5 h-5 bg-amber-200 rounded-lg flex items-center justify-center">
+                <svg className="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
               <span>Retake for Improvement</span>
             </button>
           )}

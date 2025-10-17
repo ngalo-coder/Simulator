@@ -1,14 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Breadcrumb, { BreadcrumbItem } from './Breadcrumb';
-import SpecialtyNavigation from './SpecialtyNavigation';
-import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 
 interface SpecialtyHeaderProps {
   specialtyName: string;
-  specialtySlug: string;
   caseCount?: number;
-  showNavigation?: boolean;
   showBreadcrumbs?: boolean;
   className?: string;
 }
@@ -19,17 +15,11 @@ interface SpecialtyHeaderProps {
  */
 const SpecialtyHeader: React.FC<SpecialtyHeaderProps> = ({
   specialtyName,
-  specialtySlug,
   caseCount,
-  showNavigation = true,
   showBreadcrumbs = true,
   className = ''
 }) => {
-  const { specialtyRoutes } = useSpecialtyContext();
-  
-  // Find current specialty route to get case count if not provided
-  const currentRoute = specialtyRoutes.find(route => route.slug === specialtySlug);
-  const displayCaseCount = caseCount ?? currentRoute?.caseCount ?? 0;
+  const displayCaseCount = caseCount ?? 0;
 
   // Build breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
@@ -96,18 +86,6 @@ const SpecialtyHeader: React.FC<SpecialtyHeaderProps> = ({
         </div>
       </div>
 
-      {/* Specialty Navigation */}
-      {showNavigation && specialtyRoutes.length > 1 && (
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Switch Specialty:
-          </h3>
-          <SpecialtyNavigation 
-            showCaseCounts={true}
-            maxVisible={5}
-          />
-        </div>
-      )}
     </div>
   );
 };
