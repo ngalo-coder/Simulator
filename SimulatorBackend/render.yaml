@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: simulator-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    port: 5001
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromSecret: mongodb_uri
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENROUTER_API_KEY
+        fromSecret: openrouter_api_key
+      - key: OPENAI_API_KEY
+        fromSecret: openai_api_key
+      - key: DB_NAME
+        value: test
+      - key: PORT
+        value: 5001
+      - key: ALLOWED_ORIGINS
+        value: https://simulator-olx4.onrender.com,http://localhost:3000,http://localhost:5173
