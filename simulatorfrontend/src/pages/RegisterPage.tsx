@@ -184,7 +184,7 @@ const RegisterPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent text-black"
                   placeholder="Enter your email address"
                   required
                 />
@@ -252,7 +252,7 @@ const RegisterPage: React.FC = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-black ${
                     formData.confirmPassword && formData.password !== formData.confirmPassword
                       ? 'border-red-300 focus:ring-red-500'
                       : formData.confirmPassword && formData.password === formData.confirmPassword

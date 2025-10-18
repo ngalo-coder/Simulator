@@ -69,7 +69,7 @@ const DashboardPage: React.FC = () => {
       {/* Simple Welcome Section */}
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Welcome back, {user?.username}!
+          Welcome Student {user?.username}!
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
           Ready to continue your medical training?
@@ -108,8 +108,8 @@ const DashboardPage: React.FC = () => {
                 <div className="text-sm text-gray-600 dark:text-gray-300">Cases Completed</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{Math.round(progressData.progress.overallAverageScore)}%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">Average Score</div>
+                <div className="text-2xl font-bold text-green-600">{progressData.progress.totalCasesCompleted}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">Cases Completed</div>
               </div>
             </div>
           </div>

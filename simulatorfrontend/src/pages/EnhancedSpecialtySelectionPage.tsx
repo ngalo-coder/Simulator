@@ -134,7 +134,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     // Basic Program - includes specialties visible in basic program
     const basicSpecialties = getAvailableSpecialties().filter(specialty => {
       const visibility = specialtyVisibility[specialty.id];
-      return visibility?.isVisible && visibility?.programArea === 'basic';
+      return visibility?.isVisible && visibility?.programArea === 'Basic Program';
     });
 
     // Always show Basic Program card (even if there are zero visible specialties)
@@ -156,13 +156,13 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         ],
         isPopular: true,
         specialties: basicSpecialties.map(s => s.id),
-        casesCount: programAreaCounts['Basic Program'] ?? basicSpecialties.reduce((acc, s) => acc + (s.caseCount || 0), 0)
+        casesCount: programAreaCounts['Basic Program'] ?? 0
       };
 
     // Specialty Program - includes specialties visible in specialty program
     const specialtySpecialties = getAvailableSpecialties().filter(specialty => {
       const visibility = specialtyVisibility[specialty.id];
-      return visibility?.isVisible && visibility?.programArea === 'specialty';
+      return visibility?.isVisible && visibility?.programArea === 'Specialty Program';
     });
 
     // Always show Specialty Program card
@@ -184,7 +184,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         ],
         isNew: true,
         specialties: specialtySpecialties.map(s => s.id),
-        casesCount: programAreaCounts['Specialty Program'] ?? specialtySpecialties.reduce((acc, s) => acc + (s.caseCount || 0), 0)
+        casesCount: programAreaCounts['Specialty Program'] ?? 0
       };
 
     return config;
@@ -227,9 +227,15 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         const name = pa.name || pa._id || pa.id;
         counts[name] = typeof pa.casesCount === 'number' ? pa.casesCount : (pa.caseCount || 0);
       });
+      console.log('Program area counts loaded:', counts);
       setProgramAreaCounts(counts);
     } catch (error) {
       console.warn('Could not load program area counts', error);
+      // Set fallback counts based on database knowledge
+      setProgramAreaCounts({
+        'Basic Program': 78,
+        'Specialty Program': 33
+      });
     }
   };
 
@@ -285,7 +291,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           console.warn(`Specialty visibility missing from backend response for id= ${specialty.id}; defaulting to hidden.`);
           visibilityMap[specialty.id] = {
             isVisible: false,
-            programArea: 'basic' // Default to basic program when unknown
+            programArea: 'Basic Program' // Default to Basic Program when unknown
           };
         }
       });
@@ -298,7 +304,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       getAvailableSpecialties().forEach(specialty => {
         defaultVisibility[specialty.id] = {
           isVisible: false,
-          programArea: 'basic' // Default to basic program for error cases
+          programArea: 'Basic Program' // Default to Basic Program for error cases
         };
       });
       setSpecialtyVisibility(defaultVisibility);

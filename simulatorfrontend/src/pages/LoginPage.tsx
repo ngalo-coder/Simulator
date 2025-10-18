@@ -89,7 +89,7 @@ const LoginPage: React.FC = () => {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-medical-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all duration-200 hover:border-gray-400 text-black"
                   placeholder="Enter your password"
                   required
                   aria-describedby="passwordHelp"

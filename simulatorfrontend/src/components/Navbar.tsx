@@ -111,7 +111,7 @@ const Navbar: React.FC = () => {
             <Link
               to="/"
               className="flex items-center space-x-3 group"
-              aria-label="Simuatech - Medical Simulation Platform"
+              aria-label="Basic program - Medical Simulation Platform"
             >
               <div className="relative">
                 <img
@@ -128,8 +128,11 @@ const Navbar: React.FC = () => {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-200">
-                  Simuatech
+                  Basic program
                 </h1>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  (Explore and learn)
+                </p>
               </div>
             </Link>
 

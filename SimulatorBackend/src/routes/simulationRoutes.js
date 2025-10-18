@@ -78,7 +78,7 @@ router.get('/cases', protect, getCases);
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.get('/case-categories', protect, getCaseCategories);
+router.get('/case-categories', optionalAuth, getCaseCategories);
 
 /**
  * @swagger

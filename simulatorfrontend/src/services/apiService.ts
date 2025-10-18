@@ -1057,7 +1057,11 @@ export const api = {
       if (filters?.program_area) queryParams.append('program_area', filters.program_area);
 
       const url = `${API_BASE_URL}/api/simulation/case-categories${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await authenticatedFetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch case categories');
       }
@@ -2636,7 +2640,7 @@ export const api = {
 
       // Fallback to case-categories-derived visibility for non-admin users
       try {
-        const catResp = await authenticatedFetch(`${API_BASE_URL}/api/simulation/case-categories`);
+        const catResp = await fetch(`${API_BASE_URL}/api/simulation/case-categories`);
         if (catResp.ok) {
           const catData = await catResp.json();
           const names = (catData.data && catData.data.specialties) || catData.specialties || [];
@@ -2645,7 +2649,7 @@ export const api = {
             specialties: names.map((name: string) => ({
               specialtyId: normalize(name),
               isVisible: true,
-              programArea: 'basic'
+              programArea: 'Basic Program'
             }))
           };
           console.warn('Using case-categories fallback for specialty visibility (non-admin user).');

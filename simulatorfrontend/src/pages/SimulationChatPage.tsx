@@ -127,9 +127,9 @@ const SimulationChatPage: React.FC = () => {
       console.log('✅ Valid simulation URL detected for bookmark compatibility');
       
       if (sessionData?.patientName) {
-        document.title = `Simulation: ${sessionData.patientName} - Simuatech`;
+        document.title = `Simulation: ${sessionData.patientName} - Basic program`;
       } else if (caseId) {
-        document.title = `Case ${caseId} - Simuatech`;
+        document.title = `Case ${caseId} - Basic program`;
       }
     }
   }, [caseId, sessionId, sessionData?.patientName]);
@@ -474,7 +474,7 @@ const SimulationChatPage: React.FC = () => {
       const systemMessage: Message = {
         id: 'system-' + Date.now(),
         role: 'assistant',
-        content: `🏥 **Welcome to Simuatech**\n\nYou are now interacting with ${displayName}. This is a safe learning environment where you can practice your clinical skills.\n\n**How to interact:**\n• Ask questions about symptoms, medical history, or concerns\n• Conduct a virtual examination by asking specific questions\n• Practice your diagnostic reasoning\n• The patient will respond realistically based on their condition\n\n**Tips:**\n• Start with open-ended questions like "What brings you in today?"\n• Be thorough in your questioning\n• Take your time - there's no rush\n\nType your first question below to begin the consultation. Good luck! 👩‍⚕️👨‍⚕️`,
+        content: `🏥 **Welcome to Basic program**\n\nYou are now interacting with ${displayName}. This is a safe learning environment where you can practice your clinical skills.\n\n**How to interact:**\n• Ask questions about symptoms, medical history, or concerns\n• Conduct a virtual examination by asking specific questions\n• Practice your diagnostic reasoning\n• The patient will respond realistically based on their condition\n\n**Tips:**\n• Start with open-ended questions like "What brings you in today?"\n• Be thorough in your questioning\n• Take your time - there's no rush\n\nType your first question below to begin the consultation. Good luck! 👩‍⚕️👨‍⚕️`,
         timestamp: new Date(),
         speaks_for: 'System',
       };
@@ -1195,8 +1195,8 @@ const SimulationChatPage: React.FC = () => {
                   <span className="text-medical-700 font-bold text-xs sm:text-sm">🏥</span>
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-bold text-white">Simuatech</h1>
-                  <p className="text-xs text-medical-100 hidden sm:block">Advanced Medical Simulation Platform</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-white">Basic program</h1>
+                  <p className="text-xs text-medical-100 hidden sm:block">(Explore and learn)</p>
                 </div>
               </div>
 
