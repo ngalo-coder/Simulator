@@ -1017,11 +1017,9 @@ const SimulationChatPage: React.FC = () => {
 
                   if (simulationError.redirectUrl) {
                     navigate(simulationError.redirectUrl, { state: navigationState });
-                  } else if (specialtyContext?.returnUrl) {
-                    navigate(specialtyContext.returnUrl, { state: navigationState });
                   } else {
-                    const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
-                    navigate(fallbackUrl, { state: navigationState });
+                    // Navigate directly to browse-cases for consistent case browsing experience
+                    navigate('/browse-cases', { state: navigationState });
                   }
                 }}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 flex items-center justify-center space-x-2"
@@ -1040,12 +1038,8 @@ const SimulationChatPage: React.FC = () => {
                     errorType: simulationError.type
                   };
 
-                  if (specialtyContext?.returnUrl) {
-                    navigate(specialtyContext.returnUrl, { state: navigationState });
-                  } else {
-                    const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
-                    navigate(fallbackUrl, { state: navigationState });
-                  }
+                  // Navigate directly to browse-cases for consistent case browsing experience
+                  navigate('/browse-cases', { state: navigationState });
                 }}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 flex items-center justify-center space-x-2"
               >
@@ -1269,12 +1263,8 @@ const SimulationChatPage: React.FC = () => {
                     caseId: caseId
                   };
 
-                  if (specialtyContext?.returnUrl) {
-                    navigate(specialtyContext.returnUrl, { state: navigationState });
-                  } else {
-                    const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
-                    navigate(fallbackUrl, { state: navigationState });
-                  }
+                  // Navigate directly to browse-cases for consistent case browsing experience
+                  navigate('/browse-cases', { state: navigationState });
                 }}
                 className="px-2 py-1 sm:px-4 sm:py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200 shadow-md hover:shadow-lg text-sm border border-white/20"
               >
@@ -1538,12 +1528,8 @@ const SimulationChatPage: React.FC = () => {
                           completedSession: true
                         };
 
-                        if (specialtyContext?.returnUrl) {
-                          navigate(specialtyContext.returnUrl, { state: navigationState });
-                        } else {
-                          const fallbackUrl = location.state?.specialtyContext?.returnUrl || '/simulation';
-                          navigate(fallbackUrl, { state: navigationState });
-                        }
+                        // Navigate directly to browse-cases for consistent case browsing experience
+                        navigate('/browse-cases', { state: navigationState });
                       }}
                       className="px-8 py-4 bg-gradient-to-r from-medical-500 to-medical-600 text-white rounded-medical-lg hover:from-medical-600 hover:to-medical-700 transition-all duration-200 shadow-medical-lg hover:shadow-medical-lg transform hover:scale-[1.02] flex items-center justify-center space-x-3 font-semibold"
                     >

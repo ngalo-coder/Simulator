@@ -160,6 +160,9 @@ class CaseService extends ApiService {
 - [Frontend API Service](../../../simulatorfrontend/src/services/apiService.ts)
 - [Backend Route Handlers](../../../SimulatorBackend/src/routes/)
 - [Authentication System](../../../SimulatorBackend/docs/Authentication_System.md)
+- [Error Boundary Pattern](../patterns/error-boundary-pattern.md)
+- [Service Layer Pattern](../patterns/service-layer-pattern.md)
+- [Case Creation Workflow](../workflows/case-creation-workflow.md)
 
 ## Best Practices
 1. Always use TypeScript interfaces for type safety

@@ -22,46 +22,39 @@ interface CaseCardProps {
 
 
 const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake, startingSimulation }) => {
-  // Helper function to create a terse, focused title
-  const getCleanTitle = () => {
-    if (!case_.title) return "Clinical Case";
-    
-    // Remove common filler words and phrases
-    const fillerWords = [
-      'patient presenting with',
-      'presenting with',
-      'patient with',
-      'case of',
-      'evaluation of',
-      'assessment of',
-      'management of',
-      'history of'
-    ];
-    
-    let cleanTitle = case_.title;
-    
-    // Remove filler phrases
-    fillerWords.forEach(phrase => {
-      cleanTitle = cleanTitle.toLowerCase().replace(phrase.toLowerCase(), '').trim();
-    });
-    
-    // Capitalize first letter of each word
-    cleanTitle = cleanTitle.split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-    
-    // If the title is the same as chief complaint, create a focused title
-    if (case_.chief_complaint && 
-        cleanTitle.toLowerCase() === case_.chief_complaint.toLowerCase()) {
-      if (case_.patient_age && case_.patient_gender) {
-        return `${case_.patient_age}y ${case_.patient_gender}: ${cleanTitle}`;
-      }
-      return cleanTitle;
+  // Helper function to generate a patient name
+  const getPatientName = () => {
+    // Generate a realistic patient name based on case characteristics
+    const firstNames = {
+      male: ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Richard', 'Joseph', 'Thomas', 'Charles'],
+      female: ['Mary', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan', 'Jessica', 'Sarah', 'Karen', 'Nancy']
+    };
+
+    const lastNames = ['Onyango', 'Wanjiku', 'Kiprotich', 'Achieng', 'Mwangi', 'Wanjala', 'Odhiambo', 'Nyambura', 'Koech', 'Cheruiyot'];
+
+    let gender = 'neutral';
+    if (case_.patient_gender) {
+      gender = case_.patient_gender.toLowerCase();
     }
-    
-    // Limit to 40 characters with ellipsis if needed
-    return cleanTitle.length > 40 ? cleanTitle.substring(0, 37) + '...' : cleanTitle;
+
+    // Select first name based on gender
+    let firstName;
+    if (gender === 'male' && firstNames.male) {
+      firstName = firstNames.male[Math.floor(Math.random() * firstNames.male.length)];
+    } else if (gender === 'female' && firstNames.female) {
+      firstName = firstNames.female[Math.floor(Math.random() * firstNames.female.length)];
+    } else {
+      // Neutral or unknown gender - pick randomly
+      const allFirstNames = [...firstNames.male, ...firstNames.female];
+      firstName = allFirstNames[Math.floor(Math.random() * allFirstNames.length)];
+    }
+
+    // Select last name
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+
+    return `${firstName} ${lastName}`;
   };
+
 
   // Helper function to get specialty tag styling
   const getSpecialtyTagStyle = (specialty: string) => {
@@ -208,10 +201,10 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
       <div className="relative p-4 sm:p-6 flex flex-col flex-grow">
         {/* Enhanced Header Section */}
         <div className="mb-6">
-          {/* Case Title */}
+          {/* Patient Name as Primary Title */}
           <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 leading-tight dark:text-white line-clamp-3 group-hover:text-blue-900 transition-colors duration-200">
-              {getCleanTitle()}
+            <h3 className="text-xl font-bold text-gray-900 leading-tight dark:text-white line-clamp-2 group-hover:text-blue-900 transition-colors duration-200">
+              {getPatientName()}
             </h3>
           </div>
 

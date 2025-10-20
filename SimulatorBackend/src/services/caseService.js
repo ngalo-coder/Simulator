@@ -222,14 +222,14 @@ export class CaseService {
 
     // Normalize program area for database query
     // Frontend sends: 'Basic Program' or 'Specialty Program'
-    // Database stores: 'basic' or 'specialty'
+    // Database stores: 'Basic Program' or 'Specialty Program' (with spaces)
     const normalizeProgramArea = (area) => {
       if (!area) return null;
-      if (area === 'Basic Program') return 'basic';
-      if (area === 'Specialty Program') return 'specialty';
-      // Handle lowercase versions too
-      if (area.toLowerCase() === 'basic') return 'basic';
-      if (area.toLowerCase() === 'specialty') return 'specialty';
+      // Database actually stores the values with proper capitalization and spaces
+      if (area === 'basic') return 'Basic Program';
+      if (area === 'specialty') return 'Specialty Program';
+      if (area === 'Basic Program') return 'Basic Program';
+      if (area === 'Specialty Program') return 'Specialty Program';
       return area;
     };
 
@@ -299,19 +299,30 @@ export class CaseService {
       }
     }
 
+    // Get accurate case counts for program areas
+    const programAreaCounts = {};
+    for (const programArea of programAreas) {
+      programAreaCounts[programArea] = await Case.countDocuments({
+        'case_metadata.program_area': programArea
+      });
+    }
+
     console.log('CaseService.getCaseCategories results:', {
       programAreas: programAreas.length,
       caseSpecialties: caseSpecialtyNames.length,
       dbSpecialties: availableSpecialties.length,
       allSpecialties: allAvailableSpecialties.length,
-      program_area
+      program_area,
+      programAreaCounts,
+      specialtyCounts: allSpecialtyCounts
     });
 
     return {
       program_areas: programAreas.sort(),
       specialties: allAvailableSpecialties,
       specialized_areas: specializedAreas.filter(a => a?.trim()).sort(),
-      specialty_counts: allSpecialtyCounts
+      specialty_counts: allSpecialtyCounts,
+      program_area_counts: programAreaCounts
     };
   }
 

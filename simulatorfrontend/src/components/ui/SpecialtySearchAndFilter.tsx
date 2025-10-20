@@ -83,7 +83,7 @@ const SpecialtySearchAndFilter: React.FC<SpecialtySearchAndFilterProps> = ({
       {/* Search */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Search Specialties
+          Search Modules
         </label>
         <div className="relative">
           <input
@@ -105,7 +105,7 @@ const SpecialtySearchAndFilter: React.FC<SpecialtySearchAndFilterProps> = ({
       <div className="mb-4 p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">
-            Showing {resultsCount} of {totalCount} specialties
+            Showing {resultsCount} of {totalCount} modules
           </span>
           {hasActiveFilters && (
             <Badge variant="info" size="sm">
@@ -248,7 +248,7 @@ const SpecialtySearchAndFilter: React.FC<SpecialtySearchAndFilterProps> = ({
                   : 'text-gray-600 hover:bg-gray-50'
               )}
             >
-              All Specialties
+              All Modules
             </button>
             {specialtyOptions.slice(0, 5).map((option) => (
               <button

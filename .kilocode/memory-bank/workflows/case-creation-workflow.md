@@ -97,3 +97,6 @@ graph TD
 - [Case Templates](../../../SimulatorBackend/docs/CASE_TEMPLATES.md)
 - [Educator Dashboard](../../../SimulatorBackend/docs/EDUCATOR_DASHBOARD.md)
 - [RBAC System](../../../SimulatorBackend/docs/RBAC_System.md)
+- [Student Simulation Workflow](../workflows/student-simulation-workflow.md)
+- [Assessment and Feedback Workflow](../workflows/assessment-feedback-workflow.md)
+- [System Architecture Overview](../architecture/system-overview.md)

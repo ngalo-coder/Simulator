@@ -7,11 +7,11 @@ const specialtySchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
-    // Single program area - either 'basic' or 'specialty'
+    // Program area - basic, specialty, or internal_medicine
     programArea: {
         type: String,
         required: true,
-        enum: ['basic', 'specialty'],
+        enum: ['basic', 'specialty', 'internal_medicine'],
         default: 'basic'
     },
     description: {

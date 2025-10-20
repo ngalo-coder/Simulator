@@ -64,8 +64,8 @@ async function login(req, res) {
         }
 
         log.info({ userId: user._id, email }, 'User logged in successfully.');
-        const token = generateToken(user._id, user.username, user.role);
-        const redirectTo = user.role === 'admin' ? '/admin/dashboard' : '/';
+        const token = generateToken(user._id, user.username, user.primaryRole);
+        const redirectTo = user.primaryRole === 'admin' ? '/admin/dashboard' : '/';
 
         handleSuccess(res, {
             token,
@@ -73,7 +73,7 @@ async function login(req, res) {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                role: user.role,
+                role: user.primaryRole,
             },
             redirectTo,
         }, 'Login successful.');
@@ -150,7 +150,7 @@ async function resetPassword(req, res) {
         user.passwordResetExpires = undefined;
         await user.save();
 
-        const token = generateToken(user._id, user.username, user.role);
+        const token = generateToken(user._id, user.username, user.primaryRole);
 
         handleSuccess(res, {
             token,
@@ -158,7 +158,7 @@ async function resetPassword(req, res) {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                role: user.role,
+                role: user.primaryRole,
             },
         }, 'Password reset successful.');
     } catch (error) {

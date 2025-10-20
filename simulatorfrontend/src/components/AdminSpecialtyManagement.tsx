@@ -39,7 +39,7 @@ const AdminSpecialtyManagement: React.FC = () => {
 
 
   const visibilityOptions = [
-    { value: 'all', label: 'All Specialties' },
+    { value: 'all', label: 'All Modules' },
     { value: 'visible', label: 'Visible Only' },
     { value: 'hidden', label: 'Hidden Only' }
   ];
@@ -359,17 +359,17 @@ const AdminSpecialtyManagement: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Specialties ({filteredSpecialties.length})
+            Modules ({filteredSpecialties.length})
           </h3>
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {filteredSpecialties.length} of {specialties.length} specialties
+            Showing {filteredSpecialties.length} of {specialties.length} modules
           </div>
         </div>
 
         {filteredSpecialties.length === 0 ? (
           <Card variant="elevated" padding="lg" className="text-center">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Specialties Found</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Modules Found</h3>
             <p className="text-gray-600 dark:text-gray-400">
               No specialties match your current filters. Try adjusting your search criteria.
             </p>
@@ -471,7 +471,7 @@ const AdminSpecialtyManagement: React.FC = () => {
         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Visibility Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="font-medium text-blue-800 dark:text-blue-200">Total Specialties:</span>
+            <span className="font-medium text-blue-800 dark:text-blue-200">Total Modules:</span>
             <span className="ml-2 text-blue-700 dark:text-blue-300">{specialties.length}</span>
           </div>
           <div>

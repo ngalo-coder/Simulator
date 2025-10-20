@@ -1,7 +1,7 @@
 # Core Principles
 
-**Effective Date**: 2025-10-17  
-**Author**: Kilo Code System  
+**Effective Date**: 2025-10-20
+**Author**: Kilo Code System
 **Review Cycle**: Quarterly
 
 ## Mission Statement

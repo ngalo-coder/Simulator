@@ -4,6 +4,7 @@ import { useOptimizedSpecialtyPage } from '../hooks/useOptimizedSpecialtyPage';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
 import SpecialtyHeader from '../components/SpecialtyHeader';
 import { SkeletonSpecialtyPage } from '../components/SkeletonLoader';
+import CaseCard from '../components/CaseCard';
 
 interface Case {
   id: string;
@@ -190,52 +191,23 @@ const SpecialtyCasePage: React.FC = memo(() => {
             
           </div>
 
-          {/* Cases grid with equal height cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+          {/* Cases grid with consistent card design */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {cases.map((case_) => {
               const extendedCase = case_ as ExtendedCase;
               return (
-                <div
+                <CaseCard
                   key={case_.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col h-full"
-                >
-                  <div className="mb-3 flex-grow">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2">
-                        {case_.title}
-                      </h3>
-                      {extendedCase.isCompleted && (
-                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded flex-shrink-0 ml-2">
-                          ✓ Completed
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-600 text-sm line-clamp-3">
-                      {case_.description}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 mb-4 text-sm">
-                    {case_.patient_age && case_.patient_gender && (
-                      <div className="text-gray-600">
-                        Patient: {case_.patient_age}y {case_.patient_gender}
-                      </div>
-                    )}
-                    {case_.chief_complaint && (
-                      <div className="text-gray-600 text-xs line-clamp-2">
-                        Chief Complaint: {case_.chief_complaint}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => handleStartSimulation(case_)}
-                    disabled={startingSimulation}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 mt-auto"
-                  >
-                    {startingSimulation ? 'Starting...' : 'Start Simulation'}
-                  </button>
-                </div>
+                  case_={{
+                    ...case_,
+                    isCompleted: extendedCase.isCompleted,
+                    lastCompletedAt: extendedCase.lastCompletedAt,
+                    bestScore: extendedCase.bestScore
+                  }}
+                  onStartSimulation={handleStartSimulation}
+                  onRetake={() => {}} // Not needed for specialty page
+                  startingSimulation={startingSimulation}
+                />
               );
             })}
           </div>

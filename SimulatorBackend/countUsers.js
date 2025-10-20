@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from './src/models/UserModel.js';
 
-// Load environment variables from SimulatorBackend/.env
-dotenv.config({ path: './SimulatorBackend/.env' });
+// Load environment variables from .env
+dotenv.config();
 
 async function countUsers() {
   try {

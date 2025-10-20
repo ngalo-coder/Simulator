@@ -11,9 +11,15 @@ memory-bank/
 ├── architecture/               # System architecture documentation
 │   └── system-overview.md      # High-level architecture
 ├── workflows/                  # Process and workflow documentation
-│   └── case-creation-workflow.md # Case creation process
+│   ├── case-creation-workflow.md     # Case creation process
+│   ├── student-simulation-workflow.md # Student learning workflow
+│   └── assessment-feedback-workflow.md # Assessment and feedback process
 ├── patterns/                   # Reusable implementation patterns
-│   └── api-service-pattern.md  # Frontend API service pattern
+│   ├── api-service-pattern.md       # Frontend API service pattern
+│   ├── error-boundary-pattern.md     # React error handling pattern
+│   └── service-layer-pattern.md      # Backend service architecture pattern
+├── services/                   # Service documentation
+│   └── service-catalog.md      # Comprehensive service reference
 └── glossary/                   # System terminology and definitions
     └── terminology.md          # Comprehensive glossary
 ```
@@ -62,7 +68,13 @@ The Memory Bank serves as:
 1. **Start Here**: Begin with [Core Principles](core-principles.md)
 2. **Architecture**: Review [System Overview](architecture/system-overview.md)
 3. **Workflows**: Understand key processes in [Workflows](workflows/)
+   - [Case Creation Workflow](workflows/case-creation-workflow.md)
+   - [Student Simulation Workflow](workflows/student-simulation-workflow.md)
+   - [Assessment and Feedback Workflow](workflows/assessment-feedback-workflow.md)
 4. **Patterns**: Apply established [Code Patterns](patterns/)
+   - [API Service Pattern](patterns/api-service-pattern.md)
+   - [Error Boundary Pattern](patterns/error-boundary-pattern.md)
+   - [Service Layer Pattern](patterns/service-layer-pattern.md)
 5. **Glossary**: Reference [Terminology](glossary/terminology.md) as needed
 
 ### For Maintainers
@@ -110,6 +122,6 @@ The Memory Bank serves as:
 
 ---
 
-**Last Updated**: 2025-10-17  
-**Next Review**: 2026-01-17  
+**Last Updated**: 2025-10-20
+**Next Review**: 2026-01-20
 **Maintainer**: Kilo Code System
