@@ -344,38 +344,12 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
-  // Initialize on mount and when location changes
+  // Initialize on mount only (not on location changes to prevent infinite loop)
   useEffect(() => {
     initializeSpecialtyContext();
-  }, [initializeSpecialtyContext]);
+  }, []); // Only run once on mount
 
   // Memoized specialty routes for performance
-  const memoizedSpecialtyRoutes = useMemo(() => {
-    const cachedData = specialtyCache.getSpecialtyData();
-    return updateSpecialtyRoutes(
-      state.availableSpecialties,
-      cachedData?.specialtyCounts || {},
-      getCurrentSpecialtySlug
-    );
-  }, [state.availableSpecialties, getCurrentSpecialtySlug, updateSpecialtyRoutes]);
-
-  // Update current specialty when location changes (optimized)
-  useEffect(() => {
-    const currentSlug = getCurrentSpecialtySlug;
-    
-    if (currentSlug !== state.currentSpecialtySlug) {
-      const matchingSpecialty = state.availableSpecialties.find(
-        specialty => getCachedSpecialtySlug(specialty) === currentSlug
-      );
-      
-      setState(prev => ({
-        ...prev,
-        currentSpecialty: matchingSpecialty || null,
-        currentSpecialtySlug: currentSlug,
-        specialtyRoutes: memoizedSpecialtyRoutes,
-      }));
-    }
-  }, [debouncedLocation, state.currentSpecialtySlug, state.availableSpecialties, getCurrentSpecialtySlug, memoizedSpecialtyRoutes]);
 
   return {
     // State

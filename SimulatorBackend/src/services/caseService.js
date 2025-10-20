@@ -220,6 +220,21 @@ export class CaseService {
   static async getCaseCategories(program_area) {
     const baseQuery = program_area ? { 'case_metadata.program_area': program_area } : {};
 
+    // Normalize program area for database query
+    // Frontend sends: 'Basic Program' or 'Specialty Program'
+    // Database stores: 'basic' or 'specialty'
+    const normalizeProgramArea = (area) => {
+      if (!area) return null;
+      if (area === 'Basic Program') return 'basic';
+      if (area === 'Specialty Program') return 'specialty';
+      // Handle lowercase versions too
+      if (area.toLowerCase() === 'basic') return 'basic';
+      if (area.toLowerCase() === 'specialty') return 'specialty';
+      return area;
+    };
+
+    const normalizedProgramArea = normalizeProgramArea(program_area);
+
     const [programAreas, caseSpecialties, specializedAreas, allSpecialties] = await Promise.all([
       Case.distinct('case_metadata.program_area'),
       Case.distinct('case_metadata.specialty', baseQuery),
@@ -229,9 +244,9 @@ export class CaseService {
 
     // Filter specialties by program area if specified
     let availableSpecialties;
-    if (program_area) {
+    if (normalizedProgramArea) {
       availableSpecialties = allSpecialties
-        .filter(s => s.programArea === program_area)
+        .filter(s => s.programArea === normalizedProgramArea)
         .map(s => s.name)
         .sort();
     } else {

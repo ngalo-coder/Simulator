@@ -2720,6 +2720,18 @@ export const api = {
 
   getAdminProgramAreasWithCounts: async () => {
     try {
+      // Try public endpoint first (no auth required)
+      try {
+        const publicResponse = await fetch(`${API_BASE_URL}/api/admin/programs/program-areas/counts-public`);
+        if (publicResponse.ok) {
+          const publicData = await publicResponse.json();
+          return publicData;
+        }
+      } catch (publicErr) {
+        console.warn('Public program areas endpoint failed, trying authenticated:', publicErr);
+      }
+
+      // Fallback to authenticated endpoint
       const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/programs/program-areas/counts`);
       if (!response.ok) {
         throw new Error('Failed to fetch program areas with counts');

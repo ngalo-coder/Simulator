@@ -131,11 +131,17 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const programAreaConfig = useMemo(() => {
     const config: Record<string, any> = {};
 
-    // Basic Program - includes specialties visible in basic program
-    const basicSpecialties = getAvailableSpecialties().filter(specialty => {
-      const visibility = specialtyVisibility[specialty.id];
-      return visibility?.isVisible && visibility?.programArea === 'Basic Program';
-    });
+    // Get ALL specialties from visibility data (not just those in static config)
+    const basicSpecialtyIds = Object.entries(specialtyVisibility)
+      .filter(([_, vis]) => vis.isVisible && vis.programArea === 'Basic Program')
+      .map(([id]) => id);
+
+    const specialtySpecialtyIds = Object.entries(specialtyVisibility)
+      .filter(([_, vis]) => vis.isVisible && vis.programArea === 'Specialty Program')
+      .map(([id]) => id);
+
+    console.log('Basic specialties from visibility:', basicSpecialtyIds);
+    console.log('Specialty specialties from visibility:', specialtySpecialtyIds);
 
     // Always show Basic Program card (even if there are zero visible specialties)
     config['Basic Program'] = {
@@ -155,15 +161,9 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           'Patient communication'
         ],
         isPopular: true,
-        specialties: basicSpecialties.map(s => s.id),
+        specialties: basicSpecialtyIds,
         casesCount: programAreaCounts['Basic Program'] ?? 0
       };
-
-    // Specialty Program - includes specialties visible in specialty program
-    const specialtySpecialties = getAvailableSpecialties().filter(specialty => {
-      const visibility = specialtyVisibility[specialty.id];
-      return visibility?.isVisible && visibility?.programArea === 'Specialty Program';
-    });
 
     // Always show Specialty Program card
     config['Specialty Program'] = {
@@ -175,7 +175,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         ),
         colorScheme: 'specialty' as const,
         difficulty: 'intermediate' as const,
-        prerequisites: basicSpecialties.length > 0 ? ['Basic Program'] : [],
+        prerequisites: basicSpecialtyIds.length > 0 ? ['Basic Program'] : [],
         features: [
           'Advanced diagnostics',
           'Complex cases',
@@ -183,12 +183,12 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           'Multi-system involvement'
         ],
         isNew: true,
-        specialties: specialtySpecialties.map(s => s.id),
+        specialties: specialtySpecialtyIds,
         casesCount: programAreaCounts['Specialty Program'] ?? 0
       };
 
     return config;
-  }, [specialtyVisibility]);
+  }, [specialtyVisibility, programAreaCounts]);
 
   // Get specialties for selected program area
   const programSpecialties = useMemo(() => {
@@ -197,8 +197,31 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     const config = programAreaConfig[selectedProgramArea as keyof typeof programAreaConfig];
     if (!config) return [];
 
-    return config.specialties.map((id: string) => getSpecialtyConfig(id)).filter(Boolean) as SpecialtyConfig[];
-  }, [selectedProgramArea]);
+    // Map specialty IDs to configs, creating default configs for specialties not in static config
+    return config.specialties.map((id: string) => {
+      // Try to get from static config first
+      const staticConfig = getSpecialtyConfig(id);
+      if (staticConfig) return staticConfig;
+
+      // Create a default config for backend specialties not in static config
+      const displayName = id.split('_').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+
+      return {
+        id,
+        name: displayName,
+        description: `Specialized medical cases in ${displayName}`,
+        color: '#6B7280',
+        icon: '🏥',
+        caseCount: 0,
+        difficulty: 'intermediate' as const,
+        estimatedDuration: '30-45 min',
+        phase: 'current' as const,
+        category: 'secondary' as const
+      };
+    }).filter(Boolean) as SpecialtyConfig[];
+  }, [selectedProgramArea, programAreaConfig]);
 
 
   // Filter specialties based on search term
@@ -243,7 +266,17 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const loadSpecialtyVisibility = async () => {
     try {
       const response = await api.getSpecialtyVisibility();
+      console.log('Raw visibility response from backend:', response);
       const visibilityMap: Record<string, { isVisible: boolean; programArea: string }> = {};
+
+      // Normalize program area from backend format to frontend format
+      const normalizeProgramArea = (area: string) => {
+        if (area === 'basic') return 'Basic Program';
+        if (area === 'specialty') return 'Specialty Program';
+        // If already in correct format, return as is
+        if (area === 'Basic Program' || area === 'Specialty Program') return area;
+        return area;
+      };
 
       // Build lookup of frontend specialties by id and by normalized name
       const frontendSpecialties = getAvailableSpecialties();
@@ -256,10 +289,14 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       });
 
       response.specialties.forEach((setting: any) => {
+        const normalizedProgramArea = normalizeProgramArea(setting.programArea);
+        
+        console.log(`Processing specialty: ${setting.specialtyId}, visible: ${setting.isVisible}, programArea: ${setting.programArea} -> ${normalizedProgramArea}`);
+        
         // Always map the raw backend specialtyId as a source of truth
         visibilityMap[setting.specialtyId] = {
           isVisible: setting.isVisible,
-          programArea: setting.programArea
+          programArea: normalizedProgramArea
         };
 
         // Also try to map the backend id to a frontend config id so the UI uses frontend IDs
@@ -268,17 +305,17 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         if (frontendById[setting.specialtyId]) {
           visibilityMap[frontendById[setting.specialtyId].id] = {
             isVisible: setting.isVisible,
-            programArea: setting.programArea
+            programArea: normalizedProgramArea
           };
         } else if (frontendByNormalizedName[setting.specialtyId]) {
           visibilityMap[frontendByNormalizedName[setting.specialtyId].id] = {
             isVisible: setting.isVisible,
-            programArea: setting.programArea
+            programArea: normalizedProgramArea
           };
         } else if (frontendByNormalizedName[normalized]) {
           visibilityMap[frontendByNormalizedName[normalized].id] = {
             isVisible: setting.isVisible,
-            programArea: setting.programArea
+            programArea: normalizedProgramArea
           };
         }
       });
@@ -296,6 +333,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         }
       });
 
+      console.log('Final visibility map:', visibilityMap);
       setSpecialtyVisibility(visibilityMap);
     } catch (error) {
       console.error('Error loading specialty visibility:', error);

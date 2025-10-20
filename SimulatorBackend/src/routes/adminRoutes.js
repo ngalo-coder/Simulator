@@ -445,6 +445,63 @@ router.get('/specialties/visibility-public', async (req, res) => {
   }
 });
 
+// Public program areas counts endpoint (no authentication required)
+router.get('/programs/program-areas/counts-public', async (req, res) => {
+  try {
+    // Import Case model
+    const Case = (await import('../models/CaseModel.js')).default;
+
+    // Aggregate cases by program area
+    const programAreaCounts = await Case.aggregate([
+      { $match: { status: 'published' } },
+      {
+        $group: {
+          _id: '$case_metadata.program_area',
+          casesCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Format the response
+    const programAreas = programAreaCounts.map(item => ({
+      name: item._id || 'Basic Program',
+      casesCount: item.casesCount
+    }));
+
+    // Ensure both program areas are included even if they have no cases
+    const programAreaMap = {
+      'Basic Program': 0,
+      'Specialty Program': 0
+    };
+
+    // Update counts from database
+    programAreas.forEach(pa => {
+      if (pa.name in programAreaMap) {
+        programAreaMap[pa.name] = pa.casesCount;
+      }
+    });
+
+    // Convert back to array format
+    const result = Object.keys(programAreaMap).map(name => ({
+      name,
+      casesCount: programAreaMap[name]
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        programAreas: result
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public program area counts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch program area counts'
+    });
+  }
+});
+
 // Update specialty visibility settings
 router.put('/specialties/visibility', protect, isAdmin, async (req, res) => {
   try {
@@ -718,6 +775,108 @@ router.get('/programs/specialties', protect, isAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch admin specialties'
+    });
+  }
+});
+
+// Get program areas with case counts
+router.get('/programs/program-areas/counts', protect, isAdmin, async (req, res) => {
+  try {
+    // Import Case model
+    const Case = (await import('../models/CaseModel.js')).default;
+
+    // Aggregate cases by program area
+    const programAreaCounts = await Case.aggregate([
+      { $match: { status: 'published' } },
+      {
+        $group: {
+          _id: '$case_metadata.program_area',
+          casesCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Format the response
+    const programAreas = programAreaCounts.map(item => ({
+      name: item._id || 'Basic Program', // Default to Basic Program if not set
+      casesCount: item.casesCount
+    }));
+
+    // Ensure both program areas are included even if they have no cases
+    const programAreaMap = {
+      'Basic Program': 0,
+      'Specialty Program': 0
+    };
+
+    // Update counts from database
+    programAreas.forEach(pa => {
+      if (pa.name in programAreaMap) {
+        programAreaMap[pa.name] = pa.casesCount;
+      }
+    });
+
+    // Convert back to array format
+    const result = Object.keys(programAreaMap).map(name => ({
+      name,
+      casesCount: programAreaMap[name]
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        programAreas: result
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching program area counts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch program area counts'
+    });
+  }
+});
+
+// Get specialties with case counts
+router.get('/programs/specialties/counts', protect, isAdmin, async (req, res) => {
+  try {
+    // Import Case model
+    const Case = (await import('../models/CaseModel.js')).default;
+
+    // Get all specialties from database
+    const specialties = await Specialty.find({}).sort({ name: 1 });
+
+    // Get case counts for each specialty
+    const caseCounts = await Case.aggregate([
+      { $match: { status: 'published' } },
+      { $group: { _id: '$case_metadata.specialty', count: { $sum: 1 } } }
+    ]);
+
+    // Create a map of specialty names to case counts
+    const caseCountMap = {};
+    caseCounts.forEach(item => {
+      caseCountMap[item._id] = item.count;
+    });
+
+    // Format specialties for response
+    const formattedSpecialties = specialties.map(specialty => ({
+      id: specialty.name.toLowerCase().replace(/\s+/g, '_'),
+      name: specialty.name,
+      caseCount: caseCountMap[specialty.name] || 0,
+      isVisible: specialty.isVisible,
+      programArea: specialty.programArea
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        specialties: formattedSpecialties
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching specialty counts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch specialty counts'
     });
   }
 });

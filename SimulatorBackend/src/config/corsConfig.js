@@ -3,8 +3,13 @@ const allowedOrigins = [
   'https://kuiga.online',
   'https://simuatech.netlify.app',
   'https://simulatorbackend.onrender.com', // Explicitly add the backend domain
+  'https://simulator-olx4.onrender.com', // Current production backend
   'https://preview-virtual-patient-api-kzmoqedp61tnz9rz9idx.vusercontent.net',
   'https://simulator-l9qx.onrender.com',
+  // Additional frontend origins
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:4173',
   // Railway domains
   /^https:\/\/.*\.up\.railway\.app$/,
   // Render domains

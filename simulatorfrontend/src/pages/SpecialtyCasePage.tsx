@@ -190,22 +190,22 @@ const SpecialtyCasePage: React.FC = memo(() => {
             
           </div>
 
-          {/* Cases grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Cases grid with equal height cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
             {cases.map((case_) => {
               const extendedCase = case_ as ExtendedCase;
               return (
                 <div
                   key={case_.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col h-full"
                 >
-                  <div className="mb-3">
+                  <div className="mb-3 flex-grow">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-semibold text-gray-900 line-clamp-2">
                         {case_.title}
                       </h3>
                       {extendedCase.isCompleted && (
-                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded flex-shrink-0 ml-2">
                           ✓ Completed
                         </span>
                       )}
@@ -222,7 +222,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                       </div>
                     )}
                     {case_.chief_complaint && (
-                      <div className="text-gray-600 text-xs">
+                      <div className="text-gray-600 text-xs line-clamp-2">
                         Chief Complaint: {case_.chief_complaint}
                       </div>
                     )}
@@ -231,7 +231,7 @@ const SpecialtyCasePage: React.FC = memo(() => {
                   <button
                     onClick={() => handleStartSimulation(case_)}
                     disabled={startingSimulation}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 mt-auto"
                   >
                     {startingSimulation ? 'Starting...' : 'Start Simulation'}
                   </button>

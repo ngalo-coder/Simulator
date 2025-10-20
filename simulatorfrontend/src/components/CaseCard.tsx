@@ -196,7 +196,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
       role="group"
       aria-label={case_.title || 'Clinical case card'}
       tabIndex={0}
-      className="relative rounded-2xl shadow-lg border border-gray-200 bg-white group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-blue-500"
+      className="relative rounded-2xl shadow-lg border border-gray-200 bg-white group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-300 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-blue-200 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-blue-500 flex flex-col h-full"
       onKeyDown={(e) => {
         if (e.key === 'Enter') onStartSimulation(case_);
       }}
@@ -205,7 +205,7 @@ const CaseCard: React.FC<CaseCardProps> = ({ case_, onStartSimulation, onRetake,
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100 to-purple-100 opacity-30 group-hover:opacity-40 transition-opacity duration-300 rounded-full transform translate-x-16 -translate-y-16"></div>
       <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-100 to-pink-100 opacity-20 group-hover:opacity-30 transition-opacity duration-300 rounded-full transform -translate-x-12 translate-y-12"></div>
 
-      <div className="relative p-4 sm:p-6 flex flex-col h-full">
+      <div className="relative p-4 sm:p-6 flex flex-col flex-grow">
         {/* Enhanced Header Section */}
         <div className="mb-6">
           {/* Case Title */}
