@@ -49,7 +49,7 @@ async function testProgramAreaFilter() {
     const basicSpecialties = allSpecialties.filter(s => s.programArea === 'basic');
     const specialtySpecialties = allSpecialties.filter(s => s.programArea === 'specialty');
     
-    console.log(`\nBasic Program Specialties (${basicSpecialties.length}):`, basicSpecialties.map(s => s.name));
+    console.log(`\nBasic Program Modules (${basicSpecialties.length}):`, basicSpecialties.map(s => s.name));
     console.log(`Specialty Program Specialties (${specialtySpecialties.length}):`, specialtySpecialties.map(s => s.name));
 
   } catch (error) {
