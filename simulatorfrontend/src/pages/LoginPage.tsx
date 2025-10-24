@@ -18,12 +18,39 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      // Debug logging - Step 1: Form submission started
+      console.log('🔐 Login attempt started');
+      console.log('📧 Email:', email);
+      console.log('🔑 Password length:', password.length);
+
+      const loginResult = await login(email, password);
+
+      // Debug logging to see what's returned
+      console.log('✅ Login result received:', loginResult);
+      console.log('🔍 Login result details:', {
+        hasToken: !!loginResult?.token,
+        hasUser: !!loginResult?.user,
+        hasRedirectTo: !!loginResult?.redirectTo,
+        userRole: (loginResult as any)?.user?.primaryRole,
+        redirectTo: loginResult?.redirectTo
+      });
+
+      // Use the redirectTo from backend response, fallback to dashboard for students
+      const destination = loginResult?.redirectTo || '/dashboard';
+      console.log('🎯 Redirecting to:', destination);
+
+      navigate(destination);
     } catch (err) {
+      console.error('❌ Login error occurred:', err);
+      console.error('❌ Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        type: typeof err
+      });
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
+      console.log('🔄 Login process completed');
     }
   };
 

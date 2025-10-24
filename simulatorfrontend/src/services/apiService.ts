@@ -240,21 +240,65 @@ export const api = {
   // Auth methods for login and register
   login: async (email: string, password: string) => {
     try {
+      console.log('🔐 API Service: Attempting login for:', email);
+      console.log('🔗 API Base URL:', API_BASE_URL);
+
+      const requestBody = JSON.stringify({ email, password });
+      console.log('📦 Request body:', requestBody);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: requestBody,
       });
 
+      console.log('📡 API Service: Login response status:', response.status);
+      console.log('📡 API Service: Login response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Login failed');
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-       return result.data || result; // Backend now returns {data, message} format
+      console.log('✅ Login API response received:', {
+        hasData: !!result.data,
+        hasUser: !!(result.data?.user || result.user),
+        hasToken: !!(result.data?.token || result.token),
+        hasRedirectTo: !!(result.data?.redirectTo || result.redirectTo)
+      });
+
+      // Handle both {data, message} format and direct format
+      const responseData = result.data || result;
+
+      // Ensure redirectTo is included in the response
+      if (responseData && !responseData.redirectTo) {
+        // Add default redirectTo based on user role if not provided by backend
+        if (responseData.user?.primaryRole === 'admin') {
+          responseData.redirectTo = '/admin/dashboard';
+        } else {
+          responseData.redirectTo = '/dashboard';
+        }
+      }
+
+      console.log('🎯 Final login response:', {
+        redirectTo: responseData.redirectTo,
+        userRole: responseData.user?.primaryRole,
+        hasToken: !!responseData.token
+      });
+
+      return responseData;
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error('❌ Error during login:', error);
       throw error;
     }
   },

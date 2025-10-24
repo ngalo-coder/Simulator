@@ -9,18 +9,18 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  institution: string;
-  }) => Promise<void>;
-  logout: () => void;
-}
+   user: User | null;
+   loading: boolean;
+   login: (email: string, password: string) => Promise<{ redirectTo?: string }>;
+   register: (userData: {
+   email: string;
+   password: string;
+   firstName: string;
+   lastName: string;
+   institution: string;
+   }) => Promise<void>;
+   logout: () => void;
+ }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -89,18 +89,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user]);
 
   const login = async (email: string, password: string) => {
-    const response = await api.login(email, password);
-    const { token, user } = response;
+    console.log('🔐 useAuth.login called with:', { email, passwordLength: password.length });
 
-    // Ensure user object has the correct role structure
-    const userWithRole = {
-      ...user,
-      role: user.primaryRole || user.role || 'user'
-    };
+    try {
+      const response = await api.login(email, password);
+      console.log('🔐 useAuth.login - API response received:', response);
 
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('currentUser', JSON.stringify(userWithRole));
-    setUser(userWithRole);
+      const { token, user, redirectTo } = response;
+      console.log('🔐 useAuth.login - Extracted data:', {
+        hasToken: !!token,
+        hasUser: !!user,
+        hasRedirectTo: !!redirectTo,
+        userRole: user?.primaryRole
+      });
+
+      // Ensure user object has the correct role structure
+      const userWithRole = {
+        ...user,
+        role: user.primaryRole || user.role || 'user'
+      };
+
+      console.log('🔐 useAuth.login - Setting localStorage');
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('currentUser', JSON.stringify(userWithRole));
+      setUser(userWithRole);
+
+      console.log('🔐 useAuth.login - Login successful, returning:', { redirectTo });
+      return { redirectTo };
+    } catch (error) {
+      console.error('🔐 useAuth.login - Error occurred:', error);
+      throw error;
+    }
   };
 
   const register = async (userData: {

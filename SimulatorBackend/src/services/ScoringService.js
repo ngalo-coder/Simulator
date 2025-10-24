@@ -41,13 +41,20 @@ class ScoringService {
       if (AIEvaluationService.isAvailable()) {
         const aiEvaluation = await AIEvaluationService.evaluateSession(sessionId);
         scoringResult.aiEvaluation = aiEvaluation;
-        scoringResult.finalScore = this._integrateAIEvaluation(scoringResult.calculatedScore, aiEvaluation);
+        scoringResult.finalScore = this._integrateAIEvaluation(
+          scoringResult.calculatedScore,
+          aiEvaluation,
+          scoringResult.interactionLevel
+        );
       } else {
         scoringResult.finalScore = scoringResult.calculatedScore;
       }
 
-      // Determine performance level
-      scoringResult.performanceLevel = rubric.determinePerformanceLevel(scoringResult.finalScore);
+      // Determine performance level with interaction context
+      scoringResult.performanceLevel = rubric.determinePerformanceLevel(
+        scoringResult.finalScore,
+        scoringResult.interactionLevel
+      );
 
       // Update session with scoring results
       session.scoringResults = {
@@ -77,30 +84,39 @@ class ScoringService {
     }
   }
 
-  // Calculate scores based on rubric criteria
+  // Calculate scores based on rubric criteria with interaction level weighting
   async _calculateScores(session, performanceMetrics, rubric) {
     const criteriaScores = [];
     let totalCalculatedScore = 0;
 
+    // Calculate interaction level and apply appropriate weighting
+    const interactionLevel = this._calculateInteractionLevel(session, performanceMetrics);
+    const interactionMultiplier = this._getInteractionMultiplier(interactionLevel);
+
     // Evaluate each competency area and criteria
     for (const area of rubric.competencyAreas) {
       for (const criterion of area.criteria) {
-        const score = await this._evaluateCriterion(
-          criterion, 
-          session, 
+        const baseScore = await this._evaluateCriterion(
+          criterion,
+          session,
           performanceMetrics
         );
-        
+
+        // Apply interaction level weighting
+        const adjustedScore = baseScore * interactionMultiplier;
+
         criteriaScores.push({
           area: area.area,
           criterionId: criterion.criterionId,
           criterionName: criterion.description,
-          score: score,
+          baseScore: baseScore,
+          adjustedScore: adjustedScore,
           maxScore: criterion.maxScore,
-          weight: criterion.weight
+          weight: criterion.weight,
+          interactionLevel: interactionLevel
         });
 
-        totalCalculatedScore += (score / criterion.maxScore) * criterion.weight;
+        totalCalculatedScore += (adjustedScore / criterion.maxScore) * criterion.weight;
       }
     }
 
@@ -110,8 +126,84 @@ class ScoringService {
     return {
       calculatedScore,
       criteriaScores,
-      rubricVersion: rubric.version
+      rubricVersion: rubric.version,
+      interactionLevel: interactionLevel,
+      interactionMultiplier: interactionMultiplier
     };
+  }
+
+  // Calculate interaction level based on user engagement
+  _calculateInteractionLevel(session, performanceMetrics) {
+    const metrics = performanceMetrics || {};
+    const messages = session?.messages || [];
+    const userMessages = messages.filter(m => m.role === 'user');
+
+    // Count different types of interactions
+    const questionsAsked = userMessages.length;
+    const totalInteractions = messages.length;
+    const sessionDuration = session?.duration || 0; // in minutes
+
+    // Calculate engagement metrics
+    const messageFrequency = totalInteractions / Math.max(sessionDuration, 1);
+    const questionQuality = this._assessQuestionQuality(userMessages);
+    const sessionEngagement = Math.min(questionsAsked / 10, 1); // Normalize to 0-1
+
+    // Determine interaction level
+    let interactionLevel = 'minimal';
+
+    if (questionsAsked >= 15 && questionQuality > 0.7 && messageFrequency > 2) {
+      interactionLevel = 'extensive';
+    } else if (questionsAsked >= 10 && questionQuality > 0.6 && messageFrequency > 1.5) {
+      interactionLevel = 'thorough';
+    } else if (questionsAsked >= 5 && questionQuality > 0.5 && messageFrequency > 1) {
+      interactionLevel = 'adequate';
+    } else if (questionsAsked >= 2 && sessionDuration > 5) {
+      interactionLevel = 'basic';
+    }
+
+    return interactionLevel;
+  }
+
+  // Assess the quality of questions asked
+  _assessQuestionQuality(userMessages) {
+    if (userMessages.length === 0) return 0;
+
+    let qualityScore = 0;
+    const clinicalKeywords = [
+      'symptom', 'pain', 'fever', 'nausea', 'dizzy', 'headache', 'chest pain',
+      'blood pressure', 'heart rate', 'temperature', 'examination', 'auscultation',
+      'palpation', 'percussion', 'diagnosis', 'treatment', 'medication', 'history'
+    ];
+
+    userMessages.forEach(message => {
+      const content = message.content?.toLowerCase() || '';
+      const foundKeywords = clinicalKeywords.filter(keyword => content.includes(keyword));
+
+      // Score based on clinical relevance and specificity
+      if (foundKeywords.length > 0) {
+        qualityScore += Math.min(foundKeywords.length / 3, 1); // Up to 1 point per message
+      }
+
+      // Bonus for specific clinical questions
+      if (content.includes('history') || content.includes('examination') || content.includes('diagnosis')) {
+        qualityScore += 0.2;
+      }
+    });
+
+    return Math.min(qualityScore / userMessages.length, 1);
+  }
+
+  // Get multiplier based on interaction level
+  _getInteractionMultiplier(interactionLevel) {
+    const multipliers = {
+      'minimal': 0.6,      // 40% penalty for minimal interaction
+      'basic': 0.8,        // 20% penalty for basic interaction
+      'adequate': 0.9,     // 10% penalty for adequate interaction
+      'thorough': 1.0,     // Full score for thorough interaction
+      'extensive': 1.05    // 5% bonus for extensive interaction
+    };
+
+    return multipliers[interactionLevel] || 0.6;
   }
 
   // Evaluate a specific criterion
@@ -137,60 +229,250 @@ class ScoringService {
       'safety_protocols': () => 
         this._evaluateSafetyProtocols(performanceMetrics),
       
-      // Default evaluation method
-      'default': () => 75
+      // Default evaluation method - more realistic for minimal interaction
+      'default': () => 45
     };
 
     const evaluate = evaluationMethods[criterion.criterionId] || evaluationMethods.default;
     return await evaluate();
   }
 
-  // Specific evaluation methods (placeholder implementations)
+  // Specific evaluation methods with realistic scoring
   async _evaluateHistoryTaking(session, performanceMetrics) {
-    const completeness = performanceMetrics.dataCollectionMetrics?.completeness || 0;
-    return Math.min(100, completeness * 100);
+    const metrics = performanceMetrics.dataCollectionMetrics || {};
+    const completeness = metrics.completeness || 0;
+    const questionsAsked = metrics.questionsAsked || 0;
+    const relevantQuestions = metrics.relevantQuestions || 0;
+
+    // Base score from completeness
+    let score = completeness * 60; // Max 60% from completeness alone
+
+    // Bonus for asking questions (engagement)
+    if (questionsAsked > 0) {
+      const questionQuality = relevantQuestions / Math.max(questionsAsked, 1);
+      score += Math.min(25, questionQuality * 25); // Up to 25% bonus for good questions
+    }
+
+    // Penalty for too few questions (minimal engagement)
+    if (questionsAsked < 3) {
+      score *= 0.7; // 30% penalty for minimal interaction
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluatePhysicalExam(session, performanceMetrics) {
-    const accuracy = performanceMetrics.clinicalSkillsMetrics?.physicalExamAccuracy || 0;
-    return Math.min(100, accuracy * 100);
+    const metrics = performanceMetrics.clinicalSkillsMetrics || {};
+    const accuracy = metrics.physicalExamAccuracy || 0;
+    const examCompleteness = metrics.examCompleteness || 0;
+    const appropriateExams = metrics.appropriateExams || 0;
+
+    // Base score from accuracy and completeness
+    let score = (accuracy * 0.6 + examCompleteness * 0.4) * 70; // Max 70% from basics
+
+    // Bonus for appropriate exam selection
+    if (appropriateExams > 0) {
+      const examRelevance = appropriateExams / Math.max(metrics.totalExams || 1, 1);
+      score += Math.min(20, examRelevance * 20); // Up to 20% bonus for relevance
+    }
+
+    // Penalty for missing critical exams
+    if (examCompleteness < 0.5) {
+      score *= 0.8; // 20% penalty for incomplete exams
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluateDiagnosticAccuracy(performanceMetrics) {
-    const accuracy = performanceMetrics.diagnosticMetrics?.accuracy || 0;
-    return Math.min(100, accuracy * 100);
+    const metrics = performanceMetrics.diagnosticMetrics || {};
+    const accuracy = metrics.accuracy || 0;
+    const differentialQuality = metrics.differentialQuality || 0;
+    const testOrdering = metrics.testOrdering || 0;
+
+    // Base score from diagnostic accuracy
+    let score = accuracy * 50; // Max 50% from basic accuracy
+
+    // Add points for differential diagnosis quality
+    score += differentialQuality * 25; // Up to 25% for good differential
+
+    // Add points for appropriate test ordering
+    score += testOrdering * 15; // Up to 15% for good test selection
+
+    // Penalty for poor diagnostic reasoning
+    if (accuracy < 0.3) {
+      score *= 0.6; // 40% penalty for poor diagnostic skills
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluatePatientCommunication(session, performanceMetrics) {
-    const communicationScore = performanceMetrics.communicationMetrics?.patientCommunication || 0;
-    return Math.min(100, communicationScore * 100);
+    const metrics = performanceMetrics.communicationMetrics || {};
+    const patientCommunication = metrics.patientCommunication || 0;
+    const empathy = metrics.empathy || 0;
+    const clarity = metrics.clarity || 0;
+
+    // Base score from communication quality
+    let score = patientCommunication * 40; // Max 40% from basic communication
+
+    // Add points for empathy
+    score += empathy * 30; // Up to 30% for empathy
+
+    // Add points for clarity
+    score += clarity * 20; // Up to 20% for clarity
+
+    // Bonus for comprehensive communication skills
+    if (empathy > 0.7 && clarity > 0.7) {
+      score += 10; // 10% bonus for excellent communication
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluateTeamCommunication(performanceMetrics) {
-    const teamScore = performanceMetrics.communicationMetrics?.teamCommunication || 0;
-    return Math.min(100, teamScore * 100);
+    const metrics = performanceMetrics.communicationMetrics || {};
+    const teamScore = metrics.teamCommunication || 0;
+    const consultationRequests = metrics.consultationRequests || 0;
+    const handoffQuality = metrics.handoffQuality || 0;
+
+    // Base score from team communication
+    let score = teamScore * 50; // Max 50% from basic team communication
+
+    // Add points for appropriate consultations
+    if (consultationRequests > 0) {
+      score += Math.min(25, consultationRequests * 8); // Up to 25% for consultations
+    }
+
+    // Add points for handoff quality
+    score += handoffQuality * 15; // Up to 15% for good handoffs
+
+    // Penalty for poor team communication
+    if (teamScore < 0.4) {
+      score *= 0.7; // 30% penalty for poor teamwork
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluateTimeManagement(performanceMetrics) {
-    const efficiency = performanceMetrics.timeMetrics?.efficiency || 0;
-    return Math.min(100, efficiency * 100);
+    const metrics = performanceMetrics.timeMetrics || {};
+    const efficiency = metrics.efficiency || 0;
+    const pacing = metrics.pacing || 0;
+    const decisionTiming = metrics.decisionTiming || 0;
+
+    // Base score from efficiency
+    let score = efficiency * 45; // Max 45% from basic efficiency
+
+    // Add points for good pacing
+    score += pacing * 25; // Up to 25% for appropriate pacing
+
+    // Add points for timely decisions
+    score += decisionTiming * 20; // Up to 20% for good timing
+
+    // Penalty for poor time management
+    if (efficiency < 0.3) {
+      score *= 0.6; // 40% penalty for inefficiency
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
   async _evaluateSafetyProtocols(performanceMetrics) {
-    const safetyScore = performanceMetrics.safetyMetrics?.overallScore || 0;
-    return Math.min(100, safetyScore * 100);
+    const metrics = performanceMetrics.safetyMetrics || {};
+    const overallScore = metrics.overallScore || 0;
+    const protocolAdherence = metrics.protocolAdherence || 0;
+    const errorRate = metrics.errorRate || 1;
+
+    // Base score from safety compliance
+    let score = overallScore * 40; // Max 40% from basic safety score
+
+    // Add points for protocol adherence
+    score += protocolAdherence * 35; // Up to 35% for following protocols
+
+    // Penalty for safety errors
+    const errorPenalty = (1 - errorRate) * 20; // Up to 20% penalty for errors
+    score -= errorPenalty;
+
+    // Bonus for excellent safety practices
+    if (protocolAdherence > 0.8 && errorRate < 0.1) {
+      score += 10; // 10% bonus for excellent safety
+    }
+
+    return Math.min(100, Math.max(0, score));
   }
 
-  // Integrate AI evaluation with manual scoring
-  _integrateAIEvaluation(manualScore, aiEvaluation) {
-    const aiWeight = 0.3; // 30% weight to AI evaluation
-    const manualWeight = 0.7; // 70% weight to manual scoring
-    
-    return Math.round(
-      (manualScore * manualWeight) + 
-      (aiEvaluation.confidenceScore * aiWeight)
-    );
-  }
+  // Integrate AI evaluation with manual scoring (more realistic weighting)
+   _integrateAIEvaluation(manualScore, aiEvaluation, interactionLevel) {
+     // Adjust AI weight based on interaction level
+     let aiWeight, manualWeight;
+
+     switch (interactionLevel) {
+       case 'minimal':
+         aiWeight = 0.5;    // 50% AI weight for minimal interaction
+         manualWeight = 0.5;
+         break;
+       case 'basic':
+         aiWeight = 0.4;    // 40% AI weight for basic interaction
+         manualWeight = 0.6;
+         break;
+       case 'adequate':
+         aiWeight = 0.3;    // 30% AI weight for adequate interaction
+         manualWeight = 0.7;
+         break;
+       case 'thorough':
+         aiWeight = 0.25;   // 25% AI weight for thorough interaction
+         manualWeight = 0.75;
+         break;
+       case 'extensive':
+         aiWeight = 0.2;    // 20% AI weight for extensive interaction
+         manualWeight = 0.8;
+         break;
+       default:
+         aiWeight = 0.3;
+         manualWeight = 0.7;
+     }
+
+     // More realistic AI confidence calculation
+     const aiScore = this._calculateRealisticAIScore(aiEvaluation, interactionLevel);
+
+     const integratedScore = Math.round(
+       (manualScore * manualWeight) +
+       (aiScore * aiWeight)
+     );
+
+     return Math.max(0, Math.min(100, integratedScore)); // Clamp between 0-100
+   }
+
+   // Calculate more realistic AI evaluation score
+   _calculateRealisticAIScore(aiEvaluation, interactionLevel) {
+     if (!aiEvaluation || typeof aiEvaluation.confidenceScore !== 'number') {
+       return 50; // Default moderate score if AI evaluation unavailable
+     }
+
+     const baseScore = aiEvaluation.confidenceScore;
+
+     // Adjust AI score based on interaction level and evaluation quality
+     let adjustment = 0;
+
+     // Reduce AI confidence for minimal interaction (AI has less data to work with)
+     if (interactionLevel === 'minimal') {
+       adjustment = -15;
+     } else if (interactionLevel === 'basic') {
+       adjustment = -10;
+     } else if (interactionLevel === 'extensive') {
+       adjustment = 5; // Slight bonus for extensive interaction
+     }
+
+     // Consider AI evaluation quality indicators
+     if (aiEvaluation.evaluationQuality) {
+       const qualityMultiplier = aiEvaluation.evaluationQuality;
+       adjustment += (qualityMultiplier - 0.5) * 10; // -5 to +5 based on quality
+     }
+
+     const adjustedScore = baseScore + adjustment;
+     return Math.max(30, Math.min(90, adjustedScore)); // Clamp AI scores between 30-90
+   }
 
   // Update competency assessment with scoring results
   async _updateCompetencyAssessment(userId, scoringResult, rubric) {
@@ -313,11 +595,22 @@ class ScoringService {
         }
       ],
       passingScore: 70,
-      determinePerformanceLevel: function(score) {
-        if (score >= 95) return 'expert';
-        if (score >= 85) return 'proficient';
-        if (score >= 75) return 'competent';
-        if (score >= 60) return 'advanced_beginner';
+      determinePerformanceLevel: function(score, interactionLevel = 'minimal') {
+        // Adjust performance level thresholds based on interaction level
+        const thresholds = {
+          'minimal': { expert: 85, proficient: 75, competent: 60, advanced_beginner: 45 },
+          'basic': { expert: 88, proficient: 78, competent: 65, advanced_beginner: 50 },
+          'adequate': { expert: 90, proficient: 80, competent: 70, advanced_beginner: 55 },
+          'thorough': { expert: 92, proficient: 82, competent: 72, advanced_beginner: 60 },
+          'extensive': { expert: 95, proficient: 85, competent: 75, advanced_beginner: 65 }
+        };
+
+        const levelThresholds = thresholds[interactionLevel] || thresholds.minimal;
+
+        if (score >= levelThresholds.expert) return 'expert';
+        if (score >= levelThresholds.proficient) return 'proficient';
+        if (score >= levelThresholds.competent) return 'competent';
+        if (score >= levelThresholds.advanced_beginner) return 'advanced_beginner';
         return 'novice';
       },
       calculateScore: function(criteriaScores) {
@@ -335,7 +628,10 @@ class ScoringService {
           area.criteria.forEach(criterion => {
             const criterionScore = areaCriteriaScores.find(s => s.criterionId === criterion.criterionId);
             if (criterionScore) {
-              areaScore += (criterionScore.score / criterion.maxScore) * criterion.weight;
+              // Use adjusted score if available, otherwise fall back to base score
+              const scoreToUse = criterionScore.adjustedScore !== undefined ?
+                criterionScore.adjustedScore : criterionScore.score;
+              areaScore += (scoreToUse / criterion.maxScore) * criterion.weight;
               areaWeight += criterion.weight;
             }
           });
@@ -346,7 +642,20 @@ class ScoringService {
           }
         });
 
-        return totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
+        const finalScore = totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
+
+        // Apply minimum score thresholds based on interaction level
+        const interactionLevel = criteriaScores.length > 0 ? criteriaScores[0].interactionLevel : 'minimal';
+        const minThresholds = {
+          'minimal': 20,      // Minimum 20% for minimal interaction
+          'basic': 30,        // Minimum 30% for basic interaction
+          'adequate': 40,     // Minimum 40% for adequate interaction
+          'thorough': 50,     // Minimum 50% for thorough interaction
+          'extensive': 60     // Minimum 60% for extensive interaction
+        };
+
+        const minScore = minThresholds[interactionLevel] || 20;
+        return Math.max(minScore, finalScore);
       }
     };
   }

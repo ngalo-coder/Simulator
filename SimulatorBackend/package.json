@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js",
+    "start": "node --max-old-space-size=4096 --expose-gc index.js",
     "build": "echo 'No build step required'",
     "railway:deploy": "railway up",
     "railway:logs": "railway logs",

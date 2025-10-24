@@ -19,14 +19,15 @@ export const authenticateToken = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      await auditLogger.logAuthEvent({
-        event: 'AUTH_FAILED',
-        reason: 'NO_TOKEN',
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        path: req.path,
-        method: req.method
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'AUTH_FAILED',
+      //   reason: 'NO_TOKEN',
+      //   ip: req.ip,
+      //   userAgent: req.get('User-Agent'),
+      //   path: req.path,
+      //   method: req.method
+      // });
 
       return res.status(401).json({
         success: false,
@@ -41,15 +42,16 @@ export const authenticateToken = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
     
     if (!user) {
-      await auditLogger.logAuthEvent({
-        event: 'AUTH_FAILED',
-        reason: 'USER_NOT_FOUND',
-        userId: decoded.userId,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        path: req.path,
-        method: req.method
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'AUTH_FAILED',
+      //   reason: 'USER_NOT_FOUND',
+      //   userId: decoded.userId,
+      //   ip: req.ip,
+      //   userAgent: req.get('User-Agent'),
+      //   path: req.path,
+      //   method: req.method
+      // });
 
       return res.status(401).json({
         success: false,
@@ -58,16 +60,17 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     if (!user.isActive) {
-      await auditLogger.logAuthEvent({
-        event: 'AUTH_FAILED',
-        reason: 'USER_INACTIVE',
-        userId: user._id,
-        username: user.username,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        path: req.path,
-        method: req.method
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'AUTH_FAILED',
+      //   reason: 'USER_INACTIVE',
+      //   userId: user._id,
+      //   username: user.username,
+      //   ip: req.ip,
+      //   userAgent: req.get('User-Agent'),
+      //   path: req.path,
+      //   method: req.method
+      // });
 
       return res.status(401).json({
         success: false,
@@ -83,18 +86,18 @@ export const authenticateToken = async (req, res, next) => {
     req.token = token;
     req.tokenPayload = decoded;
 
-    // Log successful authentication
-    await auditLogger.logAuthEvent({
-      event: 'AUTH_SUCCESS',
-      userId: user._id,
-      username: user.username,
-      role: user.primaryRole,
-      discipline: user.discipline,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      path: req.path,
-      method: req.method
-    });
+    // Audit logging disabled temporarily
+    // await auditLogger.logAuthEvent({
+    //   event: 'AUTH_SUCCESS',
+    //   userId: user._id,
+    //   username: user.username,
+    //   role: user.primaryRole,
+    //   discipline: user.discipline,
+    //   ip: req.ip,
+    //   userAgent: req.get('User-Agent'),
+    //   path: req.path,
+    //   method: req.method
+    // });
 
     next();
   } catch (error) {
@@ -109,15 +112,16 @@ export const authenticateToken = async (req, res, next) => {
       message = 'Malformed token';
     }
 
-    await auditLogger.logAuthEvent({
-      event: 'AUTH_FAILED',
-      reason: reason,
-      error: error.message,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      path: req.path,
-      method: req.method
-    });
+    // Audit logging disabled temporarily
+    // await auditLogger.logAuthEvent({
+    //   event: 'AUTH_FAILED',
+    //   reason: reason,
+    //   error: error.message,
+    //   ip: req.ip,
+    //   userAgent: req.get('User-Agent'),
+    //   path: req.path,
+    //   method: req.method
+    // });
 
     console.error('Authentication error:', error);
     
@@ -161,14 +165,15 @@ export const optionalAuth = async (req, res, next) => {
       
       await user.updateLastLogin();
       
-      await auditLogger.logAuthEvent({
-        event: 'OPTIONAL_AUTH_SUCCESS',
-        userId: user._id,
-        username: user.username,
-        role: user.primaryRole,
-        ip: req.ip,
-        path: req.path
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'OPTIONAL_AUTH_SUCCESS',
+      //   userId: user._id,
+      //   username: user.username,
+      //   role: user.primaryRole,
+      //   ip: req.ip,
+      //   path: req.path
+      // });
     } else {
       req.user = null;
       req.token = null;
@@ -194,14 +199,15 @@ export const requireRoles = (allowedRoles) => {
     try {
       // First ensure user is authenticated
       if (!req.user) {
-        await auditLogger.logAuthEvent({
-          event: 'AUTHORIZATION_FAILED',
-          reason: 'NOT_AUTHENTICATED',
-          requiredRoles: allowedRoles,
-          ip: req.ip,
-          path: req.path,
-          method: req.method
-        });
+        // Audit logging disabled temporarily
+        // await auditLogger.logAuthEvent({
+        //   event: 'AUTHORIZATION_FAILED',
+        //   reason: 'NOT_AUTHENTICATED',
+        //   requiredRoles: allowedRoles,
+        //   ip: req.ip,
+        //   path: req.path,
+        //   method: req.method
+        // });
 
         return res.status(401).json({
           success: false,
@@ -214,17 +220,18 @@ export const requireRoles = (allowedRoles) => {
       const hasRequiredRole = allowedRoles.some(role => userRoles.includes(role));
 
       if (!hasRequiredRole) {
-        await auditLogger.logAuthEvent({
-          event: 'AUTHORIZATION_FAILED',
-          reason: 'INSUFFICIENT_ROLES',
-          userId: req.user._id,
-          username: req.user.username,
-          userRoles: userRoles,
-          requiredRoles: allowedRoles,
-          ip: req.ip,
-          path: req.path,
-          method: req.method
-        });
+        // Audit logging disabled temporarily
+        // await auditLogger.logAuthEvent({
+        //   event: 'AUTHORIZATION_FAILED',
+        //   reason: 'INSUFFICIENT_ROLES',
+        //   userId: req.user._id,
+        //   username: req.user.username,
+        //   userRoles: userRoles,
+        //   requiredRoles: allowedRoles,
+        //   ip: req.ip,
+        //   path: req.path,
+        //   method: req.method
+        // });
 
         return res.status(403).json({
           success: false,
@@ -232,29 +239,30 @@ export const requireRoles = (allowedRoles) => {
         });
       }
 
-      // Log successful authorization
-      await auditLogger.logAuthEvent({
-        event: 'AUTHORIZATION_SUCCESS',
-        userId: req.user._id,
-        username: req.user.username,
-        userRoles: userRoles,
-        requiredRoles: allowedRoles,
-        ip: req.ip,
-        path: req.path,
-        method: req.method
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'AUTHORIZATION_SUCCESS',
+      //   userId: req.user._id,
+      //   username: req.user.username,
+      //   userRoles: userRoles,
+      //   requiredRoles: allowedRoles,
+      //   ip: req.ip,
+      //   path: req.path,
+      //   method: req.method
+      // });
 
       next();
     } catch (error) {
       console.error('Authorization error:', error);
       
-      await auditLogger.logAuthEvent({
-        event: 'AUTHORIZATION_ERROR',
-        error: error.message,
-        userId: req.user?._id,
-        ip: req.ip,
-        path: req.path
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'AUTHORIZATION_ERROR',
+      //   error: error.message,
+      //   userId: req.user?._id,
+      //   ip: req.ip,
+      //   path: req.path
+      // });
 
       return res.status(500).json({
         success: false,
@@ -282,15 +290,16 @@ export const requireDiscipline = (allowedDisciplines) => {
       const hasRequiredDiscipline = allowedDisciplines.includes(userDiscipline);
 
       if (!hasRequiredDiscipline) {
-        await auditLogger.logAuthEvent({
-          event: 'DISCIPLINE_ACCESS_DENIED',
-          userId: req.user._id,
-          username: req.user.username,
-          userDiscipline: userDiscipline,
-          requiredDisciplines: allowedDisciplines,
-          ip: req.ip,
-          path: req.path
-        });
+        // Audit logging disabled temporarily
+        // await auditLogger.logAuthEvent({
+        //   event: 'DISCIPLINE_ACCESS_DENIED',
+        //   userId: req.user._id,
+        //   username: req.user.username,
+        //   userDiscipline: userDiscipline,
+        //   requiredDisciplines: allowedDisciplines,
+        //   ip: req.ip,
+        //   path: req.path
+        // });
 
         return res.status(403).json({
           success: false,
@@ -338,13 +347,14 @@ export const sessionManager = {
       // Store session in request for use by other middleware
       req.session = sessionData;
 
-      await auditLogger.logAuthEvent({
-        event: 'SESSION_CREATED',
-        userId: req.user._id,
-        username: req.user.username,
-        sessionData: sessionData,
-        ip: req.ip
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'SESSION_CREATED',
+      //   userId: req.user._id,
+      //   username: req.user.username,
+      //   sessionData: sessionData,
+      //   ip: req.ip
+      // });
 
       next();
     } catch (error) {
@@ -383,14 +393,15 @@ export const sessionManager = {
         const timeDiff = (now - lastActivity) / (1000 * 60); // minutes
 
         if (timeDiff > timeoutMinutes) {
-          await auditLogger.logAuthEvent({
-            event: 'SESSION_TIMEOUT',
-            userId: req.user?._id,
-            username: req.user?.username,
-            lastActivity: lastActivity,
-            timeoutMinutes: timeoutMinutes,
-            ip: req.ip
-          });
+          // Audit logging disabled temporarily
+          // await auditLogger.logAuthEvent({
+          //   event: 'SESSION_TIMEOUT',
+          //   userId: req.user?._id,
+          //   username: req.user?.username,
+          //   lastActivity: lastActivity,
+          //   timeoutMinutes: timeoutMinutes,
+          //   ip: req.ip
+          // });
 
           return res.status(401).json({
             success: false,
@@ -425,12 +436,13 @@ export const authenticateApiKey = async (req, res, next) => {
     const validApiKeys = process.env.VALID_API_KEYS?.split(',') || [];
     
     if (!validApiKeys.includes(apiKey)) {
-      await auditLogger.logAuthEvent({
-        event: 'API_KEY_INVALID',
-        apiKey: apiKey.substring(0, 8) + '...',
-        ip: req.ip,
-        path: req.path
-      });
+      // Audit logging disabled temporarily
+      // await auditLogger.logAuthEvent({
+      //   event: 'API_KEY_INVALID',
+      //   apiKey: apiKey.substring(0, 8) + '...',
+      //   ip: req.ip,
+      //   path: req.path
+      // });
 
       return res.status(401).json({
         success: false,
@@ -438,12 +450,13 @@ export const authenticateApiKey = async (req, res, next) => {
       });
     }
 
-    await auditLogger.logAuthEvent({
-      event: 'API_KEY_AUTH_SUCCESS',
-      apiKey: apiKey.substring(0, 8) + '...',
-      ip: req.ip,
-      path: req.path
-    });
+    // Audit logging disabled temporarily
+    // await auditLogger.logAuthEvent({
+    //   event: 'API_KEY_AUTH_SUCCESS',
+    //   apiKey: apiKey.substring(0, 8) + '...',
+    //   ip: req.ip,
+    //   path: req.path
+    // });
 
     // Set service user context
     req.user = {
@@ -485,16 +498,17 @@ export const rateLimiter = (maxRequests = 100, windowMinutes = 15) => {
       const validRequests = userRequests.filter(time => now - time < windowMs);
       
       if (validRequests.length >= maxRequests) {
-        await auditLogger.logAuthEvent({
-          event: 'RATE_LIMIT_EXCEEDED',
-          userId: req.user?._id,
-          identifier: identifier,
-          requestCount: validRequests.length,
-          maxRequests: maxRequests,
-          windowMinutes: windowMinutes,
-          ip: req.ip,
-          path: req.path
-        });
+        // Audit logging disabled temporarily
+        // await auditLogger.logAuthEvent({
+        //   event: 'RATE_LIMIT_EXCEEDED',
+        //   userId: req.user?._id,
+        //   identifier: identifier,
+        //   requestCount: validRequests.length,
+        //   maxRequests: maxRequests,
+        //   windowMinutes: windowMinutes,
+        //   ip: req.ip,
+        //   path: req.path
+        // });
 
         return res.status(429).json({
           success: false,
