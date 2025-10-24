@@ -28,10 +28,7 @@ const LoginPage: React.FC = () => {
       // Debug logging to see what's returned
       console.log('✅ Login result received:', loginResult);
       console.log('🔍 Login result details:', {
-        hasToken: !!loginResult?.token,
-        hasUser: !!loginResult?.user,
         hasRedirectTo: !!loginResult?.redirectTo,
-        userRole: (loginResult as any)?.user?.primaryRole,
         redirectTo: loginResult?.redirectTo
       });
 
