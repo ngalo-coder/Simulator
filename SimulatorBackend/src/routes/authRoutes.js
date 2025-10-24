@@ -273,16 +273,16 @@ router.post('/logout',
   requireAuth,
   async (req, res) => {
   try {
-    // Log logout event
-    await auditLogger.logAuthEvent({
-      event: 'LOGOUT_SUCCESS',
-      userId: req.user._id,
-      username: req.user.username,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      path: req.path,
-      method: req.method
-    });
+    // Log logout event (disabled)
+    // await auditLogger.logAuthEvent({
+    //   event: 'LOGOUT_SUCCESS',
+    //   userId: req.user._id,
+    //   username: req.user.username,
+    //   ip: req.ip,
+    //   userAgent: req.get('User-Agent'),
+    //   path: req.path,
+    //   method: req.method
+    // });
 
     res.json({
       success: true,
@@ -292,12 +292,12 @@ router.post('/logout',
   } catch (error) {
     console.error('Logout error:', error);
 
-    await auditLogger.logAuthEvent({
-      event: 'LOGOUT_ERROR',
-      userId: req.user?._id,
-      error: error.message,
-      ip: req.ip
-    });
+    // await auditLogger.logAuthEvent({
+    //   event: 'LOGOUT_ERROR',
+    //   userId: req.user?._id,
+    //   error: error.message,
+    //   ip: req.ip
+    // });
 
     res.status(500).json({
       success: false,
@@ -349,12 +349,12 @@ router.post('/refresh',
     const user = await User.findById(req.user._id);
 
     if (!user || !user.isActive) {
-      await auditLogger.logAuthEvent({
-        event: 'TOKEN_REFRESH_FAILED',
-        reason: 'USER_NOT_FOUND_OR_INACTIVE',
-        userId: req.user._id,
-        ip: req.ip
-      });
+      // await auditLogger.logAuthEvent({
+      //   event: 'TOKEN_REFRESH_FAILED',
+      //   reason: 'USER_NOT_FOUND_OR_INACTIVE',
+      //   userId: req.user._id,
+      //   ip: req.ip
+      // });
 
       return res.status(401).json({
         success: false,
@@ -375,13 +375,13 @@ router.post('/refresh',
 
     const newToken = jwt.sign(tokenPayload, jwtSecret, { expiresIn: jwtExpiresIn });
 
-    await auditLogger.logAuthEvent({
-      event: 'TOKEN_REFRESHED',
-      userId: user._id,
-      username: user.username,
-      ip: req.ip,
-      userAgent: req.get('User-Agent')
-    });
+    // await auditLogger.logAuthEvent({
+    //   event: 'TOKEN_REFRESHED',
+    //   userId: user._id,
+    //   username: user.username,
+    //   ip: req.ip,
+    //   userAgent: req.get('User-Agent')
+    // });
 
     // Return updated user data
     const userResponse = user.toObject();
@@ -398,12 +398,12 @@ router.post('/refresh',
   } catch (error) {
     console.error('Token refresh error:', error);
 
-    await auditLogger.logAuthEvent({
-      event: 'TOKEN_REFRESH_ERROR',
-      userId: req.user?._id,
-      error: error.message,
-      ip: req.ip
-    });
+    // await auditLogger.logAuthEvent({
+    //   event: 'TOKEN_REFRESH_ERROR',
+    //   userId: req.user?._id,
+    //   error: error.message,
+    //   ip: req.ip
+    // });
 
     res.status(500).json({
       success: false,
@@ -664,14 +664,14 @@ router.post('/change-password',
       const isCurrentPasswordValid = await user.comparePassword(currentPassword);
 
       if (!isCurrentPasswordValid) {
-        await auditLogger.logAuthEvent({
-          event: 'PASSWORD_CHANGE_FAILED',
-          reason: 'INVALID_CURRENT_PASSWORD',
-          userId: user._id,
-          username: user.username,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        });
+        // await auditLogger.logAuthEvent({
+        //   event: 'PASSWORD_CHANGE_FAILED',
+        //   reason: 'INVALID_CURRENT_PASSWORD',
+        //   userId: user._id,
+        //   username: user.username,
+        //   ip: req.ip,
+        //   userAgent: req.get('User-Agent')
+        // });
 
         return res.status(400).json({
           success: false,
@@ -691,13 +691,13 @@ router.post('/change-password',
       user.password = newPassword;
       await user.save();
 
-      await auditLogger.logAuthEvent({
-        event: 'PASSWORD_CHANGED',
-        userId: user._id,
-        username: user.username,
-        ip: req.ip,
-        userAgent: req.get('User-Agent')
-      });
+      // await auditLogger.logAuthEvent({
+      //   event: 'PASSWORD_CHANGED',
+      //   userId: user._id,
+      //   username: user.username,
+      //   ip: req.ip,
+      //   userAgent: req.get('User-Agent')
+      // });
 
       res.json({
         success: true,
@@ -707,12 +707,12 @@ router.post('/change-password',
     } catch (error) {
       console.error('Change password error:', error);
 
-      await auditLogger.logAuthEvent({
-        event: 'PASSWORD_CHANGE_ERROR',
-        userId: req.user?._id,
-        error: error.message,
-        ip: req.ip
-      });
+      // await auditLogger.logAuthEvent({
+      //   event: 'PASSWORD_CHANGE_ERROR',
+      //   userId: req.user?._id,
+      //   error: error.message,
+      //   ip: req.ip
+      // });
 
       res.status(500).json({
         success: false,
@@ -856,17 +856,17 @@ router.get('/admin/export-logs',
       });
     }
 
-    await auditLogger.logAuthEvent({
-      event: 'AUDIT_LOGS_EXPORTED',
-      userId: req.user._id,
-      username: req.user.username,
-      metadata: {
-        format,
-        recordCount: logs.length,
-        filters
-      },
-      ip: req.ip
-    });
+    // await auditLogger.logAuthEvent({
+    //   event: 'AUDIT_LOGS_EXPORTED',
+    //   userId: req.user._id,
+    //   username: req.user.username,
+    //   metadata: {
+    //     format,
+    //     recordCount: logs.length,
+    //     filters
+    //   },
+    //   ip: req.ip
+    // });
 
   } catch (error) {
     console.error('Export audit logs error:', error);
@@ -934,16 +934,16 @@ router.post('/admin/cleanup-logs',
 
     const deletedCount = await auditLogger.cleanupOldLogs(maxAgeDays);
 
-    await auditLogger.logAuthEvent({
-      event: 'AUDIT_LOGS_CLEANED',
-      userId: req.user._id,
-      username: req.user.username,
-      metadata: {
-        maxAgeDays,
-        deletedCount
-      },
-      ip: req.ip
-    });
+    // await auditLogger.logAuthEvent({
+    //   event: 'AUDIT_LOGS_CLEANED',
+    //   userId: req.user._id,
+    //   username: req.user.username,
+    //   metadata: {
+    //     maxAgeDays,
+    //     deletedCount
+    //   },
+    //   ip: req.ip
+    // });
 
     res.json({
       success: true,

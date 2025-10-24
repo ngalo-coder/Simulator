@@ -103,15 +103,14 @@ class AuditLoggerService {
     };
 
     this.maxLogAge = 90; // days
-    this.batchSize = 25; // Further reduced to prevent memory issues
+    this.batchSize = 100; // Increased to reduce database operations
     this.logQueue = [];
-    this.maxQueueSize = 100; // Maximum queue size before forced flush
-    this.flushInterval = 5000; // 5 seconds for more frequent flushes
+    this.maxQueueSize = 500; // Increased to allow more logs before forced flush
+    this.flushInterval = 30000; // 30 seconds (not used, but kept for reference)
     this.lastGCTime = Date.now();
     this.gcInterval = 30000; // Force GC every 30 seconds
 
-    // Start periodic flush and memory management
-    this.startPeriodicFlush();
+    // Start memory management only (no periodic flushing)
     this.startMemoryManagement();
   }
 
@@ -147,10 +146,11 @@ class AuditLoggerService {
         await this.flushLogs();
       }
 
-      // If this is a critical event, flush immediately
-      if (logEntry.severity === 'critical') {
+      // Only flush for critical events or if queue is full
+      if (logEntry.severity === 'critical' || this.logQueue.length >= this.maxQueueSize) {
         await this.flushLogs();
       }
+      // Non-critical events are queued but not automatically flushed
 
       // Check for suspicious patterns (disabled temporarily to fix login hanging)
       // this.checkSuspiciousActivity(logEntry).catch(error => {
@@ -203,7 +203,7 @@ class AuditLoggerService {
       const logsToFlush = [...this.logQueue];
       this.logQueue = [];
 
-      const chunkSize = 25; // Process in smaller batches
+      const chunkSize = 100; // Process in batches matching batchSize
       for (let i = 0; i < logsToFlush.length; i += chunkSize) {
         const chunk = logsToFlush.slice(i, i + chunkSize);
         await AuditLog.insertMany(chunk);
@@ -227,14 +227,7 @@ class AuditLoggerService {
     }
   }
 
-  /**
-   * Start periodic log flushing
-   */
-  startPeriodicFlush() {
-    setInterval(async () => {
-      await this.flushLogs();
-    }, this.flushInterval);
-  }
+
 
   /**
    * Start memory management to prevent memory leaks

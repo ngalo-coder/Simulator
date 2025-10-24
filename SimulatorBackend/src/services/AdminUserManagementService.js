@@ -209,18 +209,18 @@ class AdminUserManagementService {
 
       await user.save();
 
-      // Log user creation
-      await auditLogger.logAuthEvent({
-        event: 'USER_CREATED',
-        userId: user._id,
-        username: user.username,
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          createdUserRole: user.primaryRole,
-          createdUserDiscipline: user.discipline
-        }
-      });
+      // Log user creation (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'USER_CREATED',
+      //   userId: user._id,
+      //   username: user.username,
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     createdUserRole: user.primaryRole,
+      //     createdUserDiscipline: user.discipline
+      //   }
+      // });
 
       // Return user without password
       const userResponse = user.toObject();
@@ -291,18 +291,18 @@ class AdminUserManagementService {
 
       await user.save();
 
-      // Log user update
-      await auditLogger.logAuthEvent({
-        event: 'USER_UPDATED',
-        userId: user._id,
-        username: user.username,
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          originalData,
-          updatedFields: Object.keys(updateData)
-        }
-      });
+      // Log user update (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'USER_UPDATED',
+      //   userId: user._id,
+      //   username: user.username,
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     originalData,
+      //     updatedFields: Object.keys(updateData)
+      //   }
+      // });
 
       // Return user without password
       const userResponse = user.toObject();
@@ -346,18 +346,18 @@ class AdminUserManagementService {
 
       await User.findByIdAndDelete(userId);
 
-      // Log user deletion
-      await auditLogger.logAuthEvent({
-        event: 'USER_DELETED',
-        userId: userId,
-        username: user.username,
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          deletedUserRole: user.primaryRole,
-          deletedUserDiscipline: user.discipline
-        }
-      });
+      // Log user deletion (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'USER_DELETED',
+      //   userId: userId,
+      //   username: user.username,
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     deletedUserRole: user.primaryRole,
+      //     deletedUserDiscipline: user.discipline
+      //   }
+      // });
 
       return true;
     } catch (error) {
@@ -380,17 +380,17 @@ class AdminUserManagementService {
         { isActive: isActive }
       );
 
-      // Log bulk operation
-      await auditLogger.logAuthEvent({
-        event: 'BULK_USER_STATUS_UPDATE',
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          userIds,
-          isActive,
-          modifiedCount: result.modifiedCount
-        }
-      });
+      // Log bulk operation (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'BULK_USER_STATUS_UPDATE',
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     userIds,
+      //     isActive,
+      //     modifiedCount: result.modifiedCount
+      //   }
+      // });
 
       return {
         success: true,
@@ -428,18 +428,18 @@ class AdminUserManagementService {
         updateOperation
       );
 
-      // Log bulk role assignment
-      await auditLogger.logAuthEvent({
-        event: 'BULK_ROLE_ASSIGNMENT',
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          userIds,
-          role,
-          operation,
-          modifiedCount: result.modifiedCount
-        }
-      });
+      // Log bulk role assignment (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'BULK_ROLE_ASSIGNMENT',
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     userIds,
+      //     role,
+      //     operation,
+      //     modifiedCount: result.modifiedCount
+      //   }
+      // });
 
       return {
         success: true,
@@ -469,16 +469,16 @@ class AdminUserManagementService {
       // Convert to CSV format
       const csvData = this.convertUsersToCSV(users);
 
-      // Log export operation
-      await auditLogger.logAuthEvent({
-        event: 'USERS_EXPORTED',
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: {
-          filters,
-          exportedCount: users.length
-        }
-      });
+      // Log export operation (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'USERS_EXPORTED',
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: {
+      //     filters,
+      //     exportedCount: users.length
+      //   }
+      // });
 
       return csvData;
     } catch (error) {
@@ -533,13 +533,13 @@ class AdminUserManagementService {
         }
       }
 
-      // Log import operation
-      await auditLogger.logAuthEvent({
-        event: 'USERS_IMPORTED',
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username,
-        metadata: results
-      });
+      // Log import operation (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'USERS_IMPORTED',
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username,
+      //   metadata: results
+      // });
 
       return results;
     } catch (error) {
@@ -624,14 +624,14 @@ class AdminUserManagementService {
       user.password = newPassword;
       await user.save();
 
-      // Log password reset
-      await auditLogger.logAuthEvent({
-        event: 'PASSWORD_RESET_BY_ADMIN',
-        userId: user._id,
-        username: user.username,
-        adminUserId: adminUser._id,
-        adminUsername: adminUser.username
-      });
+      // Log password reset (disabled)
+      // await auditLogger.logAuthEvent({
+      //   event: 'PASSWORD_RESET_BY_ADMIN',
+      //   userId: user._id,
+      //   username: user.username,
+      //   adminUserId: adminUser._id,
+      //   adminUsername: adminUser.username
+      // });
 
       return true;
     } catch (error) {
