@@ -5,6 +5,7 @@ import PerformanceMetrics from '../models/PerformanceMetricsModel.js';
 import ClinicianProgress from '../models/ClinicianProgressModel.js';
 import caseTemplateService from '../services/CaseTemplateService.js';
 import caseManagementService from '../services/CaseManagementService.js';
+import * as adminService from '../services/adminService.js';
 import { protect, isAdmin } from '../middleware/jwtAuthMiddleware.js';
 import AnalyticsService from '../services/AnalyticsService.js';
 import fs from 'fs';
@@ -273,7 +274,8 @@ router.get('/users/statistics', protect, isAdmin, async (req, res) => {
 // Get users with performance scores
 router.get('/users/scores', protect, isAdmin, async (req, res) => {
   try {
-    // ... existing users scores code ...
+    const usersWithScores = await adminService.getUsersWithScoresForAdmin();
+    res.json({ success: true, users: usersWithScores });
   } catch (error) {
     console.error('Error fetching users with scores:', error);
     res.status(500).json({ error: 'Failed to fetch users with scores' });

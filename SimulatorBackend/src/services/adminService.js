@@ -118,21 +118,16 @@ export async function deleteCaseForAdmin(caseId) {
 
 export async function getUsersWithScoresForAdmin() {
     const users = await User.find({}).select('-password');
+
+    // Aggregate performance metrics per user
     const performanceMetrics = await PerformanceMetrics.aggregate([
         { $match: { user_ref: { $exists: true } } },
         {
             $group: {
                 _id: '$user_ref',
-                averageScore: {
-                    $avg: {
-                        $cond: {
-                            if: { $ne: ['$metrics.overall_score', null] },
-                            then: '$metrics.overall_score',
-                            else: 0
-                        }
-                    }
-                },
-                casesCompleted: { $sum: 1 }
+                avgScore: { $avg: { $ifNull: ['$metrics.overall_score', 0] } },
+                totalCases: { $sum: 1 },
+                excellentCount: { $sum: { $cond: [{ $gte: ['$metrics.overall_score', 85] }, 1, 0] } }
             }
         }
     ]);
@@ -140,22 +135,27 @@ export async function getUsersWithScoresForAdmin() {
     const userMetricsMap = new Map();
     performanceMetrics.forEach(metric => {
         userMetricsMap.set(metric._id.toString(), {
-            averageScore: Math.round(metric.averageScore || 0),
-            casesCompleted: metric.casesCompleted || 0
+            averageScore: Math.round(metric.avgScore || 0),
+            totalCases: metric.totalCases || 0,
+            excellentCount: metric.excellentCount || 0
         });
     });
 
     const usersWithScores = users.map(user => {
         const userId = user._id.toString();
-        const metrics = userMetricsMap.get(userId) || { averageScore: 0, casesCompleted: 0 };
+        const metrics = userMetricsMap.get(userId) || { averageScore: 0, totalCases: 0, excellentCount: 0 };
+
+        const excellentRate = metrics.totalCases > 0 ? Math.round((metrics.excellentCount / metrics.totalCases) * 100) : 0;
 
         return {
             id: userId,
-            name: user.username,
+            username: user.username,
             email: user.email,
-            role: user.role,
+            role: user.primaryRole || user.role || 'student',
+            totalCases: metrics.totalCases,
             averageScore: metrics.averageScore,
-            casesCompleted: metrics.casesCompleted,
+            excellentCount: metrics.excellentCount,
+            excellentRate,
             createdAt: user.createdAt
         };
     });
