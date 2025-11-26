@@ -452,8 +452,8 @@ router.get('/programs/program-areas/counts-public', async (req, res) => {
     const Case = (await import('../models/CaseModel.js')).default;
 
     // Aggregate cases by program area
+    // Aggregate cases by program area across all cases (include all statuses)
     const programAreaCounts = await Case.aggregate([
-      { $match: { status: 'published' } },
       {
         $group: {
           _id: '$case_metadata.program_area',
