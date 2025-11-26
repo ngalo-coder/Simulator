@@ -181,12 +181,16 @@ export async function getSystemStatsForAdmin() {
 
     const totalSessions = await Session.countDocuments();
     const activeSessions = await Session.countDocuments({ sessionEnded: false });
+    // Count distinct active users (users who have at least one active session)
+    const activeUserIds = await Session.distinct('user', { sessionEnded: false, user: { $exists: true } });
+    const activeUsers = Array.isArray(activeUserIds) ? activeUserIds.filter(id => id).length : 0;
 
     const systemStats = {
         totalUsers,
         totalCases,
         totalSessions,
         activeSessions,
+        activeUsers,
         casesByDifficulty: {
             Beginner: beginnerCases,
             Intermediate: intermediateCases,
