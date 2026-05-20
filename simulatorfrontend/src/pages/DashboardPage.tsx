@@ -68,8 +68,8 @@ const DashboardPage: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Simple Welcome Section */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Welcome Student {user?.username}!
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          Welcome{user?.profile?.firstName ? ` ${user.profile.firstName}` : ''}!
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
           Ready to continue your medical training?
@@ -98,18 +98,22 @@ const DashboardPage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Simple Progress Summary */}
+                {/* Simple Progress Summary */}
         {progressData?.progress && (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your Progress</h3>
-            <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600">{progressData.progress.totalCasesCompleted}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">Cases Completed</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{progressData.progress.totalCasesCompleted}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">Cases Completed</div>
+                <div className="text-2xl font-bold text-purple-600">{progressData.progress.totalCasesAttempted}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">Cases Attempted</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{progressData.progress.overallAverageScore}%</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">Average Score</div>
               </div>
             </div>
           </div>

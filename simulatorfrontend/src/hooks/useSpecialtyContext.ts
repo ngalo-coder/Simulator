@@ -79,7 +79,9 @@ export const useSpecialtyContext = (): UseSpecialtyContextReturn => {
       // Use the improved cache with fallback
       const cachedData = await specialtyCache.getSpecialtyDataWithFallback(async () => {
         console.log('Fetching specialties from API (cache miss or expired)');
-        const categoriesData = await api.getCaseCategories();
+                const rawCategories = await api.getCaseCategories();
+        // Backend wraps result in { data: { specialties, specialty_counts, ... }, message: "..." }
+        const categoriesData = rawCategories?.data || rawCategories;
         const specialties = categoriesData.specialties || [];
         const specialtyCounts = categoriesData.specialty_counts || {};
 

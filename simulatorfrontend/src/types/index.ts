@@ -228,6 +228,8 @@ export interface CaseCategories {
   program_areas: string[];
   specialties: string[];
   specialized_areas: string[];
+  specialty_counts?: Record<string, number>;
+  program_area_counts?: Record<string, number>;
 }
 
 export interface SessionEndResponse {

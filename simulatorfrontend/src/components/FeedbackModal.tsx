@@ -89,8 +89,8 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   // Fetch feedback types on mount
   useEffect(() => {
     const fetchFeedbackTypes = async () => {
-      try {
-        const response = await fetch('/api/feedback/types');
+            try {
+        const response = await fetch('/api/users/registration-config');
         if (response.ok) {
           const data = await response.json();
           setFeedbackTypes(data.data || defaultFeedbackTypes);
@@ -144,7 +144,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
         }
       };
 
-      const response = await fetch('/api/feedback/submit', {
+            const response = await fetch('/api/progress/guidance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

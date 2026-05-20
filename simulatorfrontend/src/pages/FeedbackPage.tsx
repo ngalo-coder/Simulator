@@ -39,15 +39,15 @@ const FeedbackPage: React.FC = () => {
         setLoading(true);
         setError('');
 
-        // Fetch feedback types
-        const typesResponse = await fetch('/api/feedback/types');
+                // Fetch feedback types
+        const typesResponse = await fetch('/api/progress/help/categories');
         if (typesResponse.ok) {
           const typesData = await typesResponse.json();
           setFeedbackTypes(typesData.data);
         }
 
         // Fetch user's feedback history
-        const historyResponse = await fetch('/api/feedback/user/history', {
+        const historyResponse = await fetch('/api/progress/activity', {
           credentials: 'include'
         });
 

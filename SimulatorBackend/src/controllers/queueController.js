@@ -1,111 +1,169 @@
-import * as queueService from '../services/queueService.js';
-import { handleSuccess, handleError } from '../utils/responseHandler.js';
+import Session from '../models/SessionModel.js';
+import Case from '../models/CaseModel.js';
 import logger from '../config/logger.js';
 
+/**
+ * Start a queue session for the user
+ */
 export async function startQueueSession(req, res) {
-    const log = req.log.child({ userId: req.user.id, filters: req.body.filters });
-    try {
-        const { filters } = req.body;
-        if (!filters || typeof filters !== 'object') {
-            log.warn('Start queue session failed: Filters object is required.');
-            return res.status(400).json({ message: 'Filters object is required.' });
-        }
-        const result = await queueService.startQueueSession(req.user.id, filters);
-        log.info('Queue session started successfully.');
-        handleSuccess(res, result);
-    } catch (error) {
-        log.error(error, 'Error starting queue session.');
-        handleError(res, error, log);
+  try {
+    const userId = req.user._id;
+    const { caseId } = req.body;
+
+    // Find existing active session or create new one
+    let session = await Session.findOne({
+      user_ref: userId,
+      status: 'active'
+    }).sort({ createdAt: -1 });
+
+    if (!session) {
+      session = await Session.create({
+        user_ref: userId,
+        case_ref: caseId,
+        status: 'active',
+        startedAt: new Date()
+      });
     }
+
+    res.json({
+      success: true,
+      sessionId: session._id,
+      status: session.status
+    });
+  } catch (error) {
+    logger.error('Error starting queue session:', error);
+    res.status(500).json({ success: false, error: 'Failed to start queue session' });
+  }
 }
 
+/**
+ * Get the next case in the queue
+ */
 export async function getNextCaseInQueue(req, res) {
-    const log = req.log.child({ userId: req.user.id, sessionId: req.params.sessionId });
-    try {
-        const { sessionId } = req.params;
-        const { previousCaseId, previousCaseStatus } = req.body;
-        if (!sessionId) {
-            log.warn('Get next case failed: Session ID is required.');
-            return res.status(400).json({ message: 'Session ID is required.' });
-        }
-        const result = await queueService.getNextCaseInQueue(req.user.id, sessionId, previousCaseId, previousCaseStatus);
-        log.info('Fetched next case in queue successfully.');
-        handleSuccess(res, result);
-    } catch (error) {
-        log.error(error, 'Error getting next case in queue.');
-        handleError(res, error, log);
+  try {
+    const { sessionId } = req.params;
+    const session = await Session.findById(sessionId).populate('case_ref');
+
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
     }
+
+    // Return the current case or find next available
+    const caseData = session.case_ref;
+
+    res.json({
+      success: true,
+      case: caseData
+    });
+  } catch (error) {
+    logger.error('Error getting next case in queue:', error);
+    res.status(500).json({ success: false, error: 'Failed to get next case' });
+  }
 }
 
+/**
+ * Mark case status (completed, skipped, paused)
+ */
 export async function markCaseStatus(req, res) {
-    const log = req.log.child({ userId: req.user.id, originalCaseIdString: req.params.originalCaseIdString });
-    try {
-        const { originalCaseIdString } = req.params;
-        const { status, filterContext, sessionId } = req.body;
+  try {
+    const { originalCaseIdString } = req.params;
+    const { status, notes } = req.body;
 
-        if (!originalCaseIdString) {
-            log.warn('Mark case status failed: Case ID is required.');
-            return res.status(400).json({ message: 'Case ID (originalCaseIdString) is required in URL parameters.' });
-        }
-        if (!status || !['completed', 'skipped'].includes(status)) {
-            log.warn('Mark case status failed: Invalid status.');
-            return res.status(400).json({ message: 'Invalid status. Must be "completed" or "skipped".' });
-        }
-        if (!filterContext || typeof filterContext !== 'object') {
-            log.warn('Mark case status failed: filterContext object is required.');
-            return res.status(400).json({ message: 'filterContext object is required.' });
-        }
-
-        const result = await queueService.markCaseStatus(req.user.id, originalCaseIdString, status, filterContext, sessionId);
-        log.info('Successfully marked case status.');
-        handleSuccess(res, {
-            message: `Case status updated to ${status} successfully.`,
-            progress: result,
-        });
-    } catch (error) {
-        log.error(error, 'Error marking case status.');
-        handleError(res, error, log);
+    const validStatuses = ['completed', 'skipped', 'paused'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status' });
     }
+
+    const session = await Session.findOneAndUpdate(
+      { 'case_ref': originalCaseIdString },
+      { status, notes, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Case not found' });
+    }
+
+    res.json({ success: true, data: session });
+  } catch (error) {
+    logger.error('Error marking case status:', error);
+    res.status(500).json({ success: false, error: 'Failed to update case status' });
+  }
 }
 
+/**
+ * Get queue session details
+ */
 export async function getQueueSession(req, res) {
-    const log = req.log.child({ userId: req.user.id, sessionId: req.params.sessionId });
-    try {
-        const { sessionId } = req.params;
-        
-        if (!sessionId) {
-            log.warn('Get queue session failed: Session ID is required.');
-            return res.status(400).json({ message: 'Session ID is required.' });
-        }
+  try {
+    const { sessionId } = req.params;
+    const session = await Session.findById(sessionId)
+      .populate('case_ref')
+      .populate('user_ref', 'username email');
 
-        const result = await queueService.getQueueSession(req.user.id, sessionId);
-        log.info('Fetched queue session successfully.');
-        handleSuccess(res, result);
-    } catch (error) {
-        log.error(error, 'Error getting queue session.');
-        handleError(res, error, log);
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
     }
+
+    res.json({
+      success: true,
+      sessionId: session._id,
+      userId: session.user_ref?._id,
+      status: session.status,
+      currentCaseIndex: 0,
+      totalCases: 1,
+      startedAt: session.createdAt,
+      completedAt: session.updatedAt,
+      cases: session.case_ref ? [session.case_ref] : []
+    });
+  } catch (error) {
+    logger.error('Error getting queue session:', error);
+    res.status(500).json({ success: false, error: 'Failed to get queue session' });
+  }
 }
 
+/**
+ * Get user's case history
+ */
 export async function getCaseHistory(req, res) {
-    const log = req.log.child({ userId: req.user.id, targetUserId: req.params.userId });
-    try {
-        // If userId is provided in params, use it (for admin), otherwise use current user
-        const targetUserId = req.params.userId || req.user.id;
-        
-        // If requesting another user's history, check if current user is admin
-        if (req.params.userId && req.params.userId !== req.user.id) {
-            if (!req.user.isAdmin) {
-                log.warn('Get case history failed: Insufficient permissions.');
-                return res.status(403).json({ message: 'Insufficient permissions to view other users\' case history.' });
-            }
-        }
+  try {
+    const userId = req.params.userId || req.user._id;
 
-        const result = await queueService.getCaseHistory(targetUserId);
-        log.info('Fetched case history successfully.');
-        handleSuccess(res, result);
-    } catch (error) {
-        log.error(error, 'Error getting case history.');
-        handleError(res, error, log);
+    // Check permissions
+    if (userId !== req.user._id.toString() && req.user.primaryRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
     }
+
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const sessions = await Session.find({ user_ref: userId })
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .populate('case_ref', 'case_metadata.title case_metadata.case_id')
+      .lean();
+
+    const totalCount = await Session.countDocuments({ user_ref: userId });
+
+    const history = sessions.map(session => ({
+      caseId: session.case_ref?.case_metadata?.case_id || session._id,
+      caseTitle: session.case_ref?.case_metadata?.title || 'Unknown Case',
+      status: session.status,
+      completedAt: session.updatedAt,
+      duration: session.updatedAt && session.createdAt
+        ? (new Date(session.updatedAt) - new Date(session.createdAt)) / 1000
+        : 0
+    }));
+
+    res.json({
+      success: true,
+      history,
+      totalCount,
+      hasMore: offset + limit < totalCount
+    });
+  } catch (error) {
+    logger.error('Error getting case history:', error);
+    res.status(500).json({ success: false, error: 'Failed to get case history' });
+  }
 }

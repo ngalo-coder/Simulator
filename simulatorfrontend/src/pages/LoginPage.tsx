@@ -17,37 +17,14 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     setError('');
 
-    try {
-      // Debug logging - Step 1: Form submission started
-      console.log('🔐 Login attempt started');
-      console.log('📧 Email:', email);
-      console.log('🔑 Password length:', password.length);
-
+        try {
       const loginResult = await login(email, password);
-
-      // Debug logging to see what's returned
-      console.log('✅ Login result received:', loginResult);
-      console.log('🔍 Login result details:', {
-        hasRedirectTo: !!loginResult?.redirectTo,
-        redirectTo: loginResult?.redirectTo
-      });
-
-      // Use the redirectTo from backend response, fallback to dashboard for students
       const destination = loginResult?.redirectTo || '/dashboard';
-      console.log('🎯 Redirecting to:', destination);
-
       navigate(destination);
     } catch (err) {
-      console.error('❌ Login error occurred:', err);
-      console.error('❌ Error details:', {
-        message: err instanceof Error ? err.message : 'Unknown error',
-        stack: err instanceof Error ? err.stack : undefined,
-        type: typeof err
-      });
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
-      console.log('🔄 Login process completed');
     }
   };
 
@@ -118,14 +95,24 @@ const LoginPage: React.FC = () => {
                   required
                   aria-describedby="passwordHelp"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-medical-500 rounded-medical-md p-1"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  <span className="text-lg">{showPassword ? '🙈' : '👁️'}</span>
-                </button>
+                                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-medical-500 rounded-md p-1"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                        <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
               </div>
               <p id="passwordHelp" className="mt-2 text-xs text-gray-500">Enter your account password</p>
             </div>
@@ -167,11 +154,11 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Help Section */}
-        <div className="bg-medical-50 rounded-medical-lg p-6 border border-medical-200">
+                {/* Help Section */}
+        <div className="bg-medical-50 rounded-xl p-6 border border-medical-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-3 text-center">Need Help?</h3>
           <p className="text-gray-600 text-sm mb-4 text-center">
-            Having trouble signing in? We're here to help you get back to learning.
+            Having trouble signing in? We are here to help you get back to learning.
           </p>
           <div className="space-y-3 text-center">
             <Link
@@ -189,24 +176,25 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Demo Account Info */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <span className="text-yellow-400 text-lg">💡</span>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">Try Demo Account</h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>Want to explore first? Use these demo credentials:</p>
-                <p className="mt-1 font-mono text-xs bg-yellow-100 p-2 rounded">
-                  Email: demo@simuatech.com<br />
-                  Password: demo123
-                </p>
+        {/* Hint Cards - hidden in production */}
+        {import.meta.env.DEV && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Dev Demo Account</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>Email: demo@simuatech.com</p>
+                  <p className="font-mono text-xs bg-yellow-100 p-2 rounded mt-1">Password: demo123</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

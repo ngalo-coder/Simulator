@@ -1,0 +1,10 @@
+file:///C:/Users/User/Documents/Simulator/SimulatorBackend/src/routes/learningPathRoutes.js:10
+  adjustPathDifficulty
+  ^^^^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module '../controllers/learningPathController.js' does not provide an export named 'adjustPathDifficulty'
+[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:228:21)[39m
+[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:337:5)[39m
+[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)[39m
+[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)[39m
+
+Node.js v22.20.0

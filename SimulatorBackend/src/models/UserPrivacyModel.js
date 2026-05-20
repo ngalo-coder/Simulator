@@ -6,42 +6,80 @@ const UserPrivacySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true
+      unique: true,
+      index: true
     },
-    showInLeaderboard: {
-      type: Boolean,
-      default: true
+    dataCollection: {
+      enabled: {
+        type: Boolean,
+        default: true
+      },
+      categories: [{
+        category: String,
+        enabled: Boolean
+      }]
     },
-    showRealName: {
-      type: Boolean,
-      default: false
+    dataSharing: {
+      withEducators: {
+        type: Boolean,
+        default: true
+      },
+      withPeers: {
+        type: Boolean,
+        default: false
+      },
+      withAnalytics: {
+        type: Boolean,
+        default: true
+      }
     },
-    shareProgressWithEducators: {
-      type: Boolean,
-      default: true
+    dataRetention: {
+      automaticDeletion: {
+        type: Boolean,
+        default: false
+      },
+      retentionPeriodDays: {
+        type: Number,
+        sparse: true
+      }
     },
-    allowAnonymousAnalytics: {
-      type: Boolean,
-      default: true
+    gdprCompliance: {
+      consentGiven: {
+        type: Boolean,
+        default: false
+      },
+      consentDate: {
+        type: Date,
+        sparse: true
+      },
+      dataExportRequested: {
+        type: Boolean,
+        default: false
+      },
+      dataExportRequestDate: {
+        type: Date,
+        sparse: true
+      },
+      deletionRequested: {
+        type: Boolean,
+        default: false
+      },
+      deletionRequestDate: {
+        type: Date,
+        sparse: true
+      }
     },
-    dataRetentionPeriod: {
-      type: String,
-      enum: ['forever', '1year', '2years', '5years'],
-      default: '2years'
-    },
-    profileVisibility: {
-      type: String,
-      enum: ['public', 'educators', 'private'],
-      default: 'educators'
-    }
+    auditLog: [{
+      action: String,
+      timestamp: Date,
+      changedBy: String
+    }]
   },
   {
+    collection: 'user_privacy',
     timestamps: true
   }
 );
-
-// Index for faster queries
-UserPrivacySchema.index({ userId: 1 });
 
 const UserPrivacy = mongoose.model('UserPrivacy', UserPrivacySchema);
 

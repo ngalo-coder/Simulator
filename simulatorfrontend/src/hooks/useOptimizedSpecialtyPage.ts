@@ -55,7 +55,7 @@ interface UseOptimizedSpecialtyPageReturn {
   handlePageChange: (newPage: number) => void;
   clearAllFilters: () => void;
   hasActiveFilters: () => boolean;
-  handleStartSimulation: (case_: Case) => Promise<void>;
+  handleStartSimulation: (case_: Case) => Promise<any>;
   retryFetch: () => void;
 }
 
@@ -203,7 +203,7 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
         Object.entries(apiFilters).filter(([_, value]) => value !== undefined && value !== '')
       );
 
-      const response = await api.getCases(cleanFilters);
+            const rawResponse = await api.getCases(cleanFilters);
       endApiCall();
 
       // Check if request was aborted
@@ -211,15 +211,18 @@ export const useOptimizedSpecialtyPage = (): UseOptimizedSpecialtyPageReturn => 
         return;
       }
 
-      if (response && response.cases && Array.isArray(response.cases)) {
-        setCases(response.cases);
+            // Handle wrapped response format { data: { cases, ... }, message: "..." }
+      const responseData: any = rawResponse?.data || rawResponse;
+      
+      if (responseData && responseData.cases && Array.isArray(responseData.cases)) {
+        setCases(responseData.cases);
         setCasesResponse({
-          cases: response.cases,
-          currentPage: response.currentPage || filters.page,
-          totalPages: response.totalPages || 1,
-          totalCases: response.totalCases || response.cases.length,
-          hasNextPage: response.hasNextPage || false,
-          hasPrevPage: response.hasPrevPage || false
+          cases: responseData.cases,
+          currentPage: responseData.currentPage || filters.page,
+          totalPages: responseData.totalPages || 1,
+          totalCases: responseData.totalCases || responseData.cases.length,
+          hasNextPage: responseData.hasNextPage || false,
+          hasPrevPage: responseData.hasPrevPage || false
         });
       } else {
         setCases([]);

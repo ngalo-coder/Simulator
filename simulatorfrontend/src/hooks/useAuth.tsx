@@ -3,9 +3,17 @@ import { api } from '../services/apiService';
 
 interface User {
   id: string;
+  _id?: string;
   username: string;
   email: string;
-  role: 'user' | 'admin';
+  role: string;
+  primaryRole?: string;
+  discipline?: string;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    institution?: string;
+  };
 }
 
 interface AuthContextType {
@@ -88,20 +96,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(interval);
   }, [user]);
 
-  const login = async (email: string, password: string) => {
-    console.log('🔐 useAuth.login called with:', { email, passwordLength: password.length });
-
+    const login = async (email: string, password: string) => {
     try {
       const response = await api.login(email, password);
-      console.log('🔐 useAuth.login - API response received:', response);
-
       const { token, user, redirectTo } = response;
-      console.log('🔐 useAuth.login - Extracted data:', {
-        hasToken: !!token,
-        hasUser: !!user,
-        hasRedirectTo: !!redirectTo,
-        userRole: user?.primaryRole
-      });
 
       // Ensure user object has the correct role structure
       const userWithRole = {
@@ -109,15 +107,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: user.primaryRole || user.role || 'user'
       };
 
-      console.log('🔐 useAuth.login - Setting localStorage');
       localStorage.setItem('authToken', token);
       localStorage.setItem('currentUser', JSON.stringify(userWithRole));
       setUser(userWithRole);
 
-      console.log('🔐 useAuth.login - Login successful, returning:', { redirectTo });
       return { redirectTo };
     } catch (error) {
-      console.error('🔐 useAuth.login - Error occurred:', error);
       throw error;
     }
   };

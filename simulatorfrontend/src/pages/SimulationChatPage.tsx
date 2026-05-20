@@ -732,7 +732,7 @@ const SimulationChatPage: React.FC = () => {
         token,
       });
 
-      const eventSourceUrl = `${import.meta.env.VITE_API_URL}/api/simulation/ask?${queryParams.toString()}`;
+      const eventSourceUrl = `${import.meta.env.VITE_API_URL}/api/simulations/ask?${queryParams.toString()}`;
       console.log('🔗 Creating EventSource connection to:', eventSourceUrl);
 
       const eventSource = new EventSource(eventSourceUrl);

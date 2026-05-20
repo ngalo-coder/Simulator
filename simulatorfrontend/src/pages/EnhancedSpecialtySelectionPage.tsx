@@ -109,6 +109,7 @@ const SimpleProgramCard: React.FC<{
 };
 
 
+
 const EnhancedSpecialtySelectionPage: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -119,7 +120,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   // State management
   const [step, setStep] = useState<'program' | 'specialty'>('program');
   const [selectedProgramArea, setSelectedProgramArea] = useState<string>('');
-  const [specialtyVisibility, setSpecialtyVisibility] = useState<Record<string, { isVisible: boolean; programArea: string }>>({});
+  const [specialtyVisibility, setSpecialtyVisibility] = useState<Record<string, { isVisible: boolean; programAreas: string[] }>>({});
 
   // Program areas counts from backend
   const [programAreaCounts, setProgramAreaCounts] = useState<Record<string, number>>({});
@@ -131,13 +132,13 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const programAreaConfig = useMemo(() => {
     const config: Record<string, any> = {};
 
-    // Get ALL specialties from visibility data (not just those in static config)
+        // Get ALL specialties from visibility data (not just those in static config)
     const basicSpecialtyIds = Object.entries(specialtyVisibility)
-      .filter(([_, vis]) => vis.isVisible && vis.programArea === 'Basic Program')
+      .filter(([_, vis]) => vis.isVisible && vis.programAreas.includes('Basic Program'))
       .map(([id]) => id);
 
     const specialtySpecialtyIds = Object.entries(specialtyVisibility)
-      .filter(([_, vis]) => vis.isVisible && vis.programArea === 'Specialty Program')
+      .filter(([_, vis]) => vis.isVisible && vis.programAreas.includes('Specialty Program'))
       .map(([id]) => id);
 
     console.log('Basic specialties from visibility:', basicSpecialtyIds);
@@ -240,34 +241,69 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     loadProgramAreasCounts();
   }, []);
 
-  const loadProgramAreasCounts = async () => {
-    try {
-      const resp = await api.getAdminProgramAreasWithCounts();
-      // Backend may return { data: { programAreas: [...] } } or { programAreas: [...] }
-      const areas = resp?.data?.programAreas || resp?.programAreas || [];
-      const counts: Record<string, number> = {};
-      areas.forEach((pa: any) => {
-        const name = pa.name || pa._id || pa.id;
-        counts[name] = typeof pa.casesCount === 'number' ? pa.casesCount : (pa.caseCount || 0);
-      });
-      console.log('Program area counts loaded:', counts);
-      setProgramAreaCounts(counts);
-    } catch (error) {
-      console.warn('Could not load program area counts', error);
-      // Set fallback counts based on database knowledge
-      setProgramAreaCounts({
-        'Basic Program': 78,
-        'Specialty Program': 33
-      });
-    }
-  };
+        const loadProgramAreasCounts = async () => {
+          try {
+            const resp = await api.getAdminProgramAreasWithCounts();
+            // Backend may return { data: { programAreas: [...] } } or { programAreas: [...] }
+            const areas = resp?.data?.programAreas || resp?.programAreas || [];
+            if (areas.length > 0) {
+              const counts: Record<string, number> = {};
+              areas.forEach((pa: any) => {
+                const name = pa.name || pa._id || pa.id;
+                counts[name] = typeof pa.casesCount === 'number' ? pa.casesCount : (pa.caseCount || 0);
+              });
+              console.log('Program area counts loaded from backend:', counts);
+              setProgramAreaCounts(counts);
+            } else {
+              // No areas returned - try backup via case categories (cast to any for the non-typed field)
+              const categories: any = await api.getCaseCategories();
+              const backupCounts = categories?.program_area_counts || categories?.data?.program_area_counts || {};
+              if (Object.keys(backupCounts).length > 0) {
+                setProgramAreaCounts(backupCounts);
+              } else {
+                setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
+              }
+            }
+          } catch (error) {
+            console.warn('Could not load program area counts from primary endpoint:', error);
+            // Try backup: get counts from the case categories endpoint
+            try {
+              const categories: any = await api.getCaseCategories();
+              const backupCounts = categories?.program_area_counts || categories?.data?.program_area_counts || {};
+              if (Object.keys(backupCounts).length > 0) {
+                console.log('Program area counts loaded from backup:', backupCounts);
+                setProgramAreaCounts(backupCounts);
+              } else {
+                setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
+              }
+            } catch (backupError) {
+              console.warn('Backup count fetch also failed:', backupError);
+              // Final fallback: show 0 until backend is available
+              setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
+            }
+          }
+        };
 
 
   const loadSpecialtyVisibility = async () => {
-    try {
+        try {
       const response = await api.getSpecialtyVisibility();
       console.log('Raw visibility response from backend:', response);
-      const visibilityMap: Record<string, { isVisible: boolean; programArea: string }> = {};
+
+      // Extract specialties from response - handle both { data: { specialties } } and { specialties }
+      const specialties = response?.data?.specialties || response?.specialties || [];
+
+      if (specialties.length === 0) {
+        console.warn('No specialties found in visibility response');
+                const defaultVisibility: Record<string, { isVisible: boolean; programAreas: string[] }> = {};
+        getAvailableSpecialties().forEach(specialty => {
+          defaultVisibility[specialty.id] = { isVisible: false, programAreas: ['Basic Program'] };
+        });
+        setSpecialtyVisibility(defaultVisibility);
+        return;
+      }
+
+      const visibilityMap: Record<string, { isVisible: boolean; programAreas: string[] }> = {};
 
       // Normalize program area from backend format to frontend format
       const normalizeProgramArea = (area: string) => {
@@ -288,39 +324,42 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         frontendByNormalizedName[normalize(s.name)] = s;
       });
 
-      response.specialties.forEach((setting: any) => {
-        const normalizedProgramArea = normalizeProgramArea(setting.programArea);
+      specialties.forEach((setting: any) => {
+        // Get program areas (array) from backend response, or fall back to single programArea
+        const rawAreas = setting.programAreas || (setting.programArea ? [setting.programArea] : []);
+        const normalizedAreas = rawAreas.map((a: string) => normalizeProgramArea(a));
         
-        console.log(`Processing specialty: ${setting.specialtyId}, visible: ${setting.isVisible}, programArea: ${setting.programArea} -> ${normalizedProgramArea}`);
-        
-        // Always map the raw backend specialtyId as a source of truth
-        visibilityMap[setting.specialtyId] = {
-          isVisible: setting.isVisible,
-          programArea: normalizedProgramArea
+        // Helper to set or merge into visibilityMap for a given key
+        const mergeIntoMap = (key: string) => {
+          if (visibilityMap[key]) {
+            // Merge program areas so specialties in "all" keep both
+            for (const area of normalizedAreas) {
+              if (!visibilityMap[key].programAreas.includes(area)) {
+                visibilityMap[key].programAreas.push(area);
+              }
+            }
+          } else {
+            visibilityMap[key] = {
+              isVisible: setting.isVisible,
+              programAreas: [...normalizedAreas]
+            };
+          }
         };
 
+        mergeIntoMap(setting.specialtyId);
+
         // Also try to map the backend id to a frontend config id so the UI uses frontend IDs
-        // backend id may already be a normalized name or may match frontend id
         const normalized = normalize(setting.specialtyId);
         if (frontendById[setting.specialtyId]) {
-          visibilityMap[frontendById[setting.specialtyId].id] = {
-            isVisible: setting.isVisible,
-            programArea: normalizedProgramArea
-          };
+          mergeIntoMap(frontendById[setting.specialtyId].id);
         } else if (frontendByNormalizedName[setting.specialtyId]) {
-          visibilityMap[frontendByNormalizedName[setting.specialtyId].id] = {
-            isVisible: setting.isVisible,
-            programArea: normalizedProgramArea
-          };
+          mergeIntoMap(frontendByNormalizedName[setting.specialtyId].id);
         } else if (frontendByNormalizedName[normalized]) {
-          visibilityMap[frontendByNormalizedName[normalized].id] = {
-            isVisible: setting.isVisible,
-            programArea: normalizedProgramArea
-          };
+          mergeIntoMap(frontendByNormalizedName[normalized].id);
         }
       });
 
-      // Set defaults for specialties not in the response
+            // Set defaults for specialties not in the response
       getAvailableSpecialties().forEach(specialty => {
         if (!visibilityMap[specialty.id]) {
           // If the backend did not report this specialty, assume it is hidden by default
@@ -328,7 +367,7 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
           console.warn(`Specialty visibility missing from backend response for id= ${specialty.id}; defaulting to hidden.`);
           visibilityMap[specialty.id] = {
             isVisible: false,
-            programArea: 'Basic Program' // Default to Basic Program when unknown
+            programAreas: ['Basic Program'] // Default to Basic Program when unknown
           };
         }
       });
@@ -337,12 +376,12 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
       setSpecialtyVisibility(visibilityMap);
     } catch (error) {
       console.error('Error loading specialty visibility:', error);
-      // Set default visibility for all specialties - don't override with phase-based logic
-      const defaultVisibility: Record<string, { isVisible: boolean; programArea: string }> = {};
+            // Set default visibility for all specialties - don't override with phase-based logic
+      const defaultVisibility: Record<string, { isVisible: boolean; programAreas: string[] }> = {};
       getAvailableSpecialties().forEach(specialty => {
         defaultVisibility[specialty.id] = {
           isVisible: false,
-          programArea: 'Basic Program' // Default to Basic Program for error cases
+          programAreas: ['Basic Program'] // Default to Basic Program for error cases
         };
       });
       setSpecialtyVisibility(defaultVisibility);
