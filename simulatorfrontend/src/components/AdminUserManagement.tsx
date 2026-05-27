@@ -330,51 +330,13 @@ const AdminUserManagement: React.FC = () => {
   };
 
   // Export/Import functionality
-  const handleExportUsers = async (format: 'csv' | 'json' = 'csv') => {
-    try {
-      const response = await api.exportUsers({
-        role: filters.role || undefined,
-        status: filters.status || undefined
-      });
-
-      const blob = new Blob([response], { type: format === 'csv' ? 'text/csv' : 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `users-export-${new Date().toISOString().split('T')[0]}.${format}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export error:', error);
-      setError('Failed to export users. Please try again.');
-    }
+  // TODO: Backend endpoints for user export/import not yet implemented
+  const handleExportUsers = () => {
+    setError('User export functionality is not yet available. Please contact your administrator.');
   };
 
   const handleImportUsers = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        try {
-          const response = await api.importUsers(file);
-          if (response.success) {
-            // Refresh the users list
-            fetchUsers();
-            setError(null);
-          } else {
-            setError('Import failed. Please check the file format.');
-          }
-        } catch (error) {
-          console.error('Import error:', error);
-          setError('Failed to import users. Please try again.');
-        }
-      }
-    };
-    input.click();
+    setError('User import functionality is not yet available. Please contact your administrator.');
   };
 
   const getRoleColor = (role: string) => {
@@ -435,9 +397,10 @@ const AdminUserManagement: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="flex bg-white/10 backdrop-blur-sm rounded-xl p-1 gap-1">
                 <button
-                  onClick={() => handleExportUsers('csv')}
-                  className="px-4 py-2 text-sm bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-200 flex items-center gap-2"
-                  title="Export to CSV"
+                  onClick={() => handleExportUsers()}
+                  disabled
+                  className="px-4 py-2 text-sm bg-white/10 text-white/50 rounded-lg cursor-not-allowed transition-all duration-200 flex items-center gap-2 opacity-50"
+                  title="Export to CSV (Coming soon)"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -445,9 +408,10 @@ const AdminUserManagement: React.FC = () => {
                   CSV
                 </button>
                 <button
-                  onClick={() => handleExportUsers('json')}
-                  className="px-4 py-2 text-sm bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-200 flex items-center gap-2"
-                  title="Export to JSON"
+                  onClick={() => handleExportUsers()}
+                  disabled
+                  className="px-4 py-2 text-sm bg-white/10 text-white/50 rounded-lg cursor-not-allowed transition-all duration-200 flex items-center gap-2 opacity-50"
+                  title="Export to JSON (Coming soon)"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -456,8 +420,9 @@ const AdminUserManagement: React.FC = () => {
                 </button>
                 <button
                   onClick={handleImportUsers}
-                  className="px-4 py-2 text-sm bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-200 flex items-center gap-2"
-                  title="Import from CSV"
+                  disabled
+                  className="px-4 py-2 text-sm bg-white/10 text-white/50 rounded-lg cursor-not-allowed transition-all duration-200 flex items-center gap-2 opacity-50"
+                  title="Import from CSV (Coming soon)"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 13l3 3m0 0l3-3m-3 3V8m0 0L9 11m3-3l3 3" />

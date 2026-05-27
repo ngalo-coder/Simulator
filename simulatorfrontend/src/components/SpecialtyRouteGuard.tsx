@@ -50,9 +50,14 @@ const SpecialtyRouteGuard: React.FC<SpecialtyRouteGuardProps> = ({ children }) =
       }
 
       try {
-        // Fetch available specialties from the API to validate
+
+
+
+                // Fetch available specialties from the API to validate
         const categories = await api.getCaseCategories();
-        const availableSpecialties = categories.specialties || [];
+        // Backend wraps result in { data: { specialties, ... } } or { specialties, ... }
+        const categoriesData = categories?.data || categories;
+        const availableSpecialties = categoriesData.specialties || [];
         
         // Convert slug back to specialty name and check if it exists
         const specialtyName = slugToSpecialty(specialty);

@@ -2,6 +2,9 @@
  * Legacy API service adapter
  * @deprecated Use domain-specific services from './index' instead.
  * Kept for backward compatibility with existing components.
+ *
+ * UPDATED: Removed non-existent backend endpoint mappings.
+ * See: frontend-optimization-plan.md
  */
 
 import { authService } from './authService';
@@ -62,7 +65,6 @@ export const api = {
   updateUser: (id: string, d: any) => userService.updateUser(id, d),
   deleteUser: (id: string) => userService.deleteUser(id),
   getUserProgress: () => performanceService.getPerformanceData(),
-  getProgressRecommendations: () => httpClient.get('/api/progress/guidance'),
 
   getPrivacySettings: () => httpClient.get<{ success: boolean; data: any }>('/api/privacy/settings'),
   updatePrivacySettings: (s: any) => httpClient.put<{ success: boolean; data: any }>('/api/privacy/settings', s),
@@ -83,44 +85,33 @@ export const api = {
   calculateImprovement: (oId: string, rId: string) => simulationService.calculateImprovement(oId, rId),
   calculateImprovementMetrics: (oId: string, rId: string) => simulationService.calculateImprovement(oId, rId),
 
-  getPerformanceData: () => performanceService.getPerformanceData(),
+  getPerformanceData: (userId?: string) => performanceService.getPerformanceData(userId),
   getLeaderboard: (p?: any) => performanceService.getLeaderboard(p),
-  getMetrics: (uId: string) => performanceService.getPerformanceSummary(uId),
   evaluate: (sId: string) => performanceService.evaluate(sId),
-  getFeedback: (sId?: string) => performanceService.searchHelp('feedback'),
   submitFeedback: (d: any) => httpClient.post('/api/feedback', d),
 
-  getAdminStats: () => adminService.getStats(),
-  getSystemStats: () => adminService.getStats(),
+  getAdminStats: (comprehensive?: boolean) => adminService.getDashboardStats(comprehensive),
+  getSystemStats: (comprehensive?: boolean) => adminService.getDashboardStats(comprehensive),
+  getAdminUserStats: (p?: any) => adminService.getDashboardStats(), // Alias for dashboard stats
   getAdminUsers: (p?: any) => adminService.getUsers(p),
-  getAdminUserStats: (p?: any) => adminService.getStats(),
   updateAdminUser: (id: string, d: any) => adminService.updateUser(id, d),
   deleteAdminUser: (id: string) => adminService.deleteUser(id),
   updateUserRole: (id: string, d: any) => adminService.updateUser(id, d),
   updateUserStatus: (id: string, d: any) => adminService.updateUser(id, d),
-  getPrograms: () => adminService.getPrograms(),
-  createProgram: (d: any) => adminService.createProgram(d),
-  updateProgram: (id: string, d: any) => adminService.updateProgram(id, d),
-  deleteProgram: (id: string) => adminService.deleteProgram(id),
-  getContributions: (p?: any) => adminService.getContributions(p),
-  approveContribution: (id: string) => adminService.approveContribution(id),
-  rejectContribution: (id: string, r?: string) => adminService.rejectContribution(id, r),
   getAuditLogs: (p?: any) => adminService.getAuditLogs(p),
-  exportUsers: async (filters?: any) => { throw new Error('Not implemented'); },
   importUsers: async (csvFile: File) => { throw new Error('Not implemented'); },
 
   getUsersWithScores: (p?: any) => userService.getUsers(p),
-  getAdminCaseTemplates: () => simulationService.getCases(),
-  createAdminCase: (d: any) => simulationService.startSimulation(d),
-  getAdminCases: () => simulationService.getCases(),
-  deleteAdminCase: (id: string) => simulationService.endSession(id),
   getTimeUntilExpiry: () => {
     const expiry = api.getTokenExpiryTime();
     return expiry ? expiry - Date.now() : null;
   },
+
+  // Specialty visibility - kept (backend endpoint verified)
   getSpecialtyVisibility: () =>
     httpClient.get<{ success: boolean; data: { specialties: Array<{ specialtyId: string; isVisible: boolean; programAreas: string[]; programArea?: string; lastModified: string }> } }>('/api/admin/specialties/visibility-public'),
-  updateSpecialtyVisibility: (s: any) => adminService.updateSpecialtyVisibility(s),
+  updateSpecialtyVisibility: (s: any) =>
+    httpClient.put<{ success: boolean; data: any; message: string }>('/api/admin/specialties/visibility', { specialties: s }),
   getAdminProgramAreasWithCounts: () =>
     httpClient.get<{ success: boolean; data: { programAreas: Array<{ name: string; casesCount: number }> } }>('/api/admin/programs/program-areas/counts-public'),
   getSpecialtyContext: () => {

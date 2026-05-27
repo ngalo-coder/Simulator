@@ -122,8 +122,10 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
   const [selectedProgramArea, setSelectedProgramArea] = useState<string>('');
   const [specialtyVisibility, setSpecialtyVisibility] = useState<Record<string, { isVisible: boolean; programAreas: string[] }>>({});
 
-  // Program areas counts from backend
+    // Program areas counts from backend
   const [programAreaCounts, setProgramAreaCounts] = useState<Record<string, number>>({});
+  // Specialty case counts from backend
+  const [specialtyCounts, setSpecialtyCounts] = useState<Record<string, number>>({});
 
   // Simple search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,28 +193,27 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     return config;
   }, [specialtyVisibility, programAreaCounts]);
 
-  // Get specialties for selected program area
+    // Get specialties for selected program area
   const programSpecialties = useMemo(() => {
     if (!selectedProgramArea) return [];
 
     const config = programAreaConfig[selectedProgramArea as keyof typeof programAreaConfig];
     if (!config) return [];
 
-    // Map specialty IDs to configs, creating default configs for specialties not in static config
+        // Map specialty IDs to configs, creating default configs for specialties not in static config
     return config.specialties.map((id: string) => {
       // Try to get from static config first
       const staticConfig = getSpecialtyConfig(id);
-      if (staticConfig) return staticConfig;
-
-      // Create a default config for backend specialties not in static config
-      const displayName = id.split('_').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-
-      return {
+      
+      // Build the config with actual backend case count
+      const baseConfig = staticConfig || {
         id,
-        name: displayName,
-        description: `Specialized medical cases in ${displayName}`,
+        name: id.split('_').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' '),
+        description: `Specialized medical cases in ${id.split('_').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ')}`,
         color: '#6B7280',
         icon: '🏥',
         caseCount: 0,
@@ -221,8 +222,18 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         phase: 'current' as const,
         category: 'secondary' as const
       };
-    }).filter(Boolean) as SpecialtyConfig[];
-  }, [selectedProgramArea, programAreaConfig]);
+
+            // Override case count with actual backend data (0 if not in backend counts)
+      const caseCount = specialtyCounts[id] || specialtyCounts[baseConfig.name] || 0;
+      return {
+        ...baseConfig,
+        caseCount
+      };
+    })
+      // Only show specialties that have cases in the database
+      .filter((specialty: any) => specialty.caseCount > 0)
+      .filter(Boolean) as SpecialtyConfig[];
+  }, [selectedProgramArea, programAreaConfig, specialtyCounts]);
 
 
   // Filter specialties based on search term
@@ -235,52 +246,34 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
     );
   }, [programSpecialties, searchTerm]);
 
-  // Load specialty visibility and program area counts
+    // Load specialty visibility and program area counts
   useEffect(() => {
     loadSpecialtyVisibility();
-    loadProgramAreasCounts();
+    loadCountsFromCategories();
   }, []);
 
-        const loadProgramAreasCounts = async () => {
+        const loadCountsFromCategories = async () => {
           try {
-            const resp = await api.getAdminProgramAreasWithCounts();
-            // Backend may return { data: { programAreas: [...] } } or { programAreas: [...] }
-            const areas = resp?.data?.programAreas || resp?.programAreas || [];
-            if (areas.length > 0) {
-              const counts: Record<string, number> = {};
-              areas.forEach((pa: any) => {
-                const name = pa.name || pa._id || pa.id;
-                counts[name] = typeof pa.casesCount === 'number' ? pa.casesCount : (pa.caseCount || 0);
-              });
-              console.log('Program area counts loaded from backend:', counts);
-              setProgramAreaCounts(counts);
+            const categories: any = await api.getCaseCategories();
+            const data = categories?.data || categories;
+            
+            // Program area counts
+            const areaCounts = data?.program_area_counts || {};
+            if (Object.keys(areaCounts).length > 0) {
+              setProgramAreaCounts(areaCounts);
             } else {
-              // No areas returned - try backup via case categories (cast to any for the non-typed field)
-              const categories: any = await api.getCaseCategories();
-              const backupCounts = categories?.program_area_counts || categories?.data?.program_area_counts || {};
-              if (Object.keys(backupCounts).length > 0) {
-                setProgramAreaCounts(backupCounts);
-              } else {
-                setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
-              }
-            }
-          } catch (error) {
-            console.warn('Could not load program area counts from primary endpoint:', error);
-            // Try backup: get counts from the case categories endpoint
-            try {
-              const categories: any = await api.getCaseCategories();
-              const backupCounts = categories?.program_area_counts || categories?.data?.program_area_counts || {};
-              if (Object.keys(backupCounts).length > 0) {
-                console.log('Program area counts loaded from backup:', backupCounts);
-                setProgramAreaCounts(backupCounts);
-              } else {
-                setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
-              }
-            } catch (backupError) {
-              console.warn('Backup count fetch also failed:', backupError);
-              // Final fallback: show 0 until backend is available
               setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
             }
+
+            // Specialty-level case counts
+            const specCounts = data?.specialty_counts || {};
+            if (Object.keys(specCounts).length > 0) {
+              console.log('Specialty counts loaded from backend:', specCounts);
+              setSpecialtyCounts(specCounts);
+            }
+          } catch (error) {
+            console.warn('Could not load counts from categories endpoint:', error);
+            setProgramAreaCounts({ 'Basic Program': 0, 'Specialty Program': 0 });
           }
         };
 
@@ -324,38 +317,35 @@ const EnhancedSpecialtySelectionPage: React.FC = () => {
         frontendByNormalizedName[normalize(s.name)] = s;
       });
 
-      specialties.forEach((setting: any) => {
+            specialties.forEach((setting: any) => {
         // Get program areas (array) from backend response, or fall back to single programArea
         const rawAreas = setting.programAreas || (setting.programArea ? [setting.programArea] : []);
         const normalizedAreas = rawAreas.map((a: string) => normalizeProgramArea(a));
         
-        // Helper to set or merge into visibilityMap for a given key
-        const mergeIntoMap = (key: string) => {
-          if (visibilityMap[key]) {
-            // Merge program areas so specialties in "all" keep both
-            for (const area of normalizedAreas) {
-              if (!visibilityMap[key].programAreas.includes(area)) {
-                visibilityMap[key].programAreas.push(area);
-              }
-            }
-          } else {
-            visibilityMap[key] = {
-              isVisible: setting.isVisible,
-              programAreas: [...normalizedAreas]
-            };
-          }
-        };
-
-        mergeIntoMap(setting.specialtyId);
-
-        // Also try to map the backend id to a frontend config id so the UI uses frontend IDs
+        // Determine the best frontend ID to use as the visibilityMap key.
+        // Only use ONE key per specialty to avoid duplicating tiles.
         const normalized = normalize(setting.specialtyId);
+        let mapKey = setting.specialtyId;
         if (frontendById[setting.specialtyId]) {
-          mergeIntoMap(frontendById[setting.specialtyId].id);
+          mapKey = frontendById[setting.specialtyId].id;
         } else if (frontendByNormalizedName[setting.specialtyId]) {
-          mergeIntoMap(frontendByNormalizedName[setting.specialtyId].id);
+          mapKey = frontendByNormalizedName[setting.specialtyId].id;
         } else if (frontendByNormalizedName[normalized]) {
-          mergeIntoMap(frontendByNormalizedName[normalized].id);
+          mapKey = frontendByNormalizedName[normalized].id;
+        }
+
+        // Set or merge program areas (in case the backend sends the same specialty with multiple entries)
+        if (visibilityMap[mapKey]) {
+          for (const area of normalizedAreas) {
+            if (!visibilityMap[mapKey].programAreas.includes(area)) {
+              visibilityMap[mapKey].programAreas.push(area);
+            }
+          }
+        } else {
+          visibilityMap[mapKey] = {
+            isVisible: setting.isVisible,
+            programAreas: [...normalizedAreas]
+          };
         }
       });
 

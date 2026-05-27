@@ -1,17 +1,31 @@
 /**
  * Admin API services
  * Uses the unified /api/users, /api/dashboard, /api/cases, /api/analytics resource endpoints.
+ *
+ * UPDATED: Removed non-existent backend endpoints:
+ * - adminResetPassword, getAdminStatistics, exportUsers, getPrograms,
+ *   createProgram, updateProgram, deleteProgram, getContributions,
+ *   approveContribution, rejectContribution, getSpecialtyVisibility,
+ *   updateSpecialtyVisibility, getAdminProgramAreasWithCounts
+ *
+ * Consolidated: getStats / getComprehensiveStats -> unified getDashboardStats
+ *
+ * See: frontend-optimization-plan.md
  */
 import { httpClient } from './httpClient';
 
 export const adminService = {
   // ── Dashboard / Stats ──
 
-  getStats: () =>
-    httpClient.get<{ success: boolean; data: any }>('/api/dashboard/stats'),
-
-  getComprehensiveStats: () =>
-    httpClient.get<{ success: boolean; data: any }>('/api/dashboard'),
+  /**
+   * Unified dashboard stats method.
+   * If comprehensive is true, fetches full dashboard data.
+   * Otherwise, fetches basic stats.
+   */
+  getDashboardStats: (comprehensive: boolean = false) =>
+    comprehensive
+      ? httpClient.get<{ success: boolean; data: any }>('/api/dashboard')
+      : httpClient.get<{ success: boolean; data: any }>('/api/dashboard/stats'),
 
   // ── User Management (via /api/users) ──
 
@@ -33,45 +47,6 @@ export const adminService = {
   deleteUser: (userId: string) =>
     httpClient.delete<{ success: boolean; message: string }>(`/api/users/${userId}`),
 
-  adminResetPassword: (userId: string, newPassword: string) =>
-    httpClient.post<{ success: boolean; message: string }>(`/api/users/admin/reset-password/${userId}`, { newPassword }),
-
-  getAdminStatistics: () =>
-    httpClient.get<{ success: boolean; statistics: any }>('/api/users/admin/statistics'),
-
-  exportUsers: (filters?: Record<string, any>) => {
-    const searchParams = new URLSearchParams(filters || {});
-    const qs = searchParams.toString();
-    return httpClient.get<Blob>(`/api/users/admin/export${qs ? `?${qs}` : ''}`);
-  },
-
-  // ── Programs Management ──
-
-  getPrograms: () =>
-    httpClient.get<{ success: boolean; data: any[] }>('/api/admin/programs'),
-
-  createProgram: (data: any) =>
-    httpClient.post<{ success: boolean; data: any }>('/api/admin/programs', data),
-
-  updateProgram: (programId: string, data: any) =>
-    httpClient.put<{ success: boolean; data: any }>(`/api/admin/programs/${programId}`, data),
-
-  deleteProgram: (programId: string) =>
-    httpClient.delete<{ success: boolean; message: string }>(`/api/admin/programs/${programId}`),
-
-  // ── Contributions ──
-
-  getContributions: (params?: { status?: string }) => {
-    const qs = params?.status ? `?status=${params.status}` : '';
-    return httpClient.get<{ success: boolean; data: any[] }>(`/api/admin/contributions${qs}`);
-  },
-
-  approveContribution: (contributionId: string) =>
-    httpClient.post<{ success: boolean; message: string }>(`/api/admin/contributions/${contributionId}/approve`),
-
-  rejectContribution: (contributionId: string, reason?: string) =>
-    httpClient.post<{ success: boolean; message: string }>(`/api/admin/contributions/${contributionId}/reject`, { reason }),
-
   // ── Audit Logs (via /api/auth) ──
 
   getAuditLogs: (params?: { page?: number; limit?: number; event?: string }) => {
@@ -82,17 +57,7 @@ export const adminService = {
     const qs = searchParams.toString();
     return httpClient.get<{ success: boolean; logs: any[] }>(`/api/auth/admin/audit-logs${qs ? `?${qs}` : ''}`);
   },
-
-  // ── Specialty Visibility ──
-
-  getSpecialtyVisibility: () =>
-    httpClient.get<{ success: boolean; data: { specialties: Array<{ specialtyId: string; isVisible: boolean; programArea: string; lastModified: string; modifiedBy: string }> } }>('/api/admin/specialties/visibility'),
-
-  updateSpecialtyVisibility: (specialties: Array<{ specialtyId: string; isVisible: boolean; programArea?: string }>) =>
-    httpClient.put<{ success: boolean; data: any; message: string }>('/api/admin/specialties/visibility', { specialties }),
-
-  getAdminProgramAreasWithCounts: () =>
-    httpClient.get<{ success: boolean; data: { programAreas: Array<{ name: string; casesCount: number }> } }>('/api/admin/programs/program-areas/counts'),
 };
 
 export default adminService;
+
