@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { usePermission } from '../hooks/usePermission';
 import { useSpecialtyContext } from '../hooks/useSpecialtyContext';
+import { Protected } from './Protected';
 import ThemeToggle from './ThemeToggle';
 import { Button } from './ui';
 import { Badge } from './ui';
@@ -72,8 +74,10 @@ const Navbar: React.FC = () => {
     }
   ];
 
+    const { isAdmin } = usePermission();
+
   const filteredNavigationItems = navigationItems.filter(item =>
-    !item.adminOnly || user?.role === 'admin'
+    !item.adminOnly || isAdmin
   );
 
   return (
@@ -175,11 +179,11 @@ const Navbar: React.FC = () => {
                     </div>
                   </div>
 
-                  {user.role === 'admin' && (
+                                    <Protected minRole="admin">
                     <Badge variant="secondary" size="sm">
                       Admin
                     </Badge>
-                  )}
+                  </Protected>
 
                   <Button
                     variant="ghost"

@@ -1,17 +1,27 @@
+/**
+ * ProtectedRoute – route-level guard.
+ * Supports `minRole` (hierarchical) or backwards-compatible `requireAdmin`.
+ */
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { usePermission, Role } from '../hooks/usePermission';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** Minimum role required to access this route */
+  minRole?: Role;
+  /** @deprecated Use minRole="admin" instead */
   requireAdmin?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false 
+  minRole,
+  requireAdmin,
 }) => {
   const { user, loading } = useAuth();
+  const { hasMinRole } = usePermission();
 
   if (loading) {
     return (
@@ -25,7 +35,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && user.role !== 'admin') {
+  // Support both new minRole and legacy requireAdmin
+  const effectiveMinRole: Role | undefined = requireAdmin ? 'admin' : minRole;
+
+  if (effectiveMinRole && !hasMinRole(effectiveMinRole)) {
     return <Navigate to="/dashboard" replace />;
   }
 

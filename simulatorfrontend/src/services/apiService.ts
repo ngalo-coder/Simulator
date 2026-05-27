@@ -81,6 +81,7 @@ export const api = {
   submitTreatmentPlan: (sId: string, p: any) => simulationService.submitTreatmentPlan(sId, p),
   getTreatmentOutcomes: (sId: string) => simulationService.getTreatmentOutcomes(sId),
   startRetakeSession: (cId: string, pSId?: string, r?: string) => simulationService.startRetakeSession(cId, pSId, r),
+  startRetakeSimulation: (cId: string, pSId?: string, r?: string) => simulationService.startRetakeSession(cId, pSId, r),
   getCaseRetakeSessions: (cId: string) => simulationService.getCaseRetakeSessions(cId),
   calculateImprovement: (oId: string, rId: string) => simulationService.calculateImprovement(oId, rId),
   calculateImprovementMetrics: (oId: string, rId: string) => simulationService.calculateImprovement(oId, rId),
@@ -89,10 +90,20 @@ export const api = {
   getLeaderboard: (p?: any) => performanceService.getLeaderboard(p),
   evaluate: (sId: string) => performanceService.evaluate(sId),
   submitFeedback: (d: any) => httpClient.post('/api/feedback', d),
+  endSimulation: (sessionId: string) => simulationService.endSession(sessionId),
 
   getAdminStats: (comprehensive?: boolean) => adminService.getDashboardStats(comprehensive),
   getSystemStats: (comprehensive?: boolean) => adminService.getDashboardStats(comprehensive),
-  getAdminUserStats: (p?: any) => adminService.getDashboardStats(), // Alias for dashboard stats
+  getAdminUserStats: () => adminService.getDashboardStats(), // Alias for dashboard stats
+  getAdminCaseTemplates: () => httpClient.get<{ success: boolean; templates: Array<{ discipline: string; metadata: any; template: any }> }>('/api/cases/templates'),
+  createAdminCase: (data: any) => httpClient.post<{ success: boolean; caseId: string; message?: string }>('/api/cases', data),
+  getAdminCases: (params?: Record<string, any>) => {
+    const sp = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') sp.set(k, String(v)); });
+    const qs = sp.toString();
+    return httpClient.get<{ success: boolean; cases: any[] }>('/api/cases' + (qs ? '?' + qs : ''));
+  },
+  deleteAdminCase: (caseId: string) => httpClient.delete<{ success: boolean; message: string }>('/api/cases/' + caseId),
   getAdminUsers: (p?: any) => adminService.getUsers(p),
   updateAdminUser: (id: string, d: any) => adminService.updateUser(id, d),
   deleteAdminUser: (id: string) => adminService.deleteUser(id),

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/apiService';
+import { Protected } from '../components/Protected';
 import PrivacySettingsModal from '../components/PrivacySettings';
 import DataExportModal from '../components/DataExportModal';
 
@@ -119,8 +120,8 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Admin Section */}
-        {user?.role === 'admin' && (
+                {/* Admin Section */}
+        <Protected minRole="admin">
           <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -135,7 +136,7 @@ const DashboardPage: React.FC = () => {
               </Link>
             </div>
           </div>
-        )}
+        </Protected>
       </div>
 
       {/* Modals */}
