@@ -191,7 +191,7 @@ export default function App() {
   return (
     <div>
       <header>
-        <h1>🩺 SimuaMed</h1>
+        <h1>🩺 Simuatech</h1>
         <p className="subtitle">Clinical Case Simulator</p>
       </header>
 
