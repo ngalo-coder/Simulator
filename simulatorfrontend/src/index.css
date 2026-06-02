@@ -1,589 +1,335 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-
-  :root {
-    color-scheme: light dark;
-    /* Medical Design System Variables */
-    --medical-primary: #2196F3;
-    --medical-primary-rgb: 33, 150, 243;
-    --emergency-primary: #F44336;
-    --emergency-primary-rgb: 244, 67, 54;
-    --stable-primary: #4CAF50;
-    --stable-primary-rgb: 76, 175, 80;
-    --warning-primary: #FFEB3B;
-    --warning-primary-rgb: 255, 235, 59;
-    --info-primary: #03A9F4;
-    --info-primary-rgb: 3, 169, 244;
-  }
-
-  html {
-    @apply scroll-smooth;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  }
-
-  body {
-    margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    @apply bg-white dark:bg-dark-surface text-gray-900 dark:text-dark-primary transition-colors duration-300;
-    line-height: 1.6;
-  }
-
-  /* Enhanced focus styles for accessibility */
-  *:focus {
-    outline: 2px solid var(--medical-primary);
-    outline-offset: 2px;
-  }
-
-  *:focus:not(:focus-visible) {
-    outline: none;
-  }
-
-  *:focus-visible {
-    outline: 2px solid var(--medical-primary);
-    outline-offset: 2px;
-  }
-
-  /* Smooth theme transitions */
-  *, *::before, *::after {
-    @apply transition-colors duration-200;
-  }
-
-  /* Medical scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-dark-surface;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-medical-400 dark:bg-medical-600 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-medical-500 dark:bg-medical-500;
-  }
-
-  /* Selection styling */
-  ::selection {
-    background-color: rgba(var(--medical-primary-rgb), 0.2);
-    color: var(--medical-primary);
-  }
-
-  /* Medical typography improvements */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
-    line-height: 1.2;
-  }
-
-  h1 {
-    @apply text-4xl md:text-5xl;
-  }
-
-  h2 {
-    @apply text-3xl md:text-4xl;
-  }
-
-  h3 {
-    @apply text-2xl md:text-3xl;
-  }
-
-  h4 {
-    @apply text-xl md:text-2xl;
-  }
-
-  h5 {
-    @apply text-lg md:text-xl;
-  }
-
-  h6 {
-    @apply text-base md:text-lg;
-  }
-
-  /* Medical button reset */
-  button {
-    @apply font-medium;
-  }
-
-  /* Medical input styling */
-  input, textarea, select {
-    @apply font-sans;
-  }
-
-  /* Medical link styling */
-  a {
-    @apply transition-colors duration-200;
-  }
-
-  /* Medical list styling */
-  ul, ol {
-    @apply pl-6;
-  }
-
-  ul {
-    @apply list-disc;
-  }
-
-  ol {
-    @apply list-decimal;
-  }
-
-  /* Medical code styling */
-  code, pre {
-    font-family: 'JetBrains Mono', 'Fira Code', Monaco, Consolas, monospace;
-  }
-
-  pre {
-    @apply overflow-x-auto p-4 rounded-lg bg-gray-100 dark:bg-dark-card;
-  }
-
-  code {
-    @apply bg-gray-100 dark:bg-dark-card px-1.5 py-0.5 rounded text-sm;
-  }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@layer components {
-  /* Medical Design System Components */
-
-  /* Medical Card Component */
-  .medical-card {
-    @apply bg-white dark:bg-dark-card rounded-xl shadow-medical border border-gray-200 dark:border-dark-border p-6 transition-all duration-300 hover:shadow-medical-lg;
-  }
-
-  .medical-card:hover {
-    @apply transform -translate-y-1;
-  }
-
-  /* Medical Button Components */
-  .btn-medical {
-    @apply inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .btn-medical-primary {
-    @apply btn-medical bg-medical-500 text-white hover:bg-medical-600 focus:ring-medical-500 shadow-medical hover:shadow-medical-lg transform hover:-translate-y-0.5;
-  }
-
-  .btn-medical-secondary {
-    @apply btn-medical bg-gray-100 dark:bg-dark-surface text-gray-700 dark:text-dark-primary hover:bg-gray-200 dark:hover:bg-dark-hover focus:ring-medical-500 border border-gray-300 dark:border-dark-border;
-  }
-
-  .btn-medical-danger {
-    @apply btn-medical bg-emergency-500 text-white hover:bg-emergency-600 focus:ring-emergency-500 shadow-emergency hover:shadow-emergency-lg;
-  }
-
-  .btn-medical-success {
-    @apply btn-medical bg-stable-500 text-white hover:bg-stable-600 focus:ring-stable-500 shadow-stable hover:shadow-stable-lg;
-  }
-
-  .btn-medical-warning {
-    @apply btn-medical bg-warning-500 text-white hover:bg-warning-600 focus:ring-warning-500 shadow-warning hover:shadow-warning-lg;
-  }
-
-  /* Medical Status Badges */
-  .status-badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-
-  .status-active {
-    @apply status-badge bg-stable-100 dark:bg-stable-900/30 text-stable-800 dark:text-stable-200;
-  }
-
-  .status-inactive {
-    @apply status-badge bg-gray-100 dark:bg-gray-800/30 text-gray-800 dark:text-gray-200;
-  }
-
-  .status-critical {
-    @apply status-badge bg-emergency-100 dark:bg-emergency-900/30 text-emergency-800 dark:text-emergency-200;
-  }
-
-  .status-warning {
-    @apply status-badge bg-warning-100 dark:bg-warning-900/30 text-warning-800 dark:text-warning-200;
-  }
-
-  .status-info {
-    @apply status-badge bg-info-100 dark:bg-info-900/30 text-info-800 dark:text-info-200;
-  }
-
-  /* Medical Loading States */
-  .medical-loading {
-    @apply animate-pulse bg-gray-200 dark:bg-dark-surface rounded;
-  }
-
-  .medical-skeleton {
-    @apply medical-loading;
-    height: 1rem;
-  }
-
-  .medical-skeleton-lg {
-    @apply medical-loading;
-    height: 2rem;
-  }
-
-  /* Medical Form Elements */
-  .medical-input {
-    @apply w-full px-3 py-2.5 border border-gray-300 dark:border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent bg-white dark:bg-dark-surface text-gray-900 dark:text-dark-primary transition-all duration-200;
-  }
-
-  .medical-input:disabled {
-    @apply bg-gray-50 dark:bg-dark-card cursor-not-allowed opacity-60;
-  }
-
-  .medical-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-dark-primary mb-2;
-  }
-
-  /* Medical Navigation */
-  .medical-nav {
-    @apply flex items-center space-x-1 bg-gray-100 dark:bg-dark-surface rounded-lg p-1;
-  }
-
-  .medical-nav-item {
-    @apply px-3 py-2 text-sm font-medium rounded-md transition-all duration-200;
-  }
-
-  .medical-nav-item.active {
-    @apply bg-white dark:bg-dark-card text-medical-700 dark:text-medical-300 shadow-sm;
-  }
-
-  .medical-nav-item.inactive {
-    @apply text-gray-600 dark:text-dark-secondary hover:text-gray-900 dark:hover:text-dark-primary hover:bg-gray-50 dark:hover:bg-dark-hover;
-  }
-
-  /* Medical Alert Components */
-  .medical-alert {
-    @apply p-4 rounded-lg border transition-all duration-200;
-  }
-
-  .medical-alert-info {
-    @apply medical-alert bg-info-50 dark:bg-info-900/20 border-info-200 dark:border-info-800 text-info-800 dark:text-info-200;
-  }
-
-  .medical-alert-success {
-    @apply medical-alert bg-stable-50 dark:bg-stable-900/20 border-stable-200 dark:border-stable-800 text-stable-800 dark:text-stable-200;
-  }
-
-  .medical-alert-warning {
-    @apply medical-alert bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200;
-  }
-
-  .medical-alert-error {
-    @apply medical-alert bg-emergency-50 dark:bg-emergency-900/20 border-emergency-200 dark:border-emergency-800 text-emergency-800 dark:text-emergency-200;
-  }
-
-  /* Medical Progress Bars */
-  .medical-progress {
-    @apply w-full bg-gray-200 dark:bg-dark-surface rounded-full h-2.5 overflow-hidden;
-  }
-
-  .medical-progress-bar {
-    @apply h-full bg-gradient-to-r from-medical-500 to-medical-600 rounded-full transition-all duration-300;
-  }
-
-  /* Medical Tooltips */
-  .medical-tooltip {
-    @apply absolute z-50 px-2 py-1 text-xs font-medium text-white bg-gray-900 dark:bg-dark-primary rounded shadow-lg opacity-0 pointer-events-none transition-opacity duration-200;
-  }
-
-  .medical-tooltip.show {
-    @apply opacity-100;
-  }
-
-  /* Medical Modals */
-  .medical-modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4 transition-opacity duration-200;
-  }
-
-  .medical-modal {
-    @apply bg-white dark:bg-dark-card rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transition-all duration-300 transform scale-95;
-  }
-
-  .medical-modal.show {
-    @apply scale-100;
-  }
-
-  .medical-modal-lg {
-    @apply max-w-4xl;
-  }
-
-  .medical-modal-xl {
-    @apply max-w-6xl;
-  }
-
-  /* Medical Tables */
-  .medical-table {
-    @apply min-w-full divide-y divide-gray-200 dark:divide-dark-border;
-  }
-
-  .medical-table th {
-    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-secondary uppercase tracking-wider;
-  }
-
-  .medical-table td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-dark-primary;
-  }
-
-  .medical-table tr {
-    @apply hover:bg-gray-50 dark:hover:bg-dark-hover transition-colors duration-200;
-  }
-
-  /* Medical Grid System */
-  .medical-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
-  }
-
-  .medical-grid-2 {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
-  }
-
-  .medical-grid-4 {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
-  }
-
-  /* Medical Animation Classes */
-  .animate-medical-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
-  }
-
-  .animate-medical-slide-up {
-    animation: fadeInUp 0.6s ease-out forwards;
-  }
-
-  .animate-medical-scale-in {
-    animation: scaleIn 0.2s ease-out forwards;
-  }
-
-  .animate-medical-pulse {
-    animation: pulseMedical 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* Medical Responsive Utilities */
-  .medical-hidden-mobile {
-    @apply hidden md:block;
-  }
-
-  .medical-hidden-desktop {
-    @apply block md:hidden;
-  }
-
-  .medical-text-responsive {
-    @apply text-sm md:text-base;
-  }
-
-  .medical-text-responsive-lg {
-    @apply text-base md:text-lg;
-  }
-
-  .medical-text-responsive-xl {
-    @apply text-lg md:text-xl;
-  }
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
 }
 
-@layer utilities {
-  /* Enhanced utility classes */
-
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .line-clamp-3 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .line-clamp-4 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
-  }
-
-  /* Medical gradient text */
-  .text-gradient-medical {
-    @apply bg-gradient-to-r from-medical-600 to-medical-800 bg-clip-text text-transparent;
-  }
-
-  .text-gradient-emergency {
-    @apply bg-gradient-to-r from-emergency-600 to-emergency-800 bg-clip-text text-transparent;
-  }
-
-  .text-gradient-stable {
-    @apply bg-gradient-to-r from-stable-600 to-stable-800 bg-clip-text text-transparent;
-  }
-
-  /* Medical glass effect */
-  .glass-medical {
-    @apply bg-white/80 dark:bg-dark-card/80 backdrop-blur-md border border-white/20 dark:border-dark-border/20;
-  }
-
-  .glass-medical-strong {
-    @apply bg-white/90 dark:bg-dark-card/90 backdrop-blur-lg border border-white/30 dark:border-dark-border/30;
-  }
-
-  /* Medical shadow utilities */
-  .shadow-medical {
-    box-shadow: 0 4px 6px -1px rgba(33, 150, 243, 0.1), 0 2px 4px -1px rgba(33, 150, 243, 0.06);
-  }
-
-  .shadow-medical-lg {
-    box-shadow: 0 10px 15px -3px rgba(33, 150, 243, 0.1), 0 4px 6px -2px rgba(33, 150, 243, 0.05);
-  }
-
-  .shadow-emergency {
-    box-shadow: 0 4px 6px -1px rgba(244, 67, 54, 0.1), 0 2px 4px -1px rgba(244, 67, 54, 0.06);
-  }
-
-  .shadow-emergency-lg {
-    box-shadow: 0 10px 15px -3px rgba(244, 67, 54, 0.1), 0 4px 6px -2px rgba(244, 67, 54, 0.05);
-  }
-
-  .shadow-stable {
-    box-shadow: 0 4px 6px -1px rgba(76, 175, 80, 0.1), 0 2px 4px -1px rgba(76, 175, 80, 0.06);
-  }
-
-  .shadow-stable-lg {
-    box-shadow: 0 10px 15px -3px rgba(76, 175, 80, 0.1), 0 4px 6px -2px rgba(76, 175, 80, 0.05);
-  }
-
-  .shadow-warning {
-    box-shadow: 0 4px 6px -1px rgba(255, 235, 59, 0.1), 0 2px 4px -1px rgba(255, 235, 59, 0.06);
-  }
-
-  .shadow-warning-lg {
-    box-shadow: 0 10px 15px -3px rgba(255, 235, 59, 0.1), 0 4px 6px -2px rgba(255, 235, 59, 0.05);
-  }
-
-  /* Medical border radius */
-  .rounded-medical {
-    @apply rounded-lg;
-  }
-
-  .rounded-medical-sm {
-    @apply rounded-md;
-  }
-
-  .rounded-medical-lg {
-    @apply rounded-xl;
-  }
-
-  .rounded-medical-xl {
-    @apply rounded-2xl;
-  }
-
-  /* Medical spacing */
-  .space-medical > * + * {
-    @apply mt-6;
-  }
-
-  .space-medical-sm > * + * {
-    @apply mt-4;
-  }
-
-  .space-medical-lg > * + * {
-    @apply mt-8;
-  }
-
-  /* Medical aspect ratios */
-  .aspect-medical {
-    @apply aspect-video;
-  }
-
-  .aspect-medical-square {
-    @apply aspect-square;
-  }
-
-  /* Medical z-index utilities */
-  .z-medical-dropdown {
-    z-index: 1000;
-  }
-
-  .z-medical-modal {
-    z-index: 1050;
-  }
-
-  .z-medical-tooltip {
-    z-index: 1100;
-  }
-
-  .z-medical-toast {
-    z-index: 1200;
-  }
-
-  /* Medical screen reader utilities */
-  .sr-only-medical {
-    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
-    clip: rect(0, 0, 0, 0);
-  }
-
-  /* Medical focus utilities */
-  .focus-medical {
-    @apply focus:outline-none focus:ring-2 focus:ring-medical-500 focus:ring-offset-2;
-  }
-
-  .focus-emergency {
-    @apply focus:outline-none focus:ring-2 focus:ring-emergency-500 focus:ring-offset-2;
-  }
-
-  .focus-stable {
-    @apply focus:outline-none focus:ring-2 focus:ring-stable-500 focus:ring-offset-2;
-  }
-
-  /* Medical hover utilities */
-  .hover-lift {
-    @apply transition-transform duration-200 hover:-translate-y-1;
-  }
-
-  .hover-glow {
-    @apply transition-shadow duration-200 hover:shadow-medical-lg;
-  }
-
-  /* Medical text utilities */
-  .text-medical-xs {
-    @apply text-xs leading-relaxed;
-  }
-
-  .text-medical-sm {
-    @apply text-sm leading-relaxed;
-  }
-
-  .text-medical-base {
-    @apply text-base leading-relaxed;
-  }
-
-  .text-medical-lg {
-    @apply text-lg leading-relaxed;
-  }
-
-  /* Medical background utilities */
-  .bg-medical-gradient {
-    background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
-  }
-
-  .bg-emergency-gradient {
-    background: linear-gradient(135deg, #F44336 0%, #FF5722 100%);
-  }
-
-  .bg-stable-gradient {
-    background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
-  }
-
-  .bg-warning-gradient {
-    background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%);
-  }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
 }
+
+#root {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem 0;
+}
+
+header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+/* Step navigation */
+.step { display: none; }
+.step.active { display: block; }
+.step h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; text-align: center; }
+
+/* Back button */
+.back-btn {
+  background: none; border: none; color: var(--primary); cursor: pointer;
+  font-size: 0.875rem; padding: 0.25rem 0; margin-bottom: 1rem; display: inline-block;
+}
+.back-btn:hover { text-decoration: underline; }
+
+/* Card Grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.card:active { transform: translateY(0); }
+
+.card-icon { font-size: 2rem; }
+.card-title { font-weight: 600; font-size: 1.1rem; }
+.card-desc { color: var(--text-muted); font-size: 0.875rem; }
+
+.case-meta {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem;
+}
+.case-meta span {
+  background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px;
+  font-size: 0.75rem; color: var(--text-muted);
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1.2rem; border-radius: 8px; border: none;
+  font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+
+/* Simulation header */
+.sim-header {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+.sim-header h2 { margin-bottom: 0; font-size: 1.1rem; }
+
+/* Chat */
+#chat-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
+#chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message {
+  max-width: 80%;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.patient {
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  opacity: 0.8;
+}
+.message.user .msg-label { opacity: 0.85; }
+.message.patient .msg-label { color: #64748b; }
+
+.message.system {
+  align-self: center;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  max-width: 90%;
+  text-align: center;
+}
+
+/* Typing indicator */
+.typing {
+  display: flex;
+  gap: 4px;
+  padding: 0.75rem 1.25rem;
+  align-items: center;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Chat form */
+#chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#question-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#question-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* End form */
+.end-form-container {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.end-form-container h3 { margin-bottom: 0.75rem; font-size: 1rem; }
+
+.form-group { margin-bottom: 0.75rem; }
+
+.form-group label {
+  display: block; font-size: 0.85rem; font-weight: 500;
+  margin-bottom: 0.25rem; color: var(--text-muted);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.form-group textarea { min-height: 80px; resize: vertical; }
+
+.form-group input:focus,
+.form-group textarea:focus { border-color: var(--primary); }
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Assessment */
+#assessment-container {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.grade-badge {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.grade-Honors { background: #bbf7d0; color: #166534; }
+.grade-HighPass { background: #a7f3d0; color: #065f46; }
+.grade-Pass { background: #fef9c3; color: #854d0e; }
+.grade-Fail { background: #fecaca; color: #991b1b; }
+
+.score-text { font-size: 2rem; font-weight: 700; text-align: center; }
+.feedback-text { margin: 1rem 0; line-height: 1.6; }
+
+.lists-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 500px) { .lists-grid { grid-template-columns: 1fr; } }
+.lists-grid h4 { font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted); }
+.lists-grid ul { list-style: none; font-size: 0.9rem; }
+.lists-grid li { padding: 0.25rem 0; }
+.lists-grid li::before { content: "• "; font-weight: 700; }
+.strengths li::before { color: #16a34a; }
+.weaknesses li::before { color: #dc2626; }
+
+#new-sim-btn { display: block; margin: 1.5rem auto 0; font-size: 1rem; padding: 0.75rem 2rem; }
+
+/* Error & loading */
+.error-message {
+  color: var(--danger); background: #fef2f2; border: 1px solid #fecaca;
+  padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem;
+  margin: 1rem 0; text-align: center;
+}
+
+.loading { text-align: center; padding: 2rem; color: var(--text-muted); }
+
+.spinner {
+  display: inline-block;
+  width: 24px; height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
