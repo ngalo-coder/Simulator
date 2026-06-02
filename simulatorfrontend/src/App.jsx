@@ -247,10 +247,9 @@ export default function App() {
                 return (
                   <button key={c._id} className="card" onClick={() => pickCase(c)}>
                     <span className="card-icon">📋</span>
-                    <span className="card-title">{c.title}</span>
-                    <span className="card-desc">{c.patientProfile.chiefComplaint || ''}</span>
+                    <span className="card-title">{name}</span>
+                    <span className="card-desc">{c.title}</span>
                     <div className="case-meta">
-                      <span>{name}</span>
                       <span>{c.patientProfile.age || '?'}y</span>
                       <span>{c.patientProfile.gender || '?'}</span>
                       <span>{c.specialty}</span>
