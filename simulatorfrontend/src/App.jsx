@@ -2,36 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
-const KENYAN_NAMES = {
-  Male: [
-    'Kevin Otieno','Brian Kamau','David Mwangi','Samuel Njoroge',
-    'Daniel Ochieng','Joseph Wekesa','Patrick Kiprop','Peter Kiplagat',
-    'James Mutua','John Kimani','Michael Nyambega','Stephen Omondi',
-    'George Maina','Francis Ndung\'u','Paul Chege','Robert Kiprono',
-    'Kennedy Ouko','Erick Omondi','Charles Kariuki','Tom Mboya'
-  ],
-  Female: [
-    'Grace Wanjiku','Mary Atieno','Faith Njeri','Sarah Wambui',
-    'Esther Nyambura','Jane Akinyi','Ruth Wairimu','Hannah Achieng',
-    'Susan Kemunto','Margaret Nekesa','Nancy Nduta','Diana Wangechi',
-    'Catherine Muthoni','Joyce Wagithi','Elizabeth Nyawira','Rose Jerono',
-    'Priscah Chebet','Ann Wanjugu','Brenda Owuor','Dorothy Kamene'
-  ]
-}
-
-function pickName(gender, seed) {
-  const list = KENYAN_NAMES[gender] || KENYAN_NAMES.Male
-  return list[(seed ?? 0) % list.length]
-}
-
-function hashId(id) {
-  return id ? parseInt(id.toString().slice(-4), 16) : 0
-}
-
-function getPatientName(caseObj) {
-  return pickName(caseObj.patientProfile.gender, hashId(caseObj._id))
-}
-
 async function apiFetch(path, opts) {
   const res = await fetch(`${API}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -99,8 +69,7 @@ export default function App() {
 
   const pickCase = async c => {
     setSelectedCase(c)
-    const name = getPatientName(c)
-    setPatientName(name)
+    setPatientName(c.patientName)
     setConversation([])
     setSessionId(null)
     setAssessment(null)
@@ -245,21 +214,18 @@ export default function App() {
             <p className="error-message">No cases found for this specialty.</p>
           ) : (
             <div className="card-grid">
-              {cases.map(c => {
-                const name = getPatientName(c)
-                return (
-                  <button key={c._id} className="card" onClick={() => pickCase(c)}>
-                    <span className="card-icon">📋</span>
-                    <span className="card-title">{name}</span>
-                    <span className="card-desc">{c.patientProfile.chiefComplaint || ''}</span>
-                    <div className="case-meta">
-                      <span>{c.patientProfile.age || '?'}y</span>
-                      <span>{c.patientProfile.gender || '?'}</span>
-                      <span>{c.specialty}</span>
-                    </div>
-                  </button>
-                )
-              })}
+              {cases.map(c => (
+                <button key={c._id} className="card" onClick={() => pickCase(c)}>
+                  <span className="card-icon">📋</span>
+                  <span className="card-title">{c.patientName}</span>
+                  <span className="card-desc">{c.patientProfile.chiefComplaint || ''}</span>
+                  <div className="case-meta">
+                    <span>{c.patientProfile.age || '?'}y</span>
+                    <span>{c.patientProfile.gender || '?'}</span>
+                    <span>{c.specialty}</span>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>
