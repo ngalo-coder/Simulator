@@ -266,7 +266,7 @@ export default function App() {
         <div className={`step ${step === 'simulation' ? 'active' : ''}`}>
           <button className="back-btn" onClick={() => go('cases')}>← Back to Cases</button>
           <div className="sim-header">
-            <h2>{selectedCase?.title}{patientName ? ` — Patient: ${patientName}` : ''}</h2>
+            <h2>{patientName}{selectedCase?.patientProfile.age ? `, ${selectedCase.patientProfile.age}y` : ''}</h2>
             <button className="btn btn-danger" onClick={() => {
               const d = prompt('Enter your diagnosis to end the simulation:')
               if (d !== null) endSimulation(d.trim())
