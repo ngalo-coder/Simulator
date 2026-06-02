@@ -2,6 +2,21 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
+// Constants
+const STEPS = {
+  CATEGORY: 'category',
+  SPECIALTY: 'specialty',
+  CASES: 'cases',
+  SIMULATION: 'simulation',
+  ASSESSMENT: 'assessment',
+}
+
+const CATEGORIES = [
+  { name: 'Basic', icon: '📘', desc: 'Fundamental clinical cases' },
+  { name: 'Specialised', icon: '📚', desc: 'Advanced clinical scenarios' },
+]
+
+// Utility: API calls with consistent error handling
 async function apiFetch(path, opts) {
   const res = await fetch(`${API}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -14,11 +29,272 @@ async function apiFetch(path, opts) {
   return res.json()
 }
 
+// Component: Loading spinner
+function LoadingState({ message = 'Loading...' }) {
+  return (
+    <div className="loading">
+      <div className="spinner"></div>
+      <p>{message}</p>
+    </div>
+  )
+}
+
+// Component: Error message
+function ErrorMessage({ text }) {
+  return <p className="error-message">{text}</p>
+}
+
+// Component: Message bubble in chat
+function Message({ msg, patientName }) {
+  if (msg.role === 'system') {
+    return (
+      <div className="message system">
+        <span>{msg.content}</span>
+      </div>
+    )
+  }
+
+  const isUser = msg.role === 'user'
+  const label = isUser ? '🧑‍⚕️ You (Doctor)' : `🤒 ${patientName || 'Patient'}`
+
+  return (
+    <div className={`message ${msg.role}`}>
+      <span className="msg-label">{label}</span>
+      <span>{msg.content}</span>
+    </div>
+  )
+}
+
+// Component: Typing indicator
+function TypingIndicator({ patientName }) {
+  return (
+    <div className="message patient typing">
+      <span className="msg-label">🤒 {patientName || 'Patient'}</span>
+      <div className="typing-dots">
+        <span className="typing-dot"></span>
+        <span className="typing-dot"></span>
+        <span className="typing-dot"></span>
+      </div>
+    </div>
+  )
+}
+
+// Component: Category selection step
+function CategoryStep({ onSelect, loading }) {
+  return (
+    <div className={`step ${loading ? '' : 'active'}`}>
+      <h2>Select Case Category</h2>
+      <div className="card-grid">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.name}
+            className="card"
+            onClick={() => onSelect(cat.name)}
+            disabled={loading}
+          >
+            <span className="card-icon">{cat.icon}</span>
+            <span className="card-title">{cat.name}</span>
+            <span className="card-desc">{cat.desc}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Component: Specialty selection step
+function SpecialtyStep({ specialties, loading, error, onSelect, onBack }) {
+  return (
+    <div className={`step ${loading || error ? 'active' : ''}`}>
+      <button className="back-btn" onClick={onBack}>← Back</button>
+      <h2>Select Specialty</h2>
+      {loading && <LoadingState message="Loading specialties..." />}
+      {error && <ErrorMessage text={error} />}
+      {!loading && !error && (
+        <div className="card-grid">
+          {specialties.map(specialty => (
+            <button key={specialty} className="card" onClick={() => onSelect(specialty)}>
+              <span className="card-icon">🏥</span>
+              <span className="card-title">{specialty}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Component: Case selection step
+function CasesStep({ cases, loading, error, onSelect, onBack }) {
+  return (
+    <div className={`step ${loading || error ? 'active' : ''}`}>
+      <button className="back-btn" onClick={onBack}>← Back</button>
+      <h2>Select Case</h2>
+      {loading && <LoadingState message="Loading cases..." />}
+      {error && <ErrorMessage text={error} />}
+      {!loading && !error && cases.length === 0 && (
+        <ErrorMessage text="No cases found for this specialty." />
+      )}
+      {!loading && !error && cases.length > 0 && (
+        <div className="card-grid">
+          {cases.map(caseItem => (
+            <button
+              key={caseItem._id}
+              className="card"
+              onClick={() => onSelect(caseItem)}
+            >
+              <span className="card-icon">📋</span>
+              <span className="card-title">{caseItem.patientName}</span>
+              <span className="card-desc">{caseItem.patientProfile.chiefComplaint || ''}</span>
+              <div className="case-meta">
+                <span>{caseItem.patientProfile.age || '?'}y</span>
+                <span>{caseItem.patientProfile.gender || '?'}</span>
+                <span>{caseItem.specialty}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Component: Simulation step
+function SimulationStep({
+  patientName,
+  patientAge,
+  conversation,
+  typing,
+  ending,
+  chatRef,
+  inputRef,
+  onSendMessage,
+  onEndSimulation,
+  onBack,
+}) {
+  const handleSubmit = e => {
+    e.preventDefault()
+    const val = inputRef.current?.value?.trim()
+    if (!val) return
+    inputRef.current.value = ''
+    onSendMessage(val)
+  }
+
+  return (
+    <div className="step active">
+      <button className="back-btn" onClick={onBack}>← Back to Cases</button>
+      <div className="sim-header">
+        <h2>
+          {patientName}
+          {patientAge && `, ${patientAge}y`}
+        </h2>
+        <button
+          className="btn btn-danger"
+          onClick={() => {
+            const diagnosis = prompt('Enter your diagnosis to end the simulation:')
+            if (diagnosis !== null) onEndSimulation(diagnosis.trim())
+          }}
+          disabled={ending}
+        >
+          End Simulation
+        </button>
+      </div>
+
+      <div id="chat-container" ref={chatRef}>
+        <div id="chat-messages">
+          {conversation.map((msg, i) => (
+            <Message key={i} msg={msg} patientName={patientName} />
+          ))}
+          {typing && <TypingIndicator patientName={patientName} />}
+        </div>
+      </div>
+
+      <form id="chat-form" onSubmit={handleSubmit}>
+        <input
+          ref={inputRef}
+          id="question-input"
+          placeholder="Ask the patient a question..."
+          disabled={typing || ending}
+          autoComplete="off"
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          id="send-btn"
+          disabled={typing || ending}
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  )
+}
+
+// Component: Assessment step
+function AssessmentStep({ assessment, onStartNew }) {
+  if (!assessment) {
+    return (
+      <div className="step active">
+        <h2>Simulation Complete</h2>
+        <div id="assessment-container">
+          <ErrorMessage text="No assessment data available." />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="step active">
+      <h2>Simulation Complete</h2>
+      <div id="assessment-container">
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <div className={`grade-badge grade-${(assessment.grade || 'Pass').replace(/\s+/g, '')}`}>
+            {assessment.grade || 'N/A'}
+          </div>
+          <div className="score-text">{assessment.score ?? 'N/A'}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Score</div>
+        </div>
+
+        <div className="feedback-text">{assessment.feedback || 'No feedback provided.'}</div>
+
+        <div className="lists-grid">
+          <div>
+            <h4>✅ Strengths</h4>
+            <ul className="strengths">
+              {(assessment.strengths || []).map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+              {(!assessment.strengths || assessment.strengths.length === 0) && (
+                <li>None listed</li>
+              )}
+            </ul>
+          </div>
+          <div>
+            <h4>⚠️ Areas for Improvement</h4>
+            <ul className="weaknesses">
+              {(assessment.weaknesses || []).map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+              {(!assessment.weaknesses || assessment.weaknesses.length === 0) && (
+                <li>None listed</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <button id="new-sim-btn" className="btn btn-primary" onClick={onStartNew}>
+        Start New Simulation
+      </button>
+    </div>
+  )
+}
+
+// Main App
 export default function App() {
-  const [step, setStep] = useState('category') // category | specialty | cases | simulation | assessment
+  const [step, setStep] = useState(STEPS.CATEGORY)
   const [category, setCategory] = useState(null)
-  const [specialties, setSpecialties] = useState([])
   const [specialty, setSpecialty] = useState(null)
+  const [specialties, setSpecialties] = useState([])
   const [cases, setCases] = useState([])
   const [selectedCase, setSelectedCase] = useState(null)
   const [patientName, setPatientName] = useState('')
@@ -33,116 +309,144 @@ export default function App() {
   const chatRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Auto-scroll chat
+  // Auto-scroll chat to bottom
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight
     }
   }, [conversation, typing])
 
-  const go = s => { setStep(s); setError(null) }
+  // Helper: Set step and clear error
+  const goToStep = useCallback(nextStep => {
+    setStep(nextStep)
+    setError(null)
+  }, [])
 
-  const pickCategory = async cat => {
-    setCategory(cat)
+  // Handler: Select category
+  const handleSelectCategory = useCallback(async selectedCategory => {
+    setCategory(selectedCategory)
     setSpecialty(null)
     setLoading(true)
     setError(null)
+
     try {
-      const data = await apiFetch(`/cases/specialties?category=${encodeURIComponent(cat)}`)
+      const data = await apiFetch(
+        `/cases/specialties?category=${encodeURIComponent(selectedCategory)}`
+      )
       setSpecialties(data)
-      go('specialty')
-    } catch (e) { setError(e.message) }
-    setLoading(false)
-  }
-
-  const pickSpecialty = async s => {
-    setSpecialty(s)
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await apiFetch(`/cases?${new URLSearchParams({ category, specialty: s })}`)
-      setCases(data)
-      go('cases')
-    } catch (e) { setError(e.message) }
-    setLoading(false)
-  }
-
-  const pickCase = async c => {
-    setSelectedCase(c)
-    setPatientName(c.patientName)
-    setConversation([])
-    setSessionId(null)
-    setAssessment(null)
-    setEnding(false)
-    go('simulation')
-
-    try {
-      const data = await apiFetch('/simulate/start', {
-        method: 'POST',
-        body: JSON.stringify({ caseId: c._id }),
-      })
-      setSessionId(data.sessionId)
-      if (data.greeting) {
-        setConversation([{ role: 'patient', content: data.greeting }])
-      }
-    } catch (e) {
-      setConversation([{ role: 'system', content: `Failed to start: ${e.message}` }])
+      goToStep(STEPS.SPECIALTY)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [goToStep])
 
-  const sendMessage = useCallback(async question => {
-    if (!question.trim() || typing || ending) return
+  // Handler: Select specialty
+  const handleSelectSpecialty = useCallback(
+    async selectedSpecialty => {
+      setSpecialty(selectedSpecialty)
+      setLoading(true)
+      setError(null)
 
-    const userMsg = { role: 'user', content: question.trim() }
-    setConversation(c => [...c, userMsg])
-    setTyping(true)
-
-    try {
-      const data = await apiFetch('/simulate/chat', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId, question: question.trim() }),
-      })
-      if (data.reply) {
-        setConversation(c => [...c, { role: 'patient', content: data.reply }])
+      try {
+        const data = await apiFetch(
+          `/cases?${new URLSearchParams({ category, specialty: selectedSpecialty })}`
+        )
+        setCases(data)
+        goToStep(STEPS.CASES)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
-      inputRef.current?.focus()
-    } catch (e) {
-      setConversation(c => [...c, { role: 'system', content: `⚠️ ${e.message}` }])
-    }
-    setTyping(false)
-  }, [sessionId, typing, ending])
+    },
+    [category, goToStep]
+  )
 
-  const handleSubmit = e => {
-    e.preventDefault()
-    const val = inputRef.current?.value
-    if (!val) return
-    inputRef.current.value = ''
-    sendMessage(val)
-  }
-
-  const endSimulation = async diagnosis => {
-    if (ending) return
-    setEnding(true)
-    setConversation(c => [...c, { role: 'system', content: '⏳ Ending simulation...' }])
-
-    try {
-      const data = await apiFetch('/simulate/end', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId, diagnosis, endedManually: true }),
-      })
-      setAssessment(data.assessment)
-      go('assessment')
-    } catch (e) {
+  // Handler: Select case and start simulation
+  const handleSelectCase = useCallback(
+    async caseItem => {
+      setSelectedCase(caseItem)
+      setPatientName(caseItem.patientName)
+      setConversation([])
+      setSessionId(null)
+      setAssessment(null)
       setEnding(false)
-      setConversation(c => [...c, { role: 'system', content: `⚠️ ${e.message}` }])
-    }
-  }
+      goToStep(STEPS.SIMULATION)
 
-  const reset = () => {
-    setStep('category')
+      try {
+        const data = await apiFetch('/simulate/start', {
+          method: 'POST',
+          body: JSON.stringify({ caseId: caseItem._id }),
+        })
+        setSessionId(data.sessionId)
+        if (data.greeting) {
+          setConversation([{ role: 'patient', content: data.greeting }])
+        }
+      } catch (err) {
+        setConversation([{ role: 'system', content: `Failed to start: ${err.message}` }])
+      }
+    },
+    [goToStep]
+  )
+
+  // Handler: Send message in chat
+  const handleSendMessage = useCallback(
+    async question => {
+      if (!question || typing || ending) return
+
+      const userMsg = { role: 'user', content: question }
+      setConversation(prev => [...prev, userMsg])
+      setTyping(true)
+
+      try {
+        const data = await apiFetch('/simulate/chat', {
+          method: 'POST',
+          body: JSON.stringify({ sessionId, question }),
+        })
+        if (data.reply) {
+          setConversation(prev => [...prev, { role: 'patient', content: data.reply }])
+        }
+        inputRef.current?.focus()
+      } catch (err) {
+        setConversation(prev => [...prev, { role: 'system', content: `⚠️ ${err.message}` }])
+      } finally {
+        setTyping(false)
+      }
+    },
+    [sessionId, typing, ending]
+  )
+
+  // Handler: End simulation
+  const handleEndSimulation = useCallback(
+    async diagnosis => {
+      if (ending) return
+
+      setEnding(true)
+      setConversation(prev => [...prev, { role: 'system', content: '⏳ Ending simulation...' }])
+
+      try {
+        const data = await apiFetch('/simulate/end', {
+          method: 'POST',
+          body: JSON.stringify({ sessionId, diagnosis, endedManually: true }),
+        })
+        setAssessment(data.assessment)
+        goToStep(STEPS.ASSESSMENT)
+      } catch (err) {
+        setEnding(false)
+        setConversation(prev => [...prev, { role: 'system', content: `⚠️ ${err.message}` }])
+      }
+    },
+    [ending, sessionId, goToStep]
+  )
+
+  // Handler: Reset to start new simulation
+  const handleReset = useCallback(() => {
+    setStep(STEPS.CATEGORY)
     setCategory(null)
-    setSpecialties([])
     setSpecialty(null)
+    setSpecialties([])
     setCases([])
     setSelectedCase(null)
     setPatientName('')
@@ -152,13 +456,7 @@ export default function App() {
     setEnding(false)
     setAssessment(null)
     setError(null)
-  }
-
-  const msgLabel = (role) => {
-    if (role === 'user') return '🧑‍⚕️ You (Doctor)'
-    if (role === 'patient') return `🤒 ${patientName || 'Patient'}`
-    return ''
-  }
+  }, [])
 
   return (
     <div>
@@ -168,155 +466,48 @@ export default function App() {
       </header>
 
       <main>
-        {/* Step: Category */}
-        <div className={`step ${step === 'category' ? 'active' : ''}`}>
-          <h2>Select Case Category</h2>
-          <div className="card-grid">
-            {['Basic', 'Specialised'].map(cat => (
-              <button key={cat} className="card" onClick={() => pickCategory(cat)} disabled={loading}>
-                <span className="card-icon">{cat === 'Basic' ? '📘' : '📚'}</span>
-                <span className="card-title">{cat}</span>
-                <span className="card-desc">{cat === 'Basic' ? 'Fundamental clinical cases' : 'Advanced clinical scenarios'}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        {step === STEPS.CATEGORY && (
+          <CategoryStep onSelect={handleSelectCategory} loading={loading} />
+        )}
 
-        {/* Step: Specialty */}
-        <div className={`step ${step === 'specialty' ? 'active' : ''}`}>
-          <button className="back-btn" onClick={() => go('category')}>← Back</button>
-          <h2>Select Specialty</h2>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div><p>Loading specialties...</p></div>
-          ) : error ? (
-            <p className="error-message">{error}</p>
-          ) : (
-            <div className="card-grid">
-              {specialties.map(s => (
-                <button key={s} className="card" onClick={() => pickSpecialty(s)}>
-                  <span className="card-icon">🏥</span>
-                  <span className="card-title">{s}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {step === STEPS.SPECIALTY && (
+          <SpecialtyStep
+            specialties={specialties}
+            loading={loading}
+            error={error}
+            onSelect={handleSelectSpecialty}
+            onBack={() => goToStep(STEPS.CATEGORY)}
+          />
+        )}
 
-        {/* Step: Cases */}
-        <div className={`step ${step === 'cases' ? 'active' : ''}`}>
-          <button className="back-btn" onClick={() => go('specialty')}>← Back</button>
-          <h2>Select Case</h2>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div><p>Loading cases...</p></div>
-          ) : error ? (
-            <p className="error-message">{error}</p>
-          ) : cases.length === 0 ? (
-            <p className="error-message">No cases found for this specialty.</p>
-          ) : (
-            <div className="card-grid">
-              {cases.map(c => (
-                <button key={c._id} className="card" onClick={() => pickCase(c)}>
-                  <span className="card-icon">📋</span>
-                  <span className="card-title">{c.patientName}</span>
-                  <span className="card-desc">{c.patientProfile.chiefComplaint || ''}</span>
-                  <div className="case-meta">
-                    <span>{c.patientProfile.age || '?'}y</span>
-                    <span>{c.patientProfile.gender || '?'}</span>
-                    <span>{c.specialty}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {step === STEPS.CASES && (
+          <CasesStep
+            cases={cases}
+            loading={loading}
+            error={error}
+            onSelect={handleSelectCase}
+            onBack={() => goToStep(STEPS.SPECIALTY)}
+          />
+        )}
 
-        {/* Step: Simulation */}
-        <div className={`step ${step === 'simulation' ? 'active' : ''}`}>
-          <button className="back-btn" onClick={() => go('cases')}>← Back to Cases</button>
-          <div className="sim-header">
-            <h2>{patientName}{selectedCase?.patientProfile.age ? `, ${selectedCase.patientProfile.age}y` : ''}</h2>
-            <button className="btn btn-danger" onClick={() => {
-              const d = prompt('Enter your diagnosis to end the simulation:')
-              if (d !== null) endSimulation(d.trim())
-            }} disabled={ending}>
-              End Simulation
-            </button>
-          </div>
+        {step === STEPS.SIMULATION && (
+          <SimulationStep
+            patientName={patientName}
+            patientAge={selectedCase?.patientProfile.age}
+            conversation={conversation}
+            typing={typing}
+            ending={ending}
+            chatRef={chatRef}
+            inputRef={inputRef}
+            onSendMessage={handleSendMessage}
+            onEndSimulation={handleEndSimulation}
+            onBack={() => goToStep(STEPS.CASES)}
+          />
+        )}
 
-          <div id="chat-container" ref={chatRef}>
-            <div id="chat-messages">
-              {conversation.map((msg, i) => (
-                <div key={i} className={`message ${msg.role}`}>
-                  {msg.role !== 'system' && <span className="msg-label">{msgLabel(msg.role)}</span>}
-                  <span>{msg.content}</span>
-                </div>
-              ))}
-              {typing && (
-                <div className="message patient typing">
-                  <span className="msg-label">🤒 {patientName || 'Patient'}</span>
-                  <div style={{display:'flex',gap:4}}>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <form id="chat-form" onSubmit={handleSubmit}>
-            <input
-              ref={inputRef}
-              id="question-input"
-              placeholder="Ask the patient a question..."
-              disabled={typing || ending}
-              autoComplete="off"
-            />
-            <button type="submit" className="btn btn-primary" id="send-btn" disabled={typing || ending}>
-              Send
-            </button>
-          </form>
-        </div>
-
-        {/* Step: Assessment */}
-        <div className={`step ${step === 'assessment' ? 'active' : ''}`}>
-          <h2>Simulation Complete</h2>
-          <div id="assessment-container">
-            {assessment ? (
-              <>
-                <div style={{textAlign:'center',marginBottom:'1rem'}}>
-                  <div className={`grade-badge grade-${(assessment.grade || 'Pass').replace(/\s+/g, '')}`}>
-                    {assessment.grade || 'N/A'}
-                  </div>
-                  <div className="score-text">{assessment.score ?? 'N/A'}</div>
-                  <div style={{color:'var(--text-muted)',fontSize:'0.85rem'}}>Score</div>
-                </div>
-
-                <div className="feedback-text">{assessment.feedback || 'No feedback provided.'}</div>
-
-                <div className="lists-grid">
-                  <div>
-                    <h4>✅ Strengths</h4>
-                    <ul className="strengths">
-                      {(assessment.strengths || []).map((s, i) => <li key={i}>{s}</li>)}
-                      {(!assessment.strengths || assessment.strengths.length === 0) && <li>None listed</li>}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4>⚠️ Areas for Improvement</h4>
-                    <ul className="weaknesses">
-                      {(assessment.weaknesses || []).map((w, i) => <li key={i}>{w}</li>)}
-                      {(!assessment.weaknesses || assessment.weaknesses.length === 0) && <li>None listed</li>}
-                    </ul>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className="error-message">No assessment data available.</p>
-            )}
-          </div>
-          <button id="new-sim-btn" className="btn btn-primary" onClick={reset}>Start New Simulation</button>
-        </div>
+        {step === STEPS.ASSESSMENT && (
+          <AssessmentStep assessment={assessment} onStartNew={handleReset} />
+        )}
       </main>
     </div>
   )

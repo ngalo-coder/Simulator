@@ -200,6 +200,11 @@ header h1 {
   align-items: center;
 }
 
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
 .typing-dot {
   width: 8px;
   height: 8px;
