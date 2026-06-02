@@ -28,6 +28,10 @@ function hashId(id) {
   return id ? parseInt(id.toString().slice(-4), 16) : 0
 }
 
+function getPatientName(caseObj) {
+  return pickName(caseObj.patientProfile.gender, hashId(caseObj._id))
+}
+
 async function apiFetch(path, opts) {
   const res = await fetch(`${API}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -95,8 +99,7 @@ export default function App() {
 
   const pickCase = async c => {
     setSelectedCase(c)
-    const seed = hashId(c._id)
-    const name = pickName(c.patientProfile.gender, seed)
+    const name = getPatientName(c)
     setPatientName(name)
     setConversation([])
     setSessionId(null)
@@ -243,7 +246,7 @@ export default function App() {
           ) : (
             <div className="card-grid">
               {cases.map(c => {
-                const name = pickName(c.patientProfile.gender, hashId(c._id))
+                const name = getPatientName(c)
                 return (
                   <button key={c._id} className="card" onClick={() => pickCase(c)}>
                     <span className="card-icon">📋</span>
