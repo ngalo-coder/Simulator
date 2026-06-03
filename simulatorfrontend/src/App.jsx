@@ -82,7 +82,7 @@ function TypingIndicator({ patientName }) {
 // Component: Category selection step
 function CategoryStep({ onSelect, loading }) {
   return (
-    <div className={`step ${loading ? '' : 'active'}`}>
+    <div className="step active">
       <h2>Select Case Category</h2>
       <div className="card-grid">
         {CATEGORIES.map(cat => (
@@ -105,7 +105,7 @@ function CategoryStep({ onSelect, loading }) {
 // Component: Specialty selection step
 function SpecialtyStep({ specialties, loading, error, onSelect, onBack }) {
   return (
-    <div className={`step ${loading || error ? 'active' : ''}`}>
+    <div className="step active">
       <button className="back-btn" onClick={onBack}>← Back</button>
       <h2>Select Specialty</h2>
       {loading && <LoadingState message="Loading specialties..." />}
@@ -127,7 +127,7 @@ function SpecialtyStep({ specialties, loading, error, onSelect, onBack }) {
 // Component: Case selection step
 function CasesStep({ cases, loading, error, onSelect, onBack }) {
   return (
-    <div className={`step ${loading || error ? 'active' : ''}`}>
+    <div className="step active">
       <button className="back-btn" onClick={onBack}>← Back</button>
       <h2>Select Case</h2>
       {loading && <LoadingState message="Loading cases..." />}
