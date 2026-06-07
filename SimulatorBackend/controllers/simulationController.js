@@ -93,23 +93,28 @@ async function getPatientResponse(caseDoc, history, userQuestion) {
       throw new Error('OpenRouter API key not configured');
     }
 
-    // Build conversation history.
-    const historyMessages = history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content
-    }));
+    // Build conversation history with explicit role labels.
+    // The AI assistant is always the PATIENT; the user is the DOCTOR.
+    // Prefix each message with its role context to prevent role confusion.
+    const historyMessages = history.map(m => {
+        const role = m.role === 'user' ? 'user' : 'assistant';
+        const prefix = m.role === 'user'
+            ? '[The DOCTOR asks me:]'
+            : '[I, the PATIENT, reply:]';
+        return { role, content: `${prefix} ${m.content}` };
+    });
 
-    // Inject a reminder before the last user message so the AI stays in patient character.
+    // Inject a strong reminder before the last user message so the AI stays strictly in patient character.
     const patientReminder = {
         role: 'system',
-        content: `Remember: You are the PATIENT, not the doctor. You are ${caseDoc.patientProfile.age || 'a certain age'} years old, ${caseDoc.patientProfile.gender || 'unspecified gender'}. Your chief complaint is: "${caseDoc.patientProfile.chiefComplaint || 'N/A'}". Answer the doctor's questions as the patient. Do NOT role-play as the doctor, do NOT evaluate the doctor's questions, do NOT provide a diagnosis. You are the patient seeking medical help.`
+        content: `⚠️ CRITICAL REMINDER: You are the PATIENT, NOT the doctor. NEVER act as a doctor. NEVER diagnose yourself. NEVER evaluate the doctor's questions. NEVER give medical advice or treatment suggestions. You are ${caseDoc.patientProfile.age || 'a certain age'} years old, ${caseDoc.patientProfile.gender || 'unspecified gender'}. Your chief complaint is: "${caseDoc.patientProfile.chiefComplaint || 'N/A'}". Describe only your symptoms, feelings, and history as the patient. Answer naturally but remember you are seeking help.`
     };
 
     const messages = [
         { role: 'system', content: caseDoc.patientSystemPrompt },
         ...historyMessages,
         patientReminder,
-        { role: 'user', content: userQuestion }
+        { role: 'user', content: `[The DOCTOR asks me:] ${userQuestion}` }
     ];
 
     const completion = await openai.chat.completions.create({
