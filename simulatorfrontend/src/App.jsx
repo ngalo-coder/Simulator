@@ -12,8 +12,8 @@ const STEPS = {
 }
 
 const CATEGORIES = [
-  { name: 'Basic', icon: '📘', desc: 'Fundamental clinical cases' },
-  { name: 'Specialised', icon: '📚', desc: 'Advanced clinical scenarios' },
+  { name: 'Basic', icon: '○', desc: 'Fundamental clinical cases' },
+  { name: 'Specialised', icon: '◎', desc: 'Advanced clinical scenarios' },
 ]
 
 // Utility: API calls with consistent error handling
@@ -55,7 +55,7 @@ function Message({ msg, patientName }) {
   }
 
   const isUser = msg.role === 'user'
-  const label = isUser ? '🧑‍⚕️ You (Doctor)' : `🤒 ${patientName || 'Patient'}`
+  const label = isUser ? 'You (Doctor)' : `${patientName || 'Patient'}`
 
   return (
     <div className={`message ${msg.role}`}>
@@ -69,7 +69,7 @@ function Message({ msg, patientName }) {
 function TypingIndicator({ patientName }) {
   return (
     <div className="message patient typing">
-      <span className="msg-label">🤒 {patientName || 'Patient'}</span>
+      <span className="msg-label">{patientName || 'Patient'}</span>
       <div className="typing-dots">
         <span className="typing-dot"></span>
         <span className="typing-dot"></span>
@@ -106,15 +106,15 @@ function CategoryStep({ onSelect, loading }) {
 function SpecialtyStep({ specialties, loading, error, onSelect, onBack }) {
   return (
     <div className="step active">
-      <button className="back-btn" onClick={onBack}>← Back</button>
+            <button className="back-link" onClick={onBack}>Back</button>
       <h2>Select Specialty</h2>
       {loading && <LoadingState message="Loading specialties..." />}
       {error && <ErrorMessage text={error} />}
       {!loading && !error && (
         <div className="card-grid">
           {specialties.map(specialty => (
-            <button key={specialty} className="card" onClick={() => onSelect(specialty)}>
-              <span className="card-icon">🏥</span>
+                        <button key={specialty} className="card" onClick={() => onSelect(specialty)}>
+              <span className="card-icon">◈</span>
               <span className="card-title">{specialty}</span>
             </button>
           ))}
@@ -128,7 +128,7 @@ function SpecialtyStep({ specialties, loading, error, onSelect, onBack }) {
 function CasesStep({ cases, loading, error, onSelect, onBack }) {
   return (
     <div className="step active">
-      <button className="back-btn" onClick={onBack}>← Back</button>
+            <button className="back-link" onClick={onBack}>Back</button>
       <h2>Select Case</h2>
       {loading && <LoadingState message="Loading cases..." />}
       {error && <ErrorMessage text={error} />}
@@ -143,8 +143,8 @@ function CasesStep({ cases, loading, error, onSelect, onBack }) {
               className="card"
               onClick={() => onSelect(caseItem)}
             >
-              <span className="card-icon">
-                {caseItem.difficulty === 'Easy' ? '🟢' : caseItem.difficulty === 'Intermediate' ? '🟡' : '📋'}
+                            <span className="card-icon">
+                {caseItem.difficulty === 'Easy' ? '◕' : caseItem.difficulty === 'Intermediate' ? '◔' : '○'}
               </span>
               <span className="card-title">{caseItem.patientName}</span>
               <span className="card-desc">{caseItem.patientProfile.chiefComplaint || ''}</span>
@@ -186,7 +186,7 @@ function SimulationStep({
 
   return (
     <div className="step active">
-      <button className="back-btn" onClick={onBack}>← Back to Cases</button>
+      <button className="back-link" onClick={onBack}>Back</button>
       <div className="sim-header">
         <h2>
           {patientName}
@@ -251,19 +251,19 @@ function AssessmentStep({ assessment, onStartNew }) {
     <div className="step active">
       <h2>Simulation Complete</h2>
       <div id="assessment-container">
-        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div className="assessment-score">
           <div className={`grade-badge grade-${(assessment.grade || 'Pass').replace(/\s+/g, '')}`}>
             {assessment.grade || 'N/A'}
           </div>
           <div className="score-text">{assessment.score ?? 'N/A'}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Score</div>
+          <div className="score-label">Score</div>
         </div>
 
         <div className="feedback-text">{assessment.feedback || 'No feedback provided.'}</div>
 
         <div className="lists-grid">
           <div>
-            <h4>✅ Strengths</h4>
+            <h4>Strengths</h4>
             <ul className="strengths">
               {(assessment.strengths || []).map((s, i) => (
                 <li key={i}>{s}</li>
@@ -274,7 +274,7 @@ function AssessmentStep({ assessment, onStartNew }) {
             </ul>
           </div>
           <div>
-            <h4>⚠️ Areas for Improvement</h4>
+            <h4>Areas for Improvement</h4>
             <ul className="weaknesses">
               {(assessment.weaknesses || []).map((w, i) => (
                 <li key={i}>{w}</li>
@@ -412,7 +412,7 @@ export default function App() {
         }
         inputRef.current?.focus()
       } catch (err) {
-        setConversation(prev => [...prev, { role: 'system', content: `⚠️ ${err.message}` }])
+        setConversation(prev => [...prev, { role: 'system', content: `Error: ${err.message}` }])
       } finally {
         setTyping(false)
       }
@@ -426,7 +426,7 @@ export default function App() {
       if (ending) return
 
       setEnding(true)
-      setConversation(prev => [...prev, { role: 'system', content: '⏳ Ending simulation...' }])
+      setConversation(prev => [...prev, { role: 'system', content: 'Ending simulation...' }])
 
       try {
         const data = await apiFetch('/simulate/end', {
@@ -437,7 +437,7 @@ export default function App() {
         goToStep(STEPS.ASSESSMENT)
       } catch (err) {
         setEnding(false)
-        setConversation(prev => [...prev, { role: 'system', content: `⚠️ ${err.message}` }])
+        setConversation(prev => [...prev, { role: 'system', content: `Error: ${err.message}` }])
       }
     },
     [ending, sessionId, goToStep]
@@ -462,7 +462,7 @@ export default function App() {
   return (
     <div>
       <header>
-        <h1>🩺 Simuatech</h1>
+                <h1>Simuatech</h1>
         <p className="subtitle">Clinical Case Simulator</p>
       </header>
 
