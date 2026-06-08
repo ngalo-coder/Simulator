@@ -143,13 +143,17 @@ function CasesStep({ cases, loading, error, onSelect, onBack }) {
               className="card"
               onClick={() => onSelect(caseItem)}
             >
-              <span className="card-icon">📋</span>
+              <span className="card-icon">
+                {caseItem.difficulty === 'Easy' ? '🟢' : caseItem.difficulty === 'Intermediate' ? '🟡' : '📋'}
+              </span>
               <span className="card-title">{caseItem.patientName}</span>
               <span className="card-desc">{caseItem.patientProfile.chiefComplaint || ''}</span>
               <div className="case-meta">
                 <span>{caseItem.patientProfile.age || '?'}y</span>
                 <span>{caseItem.patientProfile.gender || '?'}</span>
-                <span>{caseItem.specialty}</span>
+                <span className={`difficulty-badge difficulty-${(caseItem.difficulty || 'easy').toLowerCase()}`}>
+                  {caseItem.difficulty || '?'}
+                </span>
               </div>
             </button>
           ))}
@@ -296,8 +300,7 @@ export default function App() {
   const [specialty, setSpecialty] = useState(null)
   const [specialties, setSpecialties] = useState([])
   const [cases, setCases] = useState([])
-  const [selectedCase, setSelectedCase] = useState(null)
-  const [patientName, setPatientName] = useState('')
+    const [selectedCase, setSelectedCase] = useState(null)
   const [sessionId, setSessionId] = useState(null)
   const [conversation, setConversation] = useState([])
   const [typing, setTyping] = useState(false)
@@ -367,8 +370,7 @@ export default function App() {
   // Handler: Select case and start simulation
   const handleSelectCase = useCallback(
     async caseItem => {
-      setSelectedCase(caseItem)
-      setPatientName(caseItem.patientName)
+            setSelectedCase(caseItem)
       setConversation([])
       setSessionId(null)
       setAssessment(null)
@@ -448,8 +450,7 @@ export default function App() {
     setSpecialty(null)
     setSpecialties([])
     setCases([])
-    setSelectedCase(null)
-    setPatientName('')
+        setSelectedCase(null)
     setSessionId(null)
     setConversation([])
     setTyping(false)
@@ -491,8 +492,8 @@ export default function App() {
         )}
 
         {step === STEPS.SIMULATION && (
-          <SimulationStep
-            patientName={patientName}
+                    <SimulationStep
+            patientName={selectedCase?.patientName || 'Patient'}
             patientAge={selectedCase?.patientProfile.age}
             conversation={conversation}
             typing={typing}
