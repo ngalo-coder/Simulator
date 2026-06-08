@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 
 app.use('/api/cases', caseRoutes);
-app.use('/api/simulate', simulationRoutes);
+app.use('/api/simulations', simulationRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -39,3 +39,4 @@ async function start() {
 }
 
 start();
+

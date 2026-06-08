@@ -63,7 +63,7 @@ exports.startSession = async (req, res) => {
 
 exports.chat = async (req, res) => {
     try {
-      const sessionId = validateString(req.body.sessionId);
+      const sessionId = validateString(req.params.sessionId);
       const question = validateString(req.body.question);
       if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
       if (!question) return res.status(400).json({ error: 'Question cannot be empty' });
@@ -96,7 +96,7 @@ exports.chat = async (req, res) => {
 
 exports.endSimulation = async (req, res) => {
     try {
-      const sessionId = validateString(req.body.sessionId);
+      const sessionId = validateString(req.params.sessionId);
       if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
 
       const session = await Session.findById(sessionId).populate('caseId');

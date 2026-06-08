@@ -378,10 +378,10 @@ export default function App() {
       goToStep(STEPS.SIMULATION)
 
       try {
-        const data = await apiFetch('/simulate/start', {
-          method: 'POST',
-          body: JSON.stringify({ caseId: caseItem._id }),
-        })
+        const data = await apiFetch('/simulations', {
+                  method: 'POST',
+                  body: JSON.stringify({ caseId: caseItem._id }),
+                })
         setSessionId(data.sessionId)
         if (data.greeting) {
           setConversation([{ role: 'patient', content: data.greeting }])
@@ -403,9 +403,9 @@ export default function App() {
       setTyping(true)
 
       try {
-        const data = await apiFetch('/simulate/chat', {
+                const data = await apiFetch(`/simulations/${sessionId}/chat`, {
           method: 'POST',
-          body: JSON.stringify({ sessionId, question }),
+          body: JSON.stringify({ question }),
         })
         if (data.reply) {
           setConversation(prev => [...prev, { role: 'patient', content: data.reply }])
@@ -429,9 +429,9 @@ export default function App() {
       setConversation(prev => [...prev, { role: 'system', content: 'Ending simulation...' }])
 
       try {
-        const data = await apiFetch('/simulate/end', {
+                const data = await apiFetch(`/simulations/${sessionId}/end`, {
           method: 'POST',
-          body: JSON.stringify({ sessionId, diagnosis, endedManually: true }),
+          body: JSON.stringify({ diagnosis, endedManually: true }),
         })
         setAssessment(data.assessment)
         goToStep(STEPS.ASSESSMENT)
