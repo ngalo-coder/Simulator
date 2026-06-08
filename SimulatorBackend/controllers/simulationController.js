@@ -48,7 +48,7 @@ exports.startSession = async (req, res) => {
       try {
         greeting = await getPatientResponse(caseDoc, [], "The doctor enters the room. As the patient, introduce yourself and describe your main problem to the doctor.");
       } catch (err) {
-        console.warn('⚠️ Failed to generate AI greeting:', err.message);
+        console.warn('Failed to generate AI greeting:', err.message);
         greeting = `Hello Doctor, my name is ${caseDoc.patientName}. I'm ${caseDoc.patientProfile.age || '...'} years old. ${caseDoc.patientProfile.chiefComplaint ? `My main problem is ${caseDoc.patientProfile.chiefComplaint}.` : 'I need your help.'}`;
       }
       session.conversation.push({ role: 'patient', content: greeting });
@@ -76,7 +76,7 @@ exports.chat = async (req, res) => {
         const last10 = session.conversation.slice(-10);
         reply = await getPatientResponse(session.caseId, last10, question);
       } catch (err) {
-        console.warn('⚠️ Failed to generate AI reply:', err.message);
+        console.warn('Failed to generate AI reply:', err.message);
         reply = `I'm sorry Doctor, I don't quite understand. Could you please rephrase that? My name is ${session.caseId.patientName} and I came because ${session.caseId.patientProfile.chiefComplaint || "I'm not feeling well"}.`;
       }
 
@@ -111,7 +111,7 @@ exports.endSimulation = async (req, res) => {
       try {
         session.assessment = await generateAssessment(session, session.caseId);
       } catch (err) {
-        console.warn('⚠️ Failed to generate AI assessment:', err.message);
+        console.warn('Failed to generate AI assessment:', err.message);
         session.assessment = {
           grade: 'Pass',
           score: 70,
@@ -135,31 +135,28 @@ async function getPatientResponse(caseDoc, history, userQuestion) {
       throw new Error('OpenRouter API key not configured');
     }
 
-    // Build conversation history with explicit role labels.
-    // The AI assistant is always the PATIENT; the user is the DOCTOR.
-    // Prefix each message with its role context to prevent role confusion.
-    const historyMessages = history.map(m => {
-        const role = m.role === 'user' ? 'user' : 'assistant';
-        const prefix = m.role === 'user'
-            ? '[The DOCTOR asks me:]'
-            : '[I, the PATIENT, reply:]';
-        return { role, content: `${prefix} ${m.content}` };
-    });
+        // Map conversation history to OpenAI roles.
+    // The AI is always the patient (assistant), the user is the doctor (user).
+    // We avoid prefixing messages with role labels that could leak into output.
+    const historyMessages = history.map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content
+    }));
 
-        // Inject a strong reminder before the last user message so the AI stays strictly in patient character.
+    // Keep a strong system reminder to prevent the AI from role-switching.
     const personalityNote = caseDoc.patientProfile.patientPersonality
         ? ` Your demeanor: ${caseDoc.patientProfile.patientPersonality}.`
         : '';
     const patientReminder = {
         role: 'system',
-        content: `⚠️ CRITICAL REMINDER: You are the PATIENT, NOT the doctor. NEVER act as a doctor. NEVER diagnose yourself. NEVER evaluate the doctor's questions. NEVER give medical advice or treatment suggestions. You are ${caseDoc.patientProfile.age || 'a certain age'} years old, ${caseDoc.patientProfile.gender || 'unspecified gender'}. Your chief complaint is: "${caseDoc.patientProfile.chiefComplaint || 'N/A'}".${personalityNote} Describe only your symptoms, feelings, and history as the patient. Answer naturally but remember you are seeking help.`
+        content: `CRITICAL: You are the PATIENT. Never act as the doctor, never diagnose yourself, never give medical advice. You are ${caseDoc.patientProfile.age || 'a certain age'} years old, ${caseDoc.patientProfile.gender || 'unspecified gender'}. Your chief complaint is: "${caseDoc.patientProfile.chiefComplaint || 'N/A'}".${personalityNote} Describe only your symptoms and history. Answer conversationally as a real patient.`
     };
 
     const messages = [
         { role: 'system', content: caseDoc.patientSystemPrompt },
         ...historyMessages,
         patientReminder,
-        { role: 'user', content: `[The DOCTOR asks me:] ${userQuestion}` }
+        { role: 'user', content: userQuestion }
     ];
 
                         const completion = await openai.chat.completions.create({
@@ -168,7 +165,12 @@ async function getPatientResponse(caseDoc, history, userQuestion) {
         temperature: 0.7,
         max_tokens: MAX_TOKENS
     });
-    return completion.choices[0].message.content;
+    let reply = completion.choices[0].message.content;
+
+    // Strip any accidental role-prefix the model might still produce
+    reply = reply.replace(/^\[?(I, the PATIENT, reply:|The PATIENT:|As the patient,?|Patient:)\]\s*/i, '').trim();
+
+    return reply;
 }
 
 async function generateAssessment(session, caseDoc) {
